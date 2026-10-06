@@ -18,25 +18,25 @@ function buildTextures() {
     for (let y = 0; y < TEX; y++) {
       for (let x = 0; x < TEX; x++) {
         const strata = Math.sin((y + n * 11) * 0.35) * 8;
-        let r = 70 + strata;
-        let g = 64 + strata * 0.45;
-        let b = 74 + strata * 0.2;
+        let r = 78 + strata;
+        let g = 70 + strata * 0.4;
+        let b = 60 + strata * 0.15;
         if (y > 36 && y < 44) {
-          r = 92;
-          g = 176;
-          b = 164;
+          r = 150;
+          g = 98;
+          b = 62;
         }
         if (n === 1 && x > 10 && x < 16 && y > 10 && y < 36 && (y % 6 === 0 || y % 6 === 1)) {
-          r = 196;
-          g = 164;
-          b = 92;
+          r = 176;
+          g = 132;
+          b = 72;
         }
         if (n === 2) {
           const d = Math.hypot(x - 32, y - 22);
           if (d > 9 && d < 12) {
-            r = 92;
-            g = 176;
-            b = 166;
+            r = 150;
+            g = 98;
+            b = 62;
           }
         }
         if (n === 3 && y > 46 && x % 9 < 2) {
@@ -92,9 +92,9 @@ const dust = Array.from({ length: 48 }, (_, i) => ({
 export function drawLobby(ctx, w, h, time) {
   ctx.clearRect(0, 0, w, h);
   const sky = ctx.createLinearGradient(0, 0, 0, h);
-  sky.addColorStop(0, "#07060c");
-  sky.addColorStop(0.45, "#14182a");
-  sky.addColorStop(1, "#08090e");
+  sky.addColorStop(0, "#070706");
+  sky.addColorStop(0.45, "#16130f");
+  sky.addColorStop(1, "#0c0d10");
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, w, h);
   const px = w * 0.72;
@@ -108,7 +108,7 @@ export function drawLobby(ctx, w, h, time) {
   ctx.beginPath();
   ctx.arc(px, py, pr, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = "rgba(125, 206, 196, 0.35)";
+  ctx.strokeStyle = "rgba(143, 106, 82, 0.4)";
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.arc(w * 0.5, h * 0.62, Math.min(w, h) * 0.22, time * 0.15, time * 0.15 + 1.8);
@@ -150,9 +150,9 @@ export function drawExplorer(canvas, view) {
       let b;
       if (above) {
         const t = horizon <= 1 ? 0 : y / horizon;
-        r = 7 + t * 14;
-        g = 8 + t * 16;
-        b = 16 + t * 26;
+        r = 8 + t * 10;
+        g = 8 + t * 8;
+        b = 9 + t * 8;
         const dx = x - pcx;
         const dy = y - pcy;
         const dist = Math.hypot(dx, dy);
@@ -166,11 +166,14 @@ export function drawExplorer(canvas, view) {
           r = g = b = 210;
         }
       } else {
-        const span = Math.max(1, h - horizon);
-        const t = (y - horizon) / span;
-        r = 26 - t * 16;
-        g = 24 - t * 16;
-        b = 32 - t * 18;
+        const row = Math.max(1, y - horizon);
+        const dist = (h * 0.5) / row;
+        const camera = (x / w - 0.5) * FOV;
+        const cone = Math.max(0, 1 - Math.abs(camera) / (FOV * 0.5));
+        const lit = cone * cone / (1 + dist * 0.38);
+        r = 16 + lit * 118;
+        g = 14 + lit * 78;
+        b = 12 + lit * 42;
       }
       const i = (y * w + x) * 4;
       data[i] = r;
@@ -188,22 +191,27 @@ export function drawExplorer(canvas, view) {
     const line = h / hit.dist;
     const top = Math.max(0, Math.floor(horizon - line / 2));
     const bot = Math.min(h - 1, Math.floor(horizon + line / 2));
-    const flash = Math.max(0, 1 - Math.abs(col / w - 0.5) * 2.2);
-    const light = Math.max(0.14, flash * flash * Math.min(1.45, 1.7 / (1 + hit.dist * hit.dist * 0.04)));
-    const fog = clamp(hit.dist / 10, 0, 1);
-    const shade = hit.side === 1 ? 0.78 : 1;
+    const distLight = 1.2 / (1 + hit.dist * 0.7);
+    const fog = clamp(hit.dist / 9, 0, 1);
+    const shade = hit.side === 1 ? 0.72 : 1;
     const edge = Math.min(hit.wallX, 1 - hit.wallX);
-    const edgeDark = edge < 0.06 ? 0.72 : 1;
+    const edgeDark = edge < 0.09 ? 0.28 + (edge / 0.09) * 0.72 : 1;
     const id = hit.seal >= 0 ? 4 : Math.abs(hit.mapX * 13 + hit.mapY * 7 + hit.side * 5) % 4;
     for (let y = top; y <= bot; y++) {
       const v = line <= 1 ? 0 : (y - (horizon - line / 2)) / line;
       const rgb = texAt(id, hit.wallX, v);
-      let r = rgb[0] * light * shade * edgeDark;
-      let g = rgb[1] * light * shade * edgeDark;
-      let b = rgb[2] * light * shade * edgeDark;
-      r = r * (1 - fog) + 8 * fog;
-      g = g * (1 - fog) + 10 * fog;
-      b = b * (1 - fog) + 16 * fog;
+      const vx = (col / w - 0.5) / 0.42;
+      const vy = (y - horizon) / (h * 0.46);
+      const spot = Math.max(0, 1 - Math.hypot(vx, vy));
+      const light = 0.045 + spot * spot * distLight;
+      const contact = Math.min(v, 1 - v);
+      const seam = contact < 0.07 ? 0.38 + (contact / 0.07) * 0.62 : 1;
+      let r = rgb[0] * light * shade * edgeDark * seam;
+      let g = rgb[1] * light * shade * edgeDark * seam;
+      let b = rgb[2] * light * shade * edgeDark * seam;
+      r = r * (1 - fog) + 14 * fog;
+      g = g * (1 - fog) + 12 * fog;
+      b = b * (1 - fog) + 11 * fog;
       const i = (y * w + col) * 4;
       data[i] = r;
       data[i + 1] = g;
@@ -261,7 +269,7 @@ function spriteColor(sprite, u, v, time) {
     const band = Math.abs(u - 0.5);
     if (band > 0.5) return null;
     const pulse = 0.35 + 0.25 * Math.sin(time * 6 + v * 8);
-    return [120, 220, 210, (1 - band * 1.6) * pulse];
+    return [176, 124, 86, (1 - band * 1.6) * pulse];
   }
   const cx = u - 0.5;
   const cy = v - 0.56;
@@ -277,9 +285,9 @@ function spriteColor(sprite, u, v, time) {
   const hunt = sprite.state === "hunt";
   const eye = Math.abs(cx) < (hunt ? 0.07 : 0.04) && v > 0.3 && v < 0.74;
   const ring = Math.abs(r - 0.3) < 0.03 || Math.abs(r - 0.4) < 0.02;
-  if (eye) return hunt ? [255, 80, 60, 1] : [230, 245, 170, 1];
-  if (r < 0.1) return [214, 242, 120, 0.95];
-  if (ring) return hunt ? [255, 120, 80, 0.9] : [170, 200, 90, 0.85];
+  if (eye) return hunt ? [196, 72, 52, 1] : [196, 206, 140, 1];
+  if (r < 0.1) return [168, 184, 96, 0.95];
+  if (ring) return hunt ? [176, 84, 58, 0.9] : [140, 156, 78, 0.85];
   return [30 + (1 - r) * 40, 48 + (1 - r) * 50, 28, 0.22 + (0.5 - r)];
 }
 
@@ -293,8 +301,8 @@ export function drawBeacon(ctx, w, h, body, ping) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(ang);
-  ctx.strokeStyle = "rgba(125, 206, 196, 0.95)";
-  ctx.fillStyle = "rgba(125, 206, 196, 0.9)";
+  ctx.strokeStyle = "rgba(196, 164, 138, 0.95)";
+  ctx.fillStyle = "rgba(196, 164, 138, 0.9)";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(0, -12);
@@ -317,7 +325,7 @@ export function drawVignette(ctx, w, h, threat, veil) {
     ctx.fillRect(0, 0, w, h);
   }
   if (veil > 0) {
-    ctx.fillStyle = "rgba(125, 206, 196, 0.08)";
+    ctx.fillStyle = "rgba(143, 106, 82, 0.1)";
     ctx.fillRect(0, 0, w, h);
   }
   ctx.strokeStyle = "rgba(239, 231, 218, 0.28)";
@@ -340,8 +348,8 @@ export function drawGuide(ctx, w, h, view) {
   const { maze, explorer, sentinel, ping, time, wake } = view;
   ctx.clearRect(0, 0, w, h);
   const bg = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, Math.max(w, h) * 0.7);
-  bg.addColorStop(0, "#141824");
-  bg.addColorStop(1, "#07080d");
+  bg.addColorStop(0, "#161410");
+  bg.addColorStop(1, "#070706");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
   if (!maze || !explorer) return null;
@@ -357,9 +365,9 @@ export function drawGuide(ctx, w, h, view) {
     for (let x = 0; x < maze.w; x++) {
       const d = Math.hypot(x + 0.5 - (relic.x + 0.5), y + 0.5 - (relic.y + 0.5));
       const heat = Math.max(0, 1 - d / (maze.w * 0.85));
-      const r = 18 + heat * 50;
-      const g = 20 + heat * 24;
-      const b = 28 + heat * 8;
+      const r = 24 + heat * 48;
+      const g = 21 + heat * 22;
+      const b = 17 + heat * 8;
       ctx.fillStyle = `rgb(${r},${g},${b})`;
       ctx.fillRect(toX(x) + 1, toY(y) + 1, size - 2, size - 2);
     }
@@ -378,12 +386,12 @@ export function drawGuide(ctx, w, h, view) {
       ctx.lineTo(toX(sentinel.x + Math.cos(a) * reach), toY(sentinel.y + Math.sin(a) * reach));
     }
     ctx.closePath();
-    ctx.fillStyle = sentinel.state === "hunt" ? "rgba(255, 90, 60, 0.16)" : "rgba(214, 242, 92, 0.1)";
+    ctx.fillStyle = sentinel.state === "hunt" ? "rgba(196, 92, 66, 0.16)" : "rgba(163, 181, 106, 0.1)";
     ctx.fill();
     if (sense.hear > 0.2) {
       ctx.beginPath();
       ctx.arc(sx, sy, sense.hear * size, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(214, 242, 92, 0.28)";
+      ctx.strokeStyle = "rgba(163, 181, 106, 0.28)";
       ctx.lineWidth = 1;
       ctx.stroke();
     }
@@ -397,12 +405,12 @@ export function drawGuide(ctx, w, h, view) {
     ctx.lineTo(toX(explorer.x + Math.cos(a) * hit.dist), toY(explorer.y + Math.sin(a) * hit.dist));
   }
   ctx.closePath();
-  ctx.fillStyle = "rgba(125, 206, 196, 0.16)";
+  ctx.fillStyle = "rgba(143, 106, 82, 0.2)";
   ctx.fill();
 
   ctx.lineWidth = Math.max(2, size * 0.14);
   ctx.lineCap = "square";
-  ctx.strokeStyle = "#9fd9cf";
+  ctx.strokeStyle = "#c4b8a6";
   ctx.beginPath();
   for (let y = 0; y < maze.h; y++) {
     for (let x = 0; x <= maze.w; x++) {
@@ -422,7 +430,7 @@ export function drawGuide(ctx, w, h, view) {
 
   ctx.setLineDash([4, 7]);
   ctx.lineWidth = 1;
-  ctx.strokeStyle = "rgba(214, 242, 92, 0.35)";
+  ctx.strokeStyle = "rgba(163, 181, 106, 0.32)";
   ctx.beginPath();
   const patrol = maze.patrol || [];
   for (let i = 0; i < patrol.length; i++) {
@@ -461,14 +469,14 @@ export function drawGuide(ctx, w, h, view) {
   ctx.arc(toX(relic.x + 0.5), toY(relic.y + 0.5), Math.max(5, size * 0.28) * pulse, 0, Math.PI * 2);
   ctx.fill();
 
-  if (sentinel) drawActor(ctx, toX(sentinel.x), toY(sentinel.y), sentinel.a, sentinel.state === "hunt" ? "#ff5a3c" : "#d6f25c", size);
-  drawActor(ctx, toX(explorer.x), toY(explorer.y), explorer.a, "#7dcec4", size);
+  if (sentinel) drawActor(ctx, toX(sentinel.x), toY(sentinel.y), sentinel.a, sentinel.state === "hunt" ? "#c45c42" : "#a3b56a", size);
+  drawActor(ctx, toX(explorer.x), toY(explorer.y), explorer.a, "#c4a48a", size);
 
   if (ping && ping.ttl > 0) {
     const radius = (1.2 - ping.ttl / 12) * size * 0.8;
     ctx.beginPath();
     ctx.arc(toX(ping.x), toY(ping.y), Math.max(4, radius), 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(125, 206, 196, 0.8)";
+    ctx.strokeStyle = "rgba(196, 164, 138, 0.85)";
     ctx.lineWidth = 2;
     ctx.stroke();
   }

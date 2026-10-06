@@ -1,13 +1,17 @@
 :root {
-  --bg: #08090e;
-  --bone: #efe7da;
-  --dim: #9a9288;
-  --line: rgba(239, 231, 218, 0.16);
-  --glow: #7dcec4;
-  --amber: #e2a45a;
-  --alert: #ff5a3c;
-  --guard: #d6f25c;
-  --ink: #14221f;
+  --bg: #0c0d10;
+  --bone: #e7e1d6;
+  --dim: #8e877c;
+  --line: rgba(231, 225, 214, 0.16);
+  --copper: #8f6a52;
+  --copper-bright: #c4a48a;
+  --glow: var(--copper);
+  --amber: #c4893a;
+  --alert: #c45c42;
+  --guard: #a3b56a;
+  --ink: #1c1814;
+  --plate-top: #2e2a25;
+  --plate-bot: #161411;
   color-scheme: dark;
 }
 
@@ -36,7 +40,7 @@ button { cursor: pointer; }
 
 #screen.is-game #world {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 440px);
   position: relative;
   height: 100dvh;
 }
@@ -47,7 +51,9 @@ button { cursor: pointer; }
   flex-direction: column;
   gap: 14px;
   padding: 22px 18px 18px;
-  background: #0c0e14;
+  background:
+    linear-gradient(180deg, rgba(231, 225, 214, 0.04), transparent 72px),
+    #12110e;
   border-left: 1px solid var(--line);
   overflow: auto;
   min-height: 0;
@@ -55,7 +61,7 @@ button { cursor: pointer; }
 
 .frame { position: absolute; inset: 12px; pointer-events: none; z-index: 3; display: none; }
 #screen.is-game .frame { display: block; }
-.frame span { position: absolute; width: 16px; height: 16px; border: 1px solid rgba(125, 206, 196, 0.5); }
+.frame span { position: absolute; width: 18px; height: 18px; border: 1px solid rgba(143, 106, 82, 0.7); }
 .frame span:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; }
 .frame span:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; }
 .frame span:nth-child(3) { bottom: 0; left: 0; border-right: 0; border-top: 0; }
@@ -92,35 +98,37 @@ h2, .result-card h2 { font-size: 28px; letter-spacing: 0.08em; }
 .fine { font-size: 13px; margin: 0; }
 .err { min-height: 1.2em; color: var(--amber); font-size: 14px; }
 
-.roles, .join, .call-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.roles, .join { display: flex; flex-wrap: wrap; gap: 10px; }
 .roles { margin: 22px 0 18px; }
 .roles button, .solid, .ghost, .call-row button, #veil-btn, #next, #sprint {
-  min-height: 48px;
-  border-radius: 0;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-size: 12px;
-}
-.roles button, .solid, #next {
-  background: var(--bone);
-  color: var(--ink);
-  border: 0;
-  padding: 0 16px;
-}
-.ghost, .call-row button, #veil-btn, #sprint {
-  background: transparent;
+  min-height: 56px;
+  border-radius: 3px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 17px;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  background: linear-gradient(180deg, var(--plate-top), var(--plate-bot));
   color: var(--bone);
-  border: 1px solid var(--line);
+  border: 1px solid #403a32;
+  box-shadow: inset 0 1px 0 rgba(231, 225, 214, 0.16), 0 2px 0 #070605;
+}
+.roles button:active, .solid:active, .ghost:active, .call-row button:active, #veil-btn:active, #next:active, #sprint:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.55);
+}
+.solid, #next, #veil-btn {
+  border-color: #6a5040;
+  box-shadow: inset 0 1px 0 rgba(196, 164, 138, 0.28), 0 2px 0 #070605;
 }
 .roles button small {
   display: block;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   text-transform: none;
-  font-size: 12px;
-  color: #5c675f;
-  margin-top: 3px;
+  font-size: 13px;
+  color: var(--dim);
+  margin-top: 4px;
 }
-.roles button { text-align: left; padding: 12px 14px 10px; flex: 1 1 160px; }
+.roles button { text-align: left; padding: 14px 16px 12px; flex: 1 1 180px; min-height: 78px; }
 .join { margin-top: 8px; align-items: end; }
 .join input {
   flex: 1 1 160px;
@@ -154,16 +162,37 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
 }
 .urls { word-break: break-all; }
 
-#panel h2 { transition: color 0.2s linear; font-size: 22px; }
-#panel .code { font-size: 26px; letter-spacing: 0.28em; }
+#panel h2 { transition: color 0.2s linear; font-size: 34px; letter-spacing: 0.04em; }
+#panel .code { font-size: 22px; letter-spacing: 0.28em; color: var(--dim); }
 .join input::placeholder { letter-spacing: 0.18em; font-size: 13px; color: #6d675f; }
 #panel h2[data-state="hunt"] { color: var(--alert); }
-#panel h2[data-state="alert"] { color: var(--amber); }
-#panel h2[data-state="search"] { color: #e2c56a; }
+#panel h2[data-state="alert"] { color: var(--copper-bright); }
+#panel h2[data-state="search"] { color: #cbb992; }
 #panel h2[data-state="patrol"] { color: var(--guard); }
-.call-row button { flex: 1 1 30%; padding: 8px; }
-#veil-btn { width: 100%; }
-#seal-count { margin: 0; letter-spacing: 0.16em; text-transform: uppercase; font-size: 12px; color: var(--amber); }
+.call-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.call-row button {
+  min-height: 78px;
+  padding: 10px 4px 8px;
+  font-size: 14px;
+  line-height: 1.15;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.call-row button small {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--copper-bright);
+}
+#veil-btn { width: 100%; min-height: 64px; font-size: 18px; }
+#seal-count { margin: 0; letter-spacing: 0.04em; text-transform: none; font-size: 15px; color: var(--amber); }
 
 #touch { position: absolute; inset: 72px 0 0; z-index: 4; display: flex; }
 #stick-zone, #look-zone { flex: 1; }
@@ -173,7 +202,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
   height: 120px;
   margin: -60px 0 0 -60px;
   border-radius: 50%;
-  border: 1px solid rgba(125, 206, 196, 0.4);
+  border: 1px solid rgba(143, 106, 82, 0.55);
   z-index: 5;
   pointer-events: none;
 }
@@ -184,7 +213,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
   left: 36px;
   top: 36px;
   border-radius: 50%;
-  background: rgba(125, 206, 196, 0.38);
+  background: rgba(143, 106, 82, 0.55);
 }
 #sprint {
   position: fixed;
@@ -196,7 +225,11 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
   border-radius: 50%;
   letter-spacing: 0.12em;
 }
-#sprint.on { background: var(--amber); color: var(--ink); border-color: var(--amber); }
+#sprint.on {
+  background: linear-gradient(180deg, #6a5040, #3a2a22);
+  color: var(--bone);
+  border-color: var(--copper-bright);
+}
 #hint {
   position: fixed;
   z-index: 5;
@@ -235,10 +268,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
   background: transparent;
   border: 0;
   color: var(--dim);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 13px;
   min-height: 36px;
+}
+#screen.is-game[data-role="guide"] #mute {
+  right: auto;
+  left: calc(12px + env(safe-area-inset-left));
 }
 #waitbanner {
   position: absolute;
@@ -276,6 +313,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
     max-height: 46dvh;
   }
   h1 { letter-spacing: 0.08em; }
+  .call-row button { font-size: 12px; min-height: 68px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
