@@ -10,6 +10,22 @@ Wejście: jeden gracz otwiera komorę i dostaje czteroznakowy kod oraz kod QR. D
 
 Głosu w grze nie ma. Kartograf może mówić obok albo przez telefon, a dodatkowo wysyła krótkie znaki: Stój, Cicho, Biegnij, W lewo, W prawo.
 
+## Kierunek wizualny
+
+Wybrany 2026-10-07: tablica pomiarowa.
+
+Paleta to popiół, kość i przygaszona miedź. Bursztyn zostaje przy pieczęciach i przy sercu ruiny. Strażnik zostaje zielony, tylko ciszej. Turkus schodzi z interfejsu, ze stożka latarki i z mapy.
+
+Palatino jest w tytułach i w zawołaniu na środku ekranu latarnika. Przyciski są krojem systemowym, duże, bez rozstrzelonych kapitalików.
+
+Pięć zawołań to płyty obok siebie, ze słowem i cyfrą. Zasłona jest jedną szeroką płytą pod nimi. Wciśnięcie lekko zapada się w kamień.
+
+Światło latarnika jest stożkiem, który gaśnie z odległością. Krawędź ściany i styk z podłogą są ciemniejsze, żeby skręt było widać z bliska. Na podłodze widać, jak daleko sięga snop.
+
+Dźwięk: suche stuknięcie kamienia przy zawołaniu, niski wiatr w tle, pieczęć jako jedno uderzenie metalu. Pościg schodzi niżej, bez piły.
+
+Mechaniki rundy przy tym kierunku się nie zmieniają.
+
 ## Role
 
 **Kartograf** (najlepiej komputer). Widzi plan z góry: korytarze, latarnika, stożek jego światła, strażnika, jego pole widzenia i zasięg słuchu, trasę obchodu, bursztynowe klamry i serce ruiny. Klik w korytarz stawia znak, który latarnik widzi jako strzałkę na krawędzi ekranu i snop, gdy ma go w polu widzenia. Klik w klamrę wydaje pieczęć. Zasłona na chwilę myli strażnika.
@@ -51,7 +67,7 @@ Sprawdzone w tej sesji:
 
 ## Znane problemy
 
-- Widok latarnika to programowy raycaster. Przy ścianie z bliska korytarz wygląda płasko. Światło jest jaśniejszym pasem na środku ekranu, nie pełnym oświetleniem sceny. Tekstury są generowane, 64×64, bez osobnych assetów.
+- Widok latarnika to programowy raycaster. Światło jest stożkiem z gaśnięciem i ciemniejszym stykiem podłogi, ale tekstury są nadal generowane, 64×64, bez osobnych assetów. Z bardzo bliska ściana wciąż wypełnia ekran.
 - Karta w tle prawie nie rysuje klatek. Po powrocie obraz może być przez chwilę pusty, dopóki pętla znowu nie namaluje kadru.
 - Zostawiona runda sama wchodzi w „ruina się budzi”. Długi przestój w teście zaostrza strażnika.
 - Dobrze gadająca para może skończyć pierwszą komorę szybciej niż zakładane 3–5 minut, bo optymalny marsz 15×15 to około minuty. Czekanie na strażnika i złe skręty to wydłużają.
