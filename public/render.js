@@ -157,16 +157,22 @@ export function drawExplorer(canvas, view) {
   z.fill(99);
   const { maze, body, time } = view;
   const moving = !!body.moving;
-  const bob = moving ? Math.sin(time * (body.sprint ? 14 : 9)) * h * (body.sprint ? 0.012 : 0.008) : 0;
+  const calm = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pace = body.sprint ? 13.5 : 8.6;
+  const phase = time * pace;
+  const amp = calm || !moving ? 0 : body.sprint ? 1 : 0.75;
+  const bob = Math.sin(phase) * h * 0.013 * amp;
+  const sway = Math.cos(phase * 0.5) * 0.016 * amp;
+  const aim = body.a + sway;
   const horizon = h * 0.5 + bob;
-  const flick = 1 + 0.03 * Math.sin(time * 1.5);
+  const flick = calm ? 1 : 1 + 0.015 * Math.sin(time * 9.4) + 0.01 * Math.sin(time * 3.3 + 0.8) + 0.006 * Math.sin(time * 17.2);
   const pcx = w * 0.7;
   const pcy = h * 0.2;
   const pr = Math.min(w, h) * 0.18;
   const rayX = new Float32Array(w);
   const rayY = new Float32Array(w);
   for (let x = 0; x < w; x++) {
-    const ang = body.a + (x / w - 0.5) * FOV;
+    const ang = aim + (x / w - 0.5) * FOV;
     rayX[x] = Math.cos(ang);
     rayY[x] = Math.sin(ang);
   }
@@ -227,7 +233,7 @@ export function drawExplorer(canvas, view) {
     }
   }
 
-  const pa = body.a;
+  const pa = aim;
   for (let col = 0; col < w; col++) {
     const camera = (col / w - 0.5) * FOV;
     const hit = raycast(maze, body.x, body.y, pa + camera);
@@ -280,7 +286,7 @@ export function drawExplorer(canvas, view) {
   });
   for (const sprite of sprites) {
     if ((sprite.kind === "sentinel" || sprite.kind === "seal") && !hasLos(maze, body.x, body.y, sprite.x, sprite.y)) continue;
-    blitSprite(data, z, w, h, horizon, body, sprite, time);
+    blitSprite(data, z, w, h, horizon, { ...body, a: aim }, sprite, time);
   }
 
   ctx.putImageData(image, 0, 0);

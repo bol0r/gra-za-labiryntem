@@ -38,6 +38,7 @@ const state = {
   token: "",
   maze: null,
   round: 0,
+  look: 0,
   body: { x: 1.5, y: 1.5, a: 0, moving: false, sprint: false, quiet: true },
   input: { forward: 0, strafe: 0, angle: 0, sprint: false },
   snaps: [],
@@ -237,6 +238,7 @@ function onRound(msg) {
   state.body.x = msg.spawn.x;
   state.body.y = msg.spawn.y;
   state.body.a = msg.spawn.a;
+  state.look = msg.spawn.a;
   state.input.angle = msg.spawn.a;
   state.input.forward = 0;
   state.input.strafe = 0;
@@ -338,9 +340,8 @@ function controlHint() {
 
 function readKeys(dt) {
   if (state.role !== "runner") return;
-  if (keys.has("arrowleft")) state.body.a = normalizeAngle(state.body.a - 1.8 * dt);
-  if (keys.has("arrowright")) state.body.a = normalizeAngle(state.body.a + 1.8 * dt);
-  state.input.angle = state.body.a;
+  if (keys.has("arrowleft")) state.look = normalizeAngle(state.look - 1.8 * dt);
+  if (keys.has("arrowright")) state.look = normalizeAngle(state.look + 1.8 * dt);
   if (sticks.size) return;
   const forward = (keys.has("w") || keys.has("arrowup") ? 1 : 0) - (keys.has("s") || keys.has("arrowdown") ? 1 : 0);
   const strafe = (keys.has("d") ? 1 : 0) - (keys.has("a") ? 1 : 0);
@@ -447,6 +448,7 @@ function connect() {
       state.body.x = msg.x;
       state.body.y = msg.y;
       state.body.a = msg.a;
+      state.look = msg.a;
       state.input.angle = msg.a;
     } else if (msg.t === "err") {
       if (msg.text && (msg.text.includes("zgasła") || msg.text.includes("Nie ma"))) {
@@ -554,8 +556,7 @@ stage.addEventListener("click", (event) => {
 
 document.addEventListener("mousemove", (event) => {
   if (document.pointerLockElement !== stage || state.role !== "runner") return;
-  state.body.a = normalizeAngle(state.body.a + event.movementX * 0.0032);
-  state.input.angle = state.body.a;
+  state.look = normalizeAngle(state.look + event.movementX * 0.0032);
 });
 
 window.addEventListener("keydown", (event) => {
@@ -591,8 +592,7 @@ function bindPointer(zone, kind) {
     if (kind === "look") {
       if (!looks.has(event.pointerId)) return;
       const prev = looks.get(event.pointerId);
-      state.body.a = normalizeAngle(state.body.a + (event.clientX - prev) * 0.0072);
-      state.input.angle = state.body.a;
+      state.look = normalizeAngle(state.look + (event.clientX - prev) * 0.0072);
       looks.set(event.pointerId, event.clientX);
       return;
     }
@@ -665,6 +665,9 @@ function frame(now) {
   if (state.role === "runner" && state.phase === "play" && state.maze) {
     try {
       readKeys(dt);
+      const turn = normalizeAngle(state.look - state.body.a);
+      const glide = 1 - Math.exp(-dt / 0.034);
+      state.body.a = normalizeAngle(state.body.a + turn * (Math.abs(turn) < 0.0004 ? 1 : glide));
       state.input.angle = state.body.a;
       state.acc += dt;
       let steps = 0;
