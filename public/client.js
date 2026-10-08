@@ -651,7 +651,7 @@ nextBtn.addEventListener("click", () => send({ t: "skip" }));
 muteBtn.addEventListener("click", () => {
   audio.unlock();
   const muted = audio.toggle();
-  muteBtn.textContent = muted ? "Cisza" : "Dźwięk";
+  muteBtn.textContent = muted ? "Dźwięk" : "Wycisz";
 });
 window.addEventListener("pointerdown", () => audio.unlock(), { once: false });
 window.addEventListener("contextmenu", (event) => event.preventDefault());

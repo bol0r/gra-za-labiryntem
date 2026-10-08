@@ -6,8 +6,10 @@ export function createAudio() {
   let sentinel = null;
   let sentGain = null;
   let noise = null;
+  let cloth = null;
   let muted = false;
   let stepAt = 0;
+  let stepFlip = false;
 
   function ensure() {
     if (ctx) return;
@@ -17,8 +19,8 @@ export function createAudio() {
     master = ctx.createGain();
     master.gain.value = 0.32;
     master.connect(ctx.destination);
-    droneA = osc(46, "sine", 0.03);
-    droneB = osc(69.2, "sine", 0.014);
+    droneA = osc(40, "sine", 0.028);
+    droneB = osc(60.5, "sine", 0.012);
     startWind();
     const lfo = ctx.createOscillator();
     const lfoGain = ctx.createGain();
@@ -29,12 +31,12 @@ export function createAudio() {
     lfo.start();
     sentinel = ctx.createOscillator();
     sentinel.type = "sine";
-    sentinel.frequency.value = 46;
+    sentinel.frequency.value = 34;
     sentGain = ctx.createGain();
     sentGain.gain.value = 0;
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.value = 420;
+    filter.frequency.value = 90;
     sentinel.connect(filter);
     filter.connect(sentGain);
     sentGain.connect(master);
@@ -43,6 +45,14 @@ export function createAudio() {
     noise = ctx.createBuffer(1, len, ctx.sampleRate);
     const data = noise.getChannelData(0);
     for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const clothLen = Math.floor(ctx.sampleRate * 0.35);
+    cloth = ctx.createBuffer(1, clothLen, ctx.sampleRate);
+    const clothData = cloth.getChannelData(0);
+    let brown = 0;
+    for (let i = 0; i < clothLen; i++) {
+      brown = brown * 0.92 + (Math.random() * 2 - 1) * 0.08;
+      clothData[i] = brown;
+    }
   }
 
   function osc(freq, type, gain) {
@@ -96,12 +106,12 @@ export function createAudio() {
     src.start();
   }
 
-  function burst(freq, dur, gain, q) {
-    if (!ctx || muted || !noise) return;
+  function shaped(buffer, type, freq, q, dur, gain) {
+    if (!ctx || muted || !buffer) return;
     const src = ctx.createBufferSource();
-    src.buffer = noise;
+    src.buffer = buffer;
     const filter = ctx.createBiquadFilter();
-    filter.type = "bandpass";
+    filter.type = type;
     filter.frequency.value = freq;
     filter.Q.value = q;
     const amp = ctx.createGain();
@@ -113,6 +123,27 @@ export function createAudio() {
     amp.connect(master);
     src.start(now);
     src.stop(now + dur + 0.02);
+  }
+
+  function loseWash() {
+    if (!ctx || muted || !cloth) return;
+    const src = ctx.createBufferSource();
+    src.buffer = cloth;
+    src.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(240, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(1400, ctx.currentTime + 1.3);
+    const amp = ctx.createGain();
+    const now = ctx.currentTime;
+    amp.gain.setValueAtTime(0.0001, now);
+    amp.gain.exponentialRampToValueAtTime(0.09, now + 0.45);
+    amp.gain.exponentialRampToValueAtTime(0.0001, now + 1.7);
+    src.connect(filter);
+    filter.connect(amp);
+    amp.connect(master);
+    src.start(now);
+    src.stop(now + 1.75);
   }
 
   return {
@@ -132,8 +163,8 @@ export function createAudio() {
     play(name) {
       ensure();
       if (name === "ping") {
-        burst(380, 0.08, 0.22, 0.8);
-        tone(118, 0.07, "sine", 0.05);
+        tone(156, 0.18, "sine", 0.06);
+        shaped(noise, "bandpass", 190, 0.8, 0.08, 0.1);
       }
       if (name === "seal") {
         tone(740, 0.16, "sine", 0.055);
@@ -141,16 +172,23 @@ export function createAudio() {
         tone(186, 0.22, "triangle", 0.05);
       }
       if (name === "veil") {
-        burst(240, 0.18, 0.08, 0.5);
+        shaped(noise, "bandpass", 240, 0.5, 0.18, 0.08);
         tone(156, 0.28, "sine", 0.04);
       }
-      if (name === "alert") burst(320, 0.07, 0.12, 1);
-      if (name === "hunt") tone(48, 0.5, "sine", 0.09);
+      if (name === "alert") shaped(noise, "bandpass", 320, 1, 0.07, 0.12);
+      if (name === "hunt") tone(36, 0.55, "sine", 0.08);
       if (name === "win") {
-        tone(196, 0.35, "sine", 0.06);
-        setTimeout(() => tone(294, 0.45, "sine", 0.05), 120);
+        tone(247, 0.4, "triangle", 0.045);
+        shaped(noise, "bandpass", 520, 1.4, 0.04, 0.035);
+        setTimeout(() => {
+          tone(370, 0.55, "triangle", 0.038);
+          shaped(noise, "bandpass", 680, 1.2, 0.035, 0.028);
+        }, 190);
       }
-      if (name === "lose") tone(52, 0.8, "sine", 0.1);
+      if (name === "lose") {
+        tone(58, 0.9, "sine", 0.07);
+        loseWash();
+      }
       if (name === "start") tone(98, 0.4, "sine", 0.05);
     },
     update(dt, world) {
@@ -158,28 +196,21 @@ export function createAudio() {
       const dist = world.dist;
       const near = Math.max(0, 1 - dist / 8);
       if (sentGain) {
-        const target = muted ? 0 : near * near * (world.role === "runner" ? 0.08 : 0.03);
-        sentGain.gain.value += (target - sentGain.gain.value) * 0.1;
+        const target = muted ? 0 : near * near * (world.role === "runner" ? 0.16 : 0.05);
+        sentGain.gain.value += (target - sentGain.gain.value) * 0.08;
       }
       if (sentinel) {
-        const hunt = world.state === "hunt" ? 10 : 0;
-        sentinel.frequency.value = 42 + near * 36 + hunt;
+        const hunt = world.state === "hunt" ? 6 : 0;
+        sentinel.frequency.value = 30 + near * 14 + hunt;
       }
       if (!world.moving || muted) return;
       stepAt -= dt;
       if (stepAt <= 0) {
-        stepAt = world.sprint ? 0.28 : 0.42;
-        const src = ctx.createBufferSource();
-        src.buffer = noise;
-        const filter = ctx.createBiquadFilter();
-        filter.type = "bandpass";
-        filter.frequency.value = world.sprint ? 280 : 180;
-        const amp = ctx.createGain();
-        amp.gain.value = world.role === "runner" ? 0.18 : 0.04;
-        src.connect(filter);
-        filter.connect(amp);
-        amp.connect(master);
-        src.start();
+        stepAt = world.sprint ? 0.28 : 0.46;
+        stepFlip = !stepFlip;
+        const loud = world.role === "runner";
+        shaped(cloth, "lowpass", world.sprint ? 520 : 340, 0.7, 0.07, loud ? 0.11 : 0.03);
+        if (stepFlip) shaped(cloth, "bandpass", 640, 0.6, 0.16, loud ? 0.035 : 0.012);
       }
     },
   };
