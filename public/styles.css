@@ -24,10 +24,17 @@ body {
   color: var(--bone);
   font-family: "Avenir Next", "Segoe UI", sans-serif;
   overflow: hidden;
+  overscroll-behavior: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
+  position: fixed;
+  inset: 0;
+  width: 100%;
 }
+button, input { font: inherit; color: inherit; }
+input { user-select: text; -webkit-user-select: text; }
 button, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 [hidden] { display: none !important; }
@@ -54,7 +61,11 @@ button { cursor: pointer; }
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 22px 18px 18px;
+  padding:
+    calc(22px + env(safe-area-inset-top))
+    calc(18px + env(safe-area-inset-right))
+    calc(18px + env(safe-area-inset-bottom))
+    calc(18px + env(safe-area-inset-left));
   background:
     linear-gradient(180deg, rgba(231, 225, 214, 0.04), transparent 72px),
     #12110e;
@@ -94,7 +105,11 @@ button { cursor: pointer; }
   z-index: 2;
   display: grid;
   place-items: center;
-  padding: 24px 16px;
+  padding:
+    calc(24px + env(safe-area-inset-top))
+    calc(16px + env(safe-area-inset-right))
+    calc(24px + env(safe-area-inset-bottom))
+    calc(16px + env(safe-area-inset-left));
   background: radial-gradient(ellipse at center, rgba(8, 9, 14, 0.2), rgba(8, 9, 14, 0.78) 72%);
 }
 .plate { width: min(440px, 100%); transition: opacity 0.4s ease; }
@@ -307,7 +322,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
   left: 50%;
   top: calc(18px + env(safe-area-inset-top));
   transform: translateX(-50%);
-  width: min(440px, calc(100% - 32px));
+  width: min(440px, calc(100% - 156px));
   margin: 0;
   text-align: center;
   color: var(--bone);
@@ -399,6 +414,28 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
   .call-row { gap: 4px; }
   .call-row button { min-height: 64px; }
   .call-row button svg { width: 16px; height: 16px; }
+  #panel .fine:not(#wake-state), #panel .code { display: none; }
+}
+
+@media (max-height: 520px) {
+  #screen.is-game[data-role="guide"] #world {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, min(420px, 50%));
+    grid-template-rows: minmax(0, 1fr);
+  }
+  #screen.is-game[data-role="guide"] #panel {
+    max-height: none;
+    overflow: hidden;
+    border-top: 0;
+    border-left: 1px solid var(--line);
+    gap: 8px;
+    padding-top: calc(8px + env(safe-area-inset-top));
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+  #panel .fine, #panel .code { display: none; }
+  #panel h2 { font-size: 24px; }
+  .call-row button { min-height: 48px; }
+  #veil-btn { min-height: 44px; font-size: 15px; }
+  #sprint { width: 68px; height: 68px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

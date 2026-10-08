@@ -28,6 +28,12 @@ Krok to tkanina i co drugi raz oddech. W tle niski dron. Zawołanie to jedno cie
 
 Start zostaje na Palatino, z wyborem roli na płytach. Kod pokoju jest duży, z odstępami i dopiskiem „Czytaj po jednej literze”. Czekanie mówi wprost „Czekam na drugą osobę.” Wygrana i przegrana siedzą na tej samej płycie; kicker wygranej jest bursztynowy, przegranej zielony. Lobby, wynik i baner wchodzą przezroczystością. Kod mieści się przy 390 px (16 px zapasu). Konsola czysta.
 
+### 6. Telefon
+
+W trakcie gry strona nie przewija się i nie wychodzi poza krawędź: `touch-action: none`, `user-select: none` (pole kodu zostaje zaznaczalne), `overscroll-behavior: none`, body na cały ekran. Marginesy biorą `safe-area`. Na wąskim panelu znika długi opis i kod pokoju, żeby płytki i zasłona mieściły się bez przewijania. W poziomie panel wraca obok mapy. Napis sterowania zostawia 16 px od „Wycisz”.
+
+Sprawdzone: kartograf 360×740 (brak scrolla strony i panelu, pięć płytek w rzędzie, zasłona w kadrze) i 740×360. Latarnik 390×844, 360×740 i 844×390 (brak scrolla, bieg w kadrze, napis nie nachodzi na wyciszenie). Prawdziwego wcięcia iPhone’a ta przeglądarka nie emuluje; wcięcia są w CSS i włączą się, gdy system je poda.
+
 ## Pominięte
 
 Brak.
