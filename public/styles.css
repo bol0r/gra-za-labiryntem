@@ -101,24 +101,29 @@ h2, .result-card h2 { font-size: 28px; letter-spacing: 0.08em; }
 .roles, .join { display: flex; flex-wrap: wrap; gap: 10px; }
 .roles { margin: 22px 0 18px; }
 .roles button, .solid, .ghost, .call-row button, #veil-btn, #next, #sprint {
-  min-height: 56px;
-  border-radius: 3px;
+  min-height: 64px;
+  border-radius: 14px;
   letter-spacing: 0;
   text-transform: none;
   font-size: 17px;
   font-family: "Avenir Next", "Segoe UI", sans-serif;
-  background: linear-gradient(180deg, var(--plate-top), var(--plate-bot));
+  touch-action: manipulation;
+  background: linear-gradient(180deg, #4a433a 0%, #221e1a 100%);
   color: var(--bone);
-  border: 1px solid #403a32;
-  box-shadow: inset 0 1px 0 rgba(231, 225, 214, 0.16), 0 2px 0 #070605;
+  border: 1px solid #5c5348;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 220, 0.38),
+    0 3px 0 #0c0b09,
+    0 7px 12px rgba(0, 0, 0, 0.35);
 }
-.roles button:active, .solid:active, .ghost:active, .call-row button:active, #veil-btn:active, #next:active, #sprint:active {
-  transform: translateY(1px);
-  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.55);
+.roles button:active, .solid:active, .ghost:active, .call-row button:active, #veil-btn:active, #next:active, #sprint:active,
+.roles button.is-down, .solid.is-down, .ghost.is-down, .call-row button.is-down, #veil-btn.is-down, #next.is-down, #sprint.is-down {
+  transform: translateY(3px);
+  background: linear-gradient(180deg, #322e28 0%, #161310 100%);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45);
 }
-.solid, #next, #veil-btn {
-  border-color: #6a5040;
-  box-shadow: inset 0 1px 0 rgba(196, 164, 138, 0.28), 0 2px 0 #070605;
+.solid, #next {
+  border-color: #7a624c;
 }
 .roles button small {
   display: block;
@@ -145,6 +150,7 @@ h2, .result-card h2 { font-size: 28px; letter-spacing: 0.08em; }
 }
 .join button, #next { padding: 0 18px; }
 button:disabled { opacity: 0.4; cursor: default; }
+#veil-btn:disabled { opacity: 1; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outline-offset: 3px; }
 
 .qr {
@@ -175,23 +181,50 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
   gap: 8px;
 }
 .call-row button {
-  min-height: 78px;
-  padding: 10px 4px 8px;
-  font-size: 14px;
-  line-height: 1.15;
+  min-height: 76px;
+  padding: 8px 4px 7px;
+  font-size: 13px;
+  line-height: 1.1;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 2px;
 }
+.call-row button svg { width: 20px; height: 20px; display: block; }
 .call-row button small {
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.04em;
   color: var(--copper-bright);
 }
-#veil-btn { width: 100%; min-height: 64px; font-size: 18px; }
+.call-row button.is-hot {
+  animation: plate-glow 1.5s ease-out;
+}
+@keyframes plate-glow {
+  0% { box-shadow: inset 0 1px 0 rgba(255, 244, 220, 0.38), 0 0 0 0 rgba(226, 150, 60, 0), 0 3px 0 #0c0b09; }
+  18% { box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.7), 0 0 16px 3px rgba(226, 150, 60, 0.85), 0 3px 0 #0c0b09; }
+  100% { box-shadow: inset 0 1px 0 rgba(255, 244, 220, 0.38), 0 0 0 0 rgba(226, 150, 60, 0), 0 3px 0 #0c0b09; }
+}
+#veil-btn {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-height: 64px;
+  font-size: 18px;
+  background: linear-gradient(180deg, #6a6054 0%, #3a342c 100%);
+  border-color: #8a7b68;
+}
+#veil-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: calc(var(--veil-p, 1) * 100%);
+  background: linear-gradient(180deg, rgba(244, 228, 196, 0.55), rgba(210, 176, 120, 0.28));
+  pointer-events: none;
+}
+#veil-label { position: relative; z-index: 1; }
 #seal-count { margin: 0; letter-spacing: 0.04em; text-transform: none; font-size: 15px; color: var(--amber); }
 
 #touch { position: absolute; inset: 72px 0 0; z-index: 4; display: flex; }

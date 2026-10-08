@@ -25,7 +25,6 @@ const resultKicker = document.getElementById("result-kicker");
 const resultTitle = document.getElementById("result-title");
 const resultTime = document.getElementById("result-time");
 const nextBtn = document.getElementById("next");
-const low = document.createElement("canvas");
 const audio = createAudio();
 const keys = new Set();
 const looks = new Map();
@@ -146,19 +145,28 @@ function paintLobby() {
   `;
 }
 
+const callIcon = {
+  stop: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor"/></svg>`,
+  quiet: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 9h3l4-3v12l-4-3H5z"/><path d="M16 9.5l4.5 5M20.5 9.5l-4.5 5" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>`,
+  run: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 12h11l-3.2-3.2 1.4-1.4L19.6 12l-7.4 4.6-1.4-1.4L14 12H3z"/></svg>`,
+  left: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14.5 5.5 8 12l6.5 6.5 1.4-1.4L10.8 12l5.1-5.1z"/></svg>`,
+  right: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.5 5.5 16 12l-6.5 6.5-1.4-1.4L13.2 12 8.1 6.9z"/></svg>`,
+};
+
 function renderPanel() {
+  const plate = (id, label, key) => `<button type="button" data-act="call" data-id="${id}">${callIcon[id]}<span>${label}</span><small>${key}</small></button>`;
   panel.innerHTML = `
     <p class="kicker">Ruina · runda ${state.round}</p>
     <h2 id="sent-state" data-state="patrol">Obchód</h2>
     <p id="wake-state" class="fine">Cisza</p>
     <div class="call-row">
-      <button type="button" data-act="call" data-id="stop">Stój <small>1</small></button>
-      <button type="button" data-act="call" data-id="quiet">Cicho <small>2</small></button>
-      <button type="button" data-act="call" data-id="run">Biegnij <small>3</small></button>
-      <button type="button" data-act="call" data-id="left">W lewo <small>4</small></button>
-      <button type="button" data-act="call" data-id="right">W prawo <small>5</small></button>
+      ${plate("stop", "Stój", "1")}
+      ${plate("quiet", "Cicho", "2")}
+      ${plate("run", "Biegnij", "3")}
+      ${plate("left", "W lewo", "4")}
+      ${plate("right", "W prawo", "5")}
     </div>
-    <button id="veil-btn" type="button" data-act="veil">Zasłona (Z)</button>
+    <button id="veil-btn" type="button" data-act="veil" style="--veil-p: 1"><span id="veil-fill"></span><span id="veil-label">Zasłona (Z)</span></button>
     <p id="seal-count">Pieczęcie · 2</p>
     <p class="fine">Kliknij korytarz, żeby dać znak. Kliknij bursztynową klamrę, żeby otworzyć skrót. Bieg słychać przez ściany. Stanie w miejscu czyni latarnika cichym.</p>
     <p class="code" id="side-code">${(state.code || "").split("").join(" ")}</p>
@@ -183,9 +191,15 @@ function updatePanel(snap) {
   }
   const veil = panel.querySelector("#veil-btn");
   if (veil) {
-    if (snap.veil > 0) veil.textContent = "Zasłona trwa";
-    else if (snap.veilCd > 0) veil.textContent = `Zasłona ${Math.ceil(snap.veilCd)}`;
-    else veil.textContent = "Zasłona (Z)";
+    const label = veil.querySelector("#veil-label");
+    const cooling = snap.veilCd > 0 && !(snap.veil > 0);
+    const p = snap.veil > 0 || !cooling ? 1 : 1 - snap.veilCd / 26;
+    veil.style.setProperty("--veil-p", p.toFixed(3));
+    if (label) {
+      if (snap.veil > 0) label.textContent = "Zasłona trwa";
+      else if (cooling) label.textContent = `Zasłona ${Math.ceil(snap.veilCd)}`;
+      else label.textContent = "Zasłona (Z)";
+    }
     veil.disabled = snap.veilCd > 0;
   }
   const seals = panel.querySelector("#seal-count");
@@ -347,20 +361,6 @@ function resize() {
   stage._cssW = Math.max(1, rect.width);
   stage._cssH = Math.max(1, rect.height);
   stage._dpr = dpr;
-  if (state.role === "runner") {
-    let bw = Math.max(320, Math.round(rect.width));
-    let bh = Math.max(240, Math.round(rect.height));
-    const cap = 960 * 540;
-    if (bw * bh > cap) {
-      const scale = Math.sqrt(cap / (bw * bh));
-      bw = Math.round(bw * scale);
-      bh = Math.round(bh * scale);
-    }
-    if (low.width !== bw || low.height !== bh) {
-      low.width = bw;
-      low.height = bh;
-    }
-  }
 }
 
 function draw(time) {
@@ -383,7 +383,7 @@ function draw(time) {
     const body = state.body;
     body.moving = Math.hypot(state.input.forward, state.input.strafe) > 0.08;
     body.sprint = !!state.input.sprint && body.moving;
-    drawExplorer(low, {
+    drawExplorer(stage, {
       maze: state.maze,
       body,
       sentinel: snap.sn,
@@ -391,8 +391,6 @@ function draw(time) {
       time,
     });
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(low, 0, 0, stage.width, stage.height);
     const threat = threatOf(body, snap.sn);
     drawVignette(ctx, stage.width, stage.height, threat, snap.veil || 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -493,12 +491,38 @@ lobby.addEventListener("submit", (event) => {
   send({ t: "join", code });
 });
 
+function glowCall(id) {
+  const btn = panel.querySelector(`[data-act="call"][data-id="${id}"]`);
+  if (!btn) return;
+  panel.querySelectorAll(".is-hot").forEach((node) => node.classList.remove("is-hot"));
+  void btn.offsetWidth;
+  btn.classList.add("is-hot");
+  clearTimeout(glowCall.timer);
+  glowCall.timer = setTimeout(() => btn.classList.remove("is-hot"), 1500);
+}
+
+panel.addEventListener("pointerdown", (event) => {
+  const btn = event.target.closest("button");
+  if (!btn || btn.disabled) return;
+  btn.classList.add("is-down");
+});
+panel.addEventListener("pointerup", (event) => {
+  const btn = event.target.closest("button");
+  if (btn) btn.classList.remove("is-down");
+});
+panel.addEventListener("pointercancel", () => {
+  panel.querySelectorAll(".is-down").forEach((node) => node.classList.remove("is-down"));
+});
+
 panel.addEventListener("click", (event) => {
   const btn = event.target.closest("[data-act]");
   if (!btn || state.role !== "guide") return;
   audio.unlock();
   if (btn.dataset.act === "veil") send({ t: "veil" });
-  if (btn.dataset.act === "call") send({ t: "call", id: btn.dataset.id });
+  if (btn.dataset.act === "call") {
+    send({ t: "call", id: btn.dataset.id });
+    glowCall(btn.dataset.id);
+  }
 });
 
 stage.addEventListener("click", (event) => {
@@ -541,7 +565,10 @@ window.addEventListener("keydown", (event) => {
   if (event.key === "Shift") state.input.sprint = true;
   if (state.role !== "guide" || state.phase !== "play") return;
   const calls = { "1": "stop", "2": "quiet", "3": "run", "4": "left", "5": "right" };
-  if (calls[event.key]) send({ t: "call", id: calls[event.key] });
+  if (calls[event.key]) {
+    send({ t: "call", id: calls[event.key] });
+    glowCall(calls[event.key]);
+  }
   if (event.key.toLowerCase() === "z") send({ t: "veil" });
 });
 window.addEventListener("keyup", (event) => {
