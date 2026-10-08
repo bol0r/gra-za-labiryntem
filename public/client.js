@@ -367,18 +367,65 @@ function readKeys(dt) {
   state.input.sprint = keys.has("shift") || state.sprintLatch;
 }
 
+const PIXEL_STEPS = [1, 0.8, 0.64, 0.5];
+let pixelStep = 0;
+const frameSamples = [];
+let scaleHold = 0;
+
+function pixelBudget() {
+  if (state.role === "runner" && (state.phase === "play" || state.phase === "result")) return PIXEL_STEPS[pixelStep];
+  return 1;
+}
+
 function resize() {
   const rect = map.getBoundingClientRect();
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const nextW = Math.max(1, Math.round(rect.width * dpr));
-  const nextH = Math.max(1, Math.round(rect.height * dpr));
+  const budget = pixelBudget();
+  const cssW = Math.max(1, rect.width);
+  const cssH = Math.max(1, rect.height);
+  const nextW = Math.max(1, Math.round(cssW * dpr * budget));
+  const nextH = Math.max(1, Math.round(cssH * dpr * budget));
   if (stage.width !== nextW || stage.height !== nextH) {
     stage.width = nextW;
     stage.height = nextH;
   }
-  stage._cssW = Math.max(1, rect.width);
-  stage._cssH = Math.max(1, rect.height);
+  stage._cssW = cssW;
+  stage._cssH = cssH;
   stage._dpr = dpr;
+  stage._px = nextW / cssW;
+  stage._budget = budget;
+}
+
+function watchFrames(dt) {
+  const runner = state.role === "runner" && (state.phase === "play" || state.phase === "result");
+  if (!runner) {
+    frameSamples.length = 0;
+    if (pixelStep !== 0) {
+      pixelStep = 0;
+      resize();
+    }
+    return;
+  }
+  if (state.phase !== "play" || document.hidden) return;
+  if (dt < 0.0004) return;
+  scaleHold = Math.max(0, scaleHold - 1 / 60);
+  frameSamples.push(dt);
+  if (frameSamples.length > 40) frameSamples.shift();
+  if (frameSamples.length < 24 || scaleHold > 0) return;
+  let sum = 0;
+  for (const sample of frameSamples) sum += sample;
+  const avg = sum / frameSamples.length;
+  if (avg > 0.012 && pixelStep < PIXEL_STEPS.length - 1) {
+    pixelStep += 1;
+    frameSamples.length = 0;
+    scaleHold = 1.8;
+    resize();
+  } else if (avg < 0.006 && pixelStep > 0) {
+    pixelStep -= 1;
+    frameSamples.length = 0;
+    scaleHold = 2.6;
+    resize();
+  }
 }
 
 function draw(time) {
@@ -411,7 +458,7 @@ function draw(time) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const threat = threatOf(body, snap.sn);
     drawVignette(ctx, stage.width, stage.height, threat, snap.veil || 0);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.setTransform(stage._px || dpr, 0, 0, stage._px || dpr, 0, 0);
     drawBeacon(ctx, cssW, cssH, body, snap.ping);
     return;
   }
@@ -677,6 +724,7 @@ new ResizeObserver(resize).observe(map);
 
 let last = performance.now();
 function frame(now) {
+  const t0 = performance.now();
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   if (state.role === "runner" && state.phase === "play" && state.maze) {
@@ -719,6 +767,7 @@ function frame(now) {
       role: state.role,
     });
   }
+  watchFrames((performance.now() - t0) / 1000);
   requestAnimationFrame(frame);
 }
 

@@ -34,6 +34,10 @@ W trakcie gry strona nie przewija się i nie wychodzi poza krawędź: `touch-act
 
 Sprawdzone: kartograf 360×740 (brak scrolla strony i panelu, pięć płytek w rzędzie, zasłona w kadrze) i 740×360. Latarnik 390×844, 360×740 i 844×390 (brak scrolla, bieg w kadrze, napis nie nachodzi na wyciszenie). Prawdziwego wcięcia iPhone’a ta przeglądarka nie emuluje; wcięcia są w CSS i włączą się, gdy system je poda.
 
+### 7. Wydajność
+
+Latarnik mierzy czas własnej klatki, nie odstęp między odświeżeniami. Gdy rysowanie trwa średnio ponad 12 ms, bufor płótna schodzi stopniami 0,8 → 0,64 → 0,5. Poniżej 6 ms wraca w górę. Mapa kartografa zostaje ostra. Sprawdzone: w tym oknie korytarz siada na połowie bufora retina i klatka zostaje przy 60; małe okno wraca do pełnej ostrości. Przy 390 px korytarz, pieczęć i kurz zostają czytelne. Konsola czysta.
+
 ## Pominięte
 
 Brak.
