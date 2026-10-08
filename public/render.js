@@ -3,6 +3,7 @@ import {
   SENT_FOV,
   clamp,
   gridPath,
+  hasLos,
   normalizeAngle,
   raycast,
   senses,
@@ -263,12 +264,24 @@ export function drawExplorer(canvas, view) {
   if (view.sentinel) sprites.push({ ...view.sentinel, kind: "sentinel" });
   if (maze.relic) sprites.push({ x: maze.relic.x + 0.5, y: maze.relic.y + 0.5, kind: "relic" });
   if (view.ping) sprites.push({ x: view.ping.x, y: view.ping.y, kind: "ping" });
+  for (const seal of maze.seals || []) {
+    if (seal.open) continue;
+    const sx = seal.axis === "v" ? seal.x : seal.x + 0.5;
+    const sy = seal.axis === "v" ? seal.y + 0.5 : seal.y;
+    const dx = body.x - sx;
+    const dy = body.y - sy;
+    const len = Math.hypot(dx, dy) || 1;
+    sprites.push({ x: sx + (dx / len) * 0.16, y: sy + (dy / len) * 0.16, kind: "seal" });
+  }
   sprites.sort((a, b) => {
     const da = (a.x - body.x) ** 2 + (a.y - body.y) ** 2;
     const db = (b.x - body.x) ** 2 + (b.y - body.y) ** 2;
     return db - da;
   });
-  for (const sprite of sprites) blitSprite(data, z, w, h, horizon, body, sprite, time);
+  for (const sprite of sprites) {
+    if ((sprite.kind === "sentinel" || sprite.kind === "seal") && !hasLos(maze, body.x, body.y, sprite.x, sprite.y)) continue;
+    blitSprite(data, z, w, h, horizon, body, sprite, time);
+  }
 
   ctx.putImageData(image, 0, 0);
 }
@@ -277,17 +290,24 @@ function blitSprite(data, z, w, h, horizon, body, sprite, time) {
   const dx = sprite.x - body.x;
   const dy = sprite.y - body.y;
   const dist = Math.hypot(dx, dy);
-  if (dist < 0.18) return;
+  if (dist < 0.2 || dist > 10.4) return;
   const ang = normalizeAngle(Math.atan2(dy, dx) - body.a);
   if (Math.abs(ang) > FOV * 0.62) return;
+  const fog = clamp((dist - 1.5) / 7.2, 0, 1);
+  const cone = Math.max(0, 1 - (Math.abs(ang) / (FOV * 0.55)) ** 2);
+  const fade = (1 - fog * fog) * (0.22 + 0.78 * cone);
+  if (fade < 0.04) return;
   const screenX = (0.5 + ang / FOV) * w;
-  const size = Math.min(h * 0.95, (h * (sprite.kind === "ping" ? 1.1 : 0.72)) / dist);
-  const left = Math.floor(screenX - size * (sprite.kind === "ping" ? 0.08 : 0.5));
-  const width = Math.max(2, Math.floor(size * (sprite.kind === "ping" ? 0.16 : 1)));
-  const feet = Math.floor(horizon + (h * 0.5) / dist);
-  const head = Math.floor(feet - size);
+  const mark = sprite.kind === "seal";
+  const tall = sprite.kind === "sentinel" ? 0.95 : sprite.kind === "ping" ? 1.1 : 0.72;
+  const aspect = sprite.kind === "sentinel" ? 0.46 : sprite.kind === "ping" ? 0.16 : 1;
+  const size = mark ? Math.min(h * 0.32, (h * 0.3) / dist) : Math.min(h * 0.92, (h * tall) / dist);
+  const width = Math.max(2, Math.floor(mark ? size : size * aspect));
+  const left = Math.floor(screenX - width * 0.5);
+  const feet = mark ? Math.floor(horizon + size * 0.5) : Math.floor(horizon + (h * 0.48) / dist);
+  const head = mark ? Math.floor(horizon - size * 0.5) : Math.floor(feet - size);
   for (let x = left; x < left + width; x++) {
-    if (x < 0 || x >= w || z[x] < dist - 0.05) continue;
+    if (x < 0 || x >= w || z[x] < dist - 0.08) continue;
     const u = (x - left) / width;
     const y0 = Math.max(0, head);
     const y1 = Math.min(h, feet);
@@ -295,11 +315,15 @@ function blitSprite(data, z, w, h, horizon, body, sprite, time) {
       const v = (y - head) / Math.max(1, feet - head);
       const col = spriteColor(sprite, u, v, time);
       if (!col) continue;
+      const a = col[3] * fade;
+      if (a < 0.02) continue;
       const i = (y * w + x) * 4;
-      const a = col[3];
-      data[i] = data[i] * (1 - a) + col[0] * a;
-      data[i + 1] = data[i + 1] * (1 - a) + col[1] * a;
-      data[i + 2] = data[i + 2] * (1 - a) + col[2] * a;
+      const fr = col[0] * (1 - fog) + 92 * fog;
+      const fg = col[1] * (1 - fog) + 62 * fog;
+      const fb = col[2] * (1 - fog) + 38 * fog;
+      data[i] = data[i] * (1 - a) + fr * a;
+      data[i + 1] = data[i + 1] * (1 - a) + fg * a;
+      data[i + 2] = data[i + 2] * (1 - a) + fb * a;
     }
   }
 }
@@ -311,24 +335,51 @@ function spriteColor(sprite, u, v, time) {
     const pulse = 0.35 + 0.25 * Math.sin(time * 6 + v * 8);
     return [176, 124, 86, (1 - band * 1.6) * pulse];
   }
+  if (sprite.kind === "seal") return sealGlow(u, v, time);
+  if (sprite.kind === "sentinel") return sentinelShade(u, v, time, sprite.state);
   const cx = u - 0.5;
   const cy = v - 0.56;
-  if (sprite.kind === "relic") {
-    const d = Math.abs(cx) * 1.15 + Math.abs(cy);
-    if (d > 0.42) return null;
-    const core = d < 0.12 ? 1 : 0;
-    const pulse = 0.75 + 0.25 * Math.sin(time * 3);
-    return [220 * pulse, 150 * pulse, 70, core ? 0.95 : 0.55 + (0.42 - d)];
+  const d = Math.abs(cx) * 1.15 + Math.abs(cy);
+  if (d > 0.42) return null;
+  const core = d < 0.12 ? 1 : 0;
+  const pulse = 0.75 + 0.25 * Math.sin(time * 3);
+  return [220 * pulse, 150 * pulse, 70, core ? 0.95 : 0.55 + (0.42 - d)];
+}
+
+function sealGlow(u, v, time) {
+  const x = (u - 0.5) * 2;
+  const y = (v - 0.5) * 2;
+  const d = Math.hypot(x, y);
+  if (d > 1) return null;
+  const pulse = 0.82 + 0.18 * Math.sin(time * 2.2);
+  if (d < 0.26) return [240, 184, 78, 0.95 * pulse];
+  const a = (1 - d) ** 1.5 * 0.72 * pulse;
+  return [214, 146, 58, a];
+}
+
+function sentinelShade(u, v, time, state) {
+  const x = u - 0.5;
+  const y = v;
+  const head = Math.hypot(x / 0.15, (y - 0.15) / 0.1);
+  let half = 0;
+  if (y >= 0.24 && y < 0.4) half = 0.14 + (y - 0.24) * 1.7;
+  else if (y >= 0.4 && y < 0.76) half = 0.41 - (y - 0.4) * 0.22;
+  else if (y >= 0.76 && y < 0.98) half = 0.33 - (y - 0.76) * 0.55;
+  const body = half > 0 && Math.abs(x) < half;
+  const headOn = head < 1 && y < 0.28;
+  const hunt = state === "hunt";
+  const pulse = hunt ? 0.78 + 0.22 * Math.sin(time * 7) : 0.9 + 0.1 * Math.sin(time * 1.8);
+  const gr = hunt ? 168 : 132;
+  const gg = hunt ? 204 : 170;
+  const gb = hunt ? 96 : 74;
+  if (headOn || body) {
+    const edge = headOn ? head : Math.abs(x) / half;
+    const shade = (1 - edge * 0.45) * pulse;
+    return [gr * shade, gg * shade, gb * shade, 0.9];
   }
-  const r = Math.hypot(cx * 1.25, cy);
-  if (r > 0.5) return null;
-  const hunt = sprite.state === "hunt";
-  const eye = Math.abs(cx) < (hunt ? 0.07 : 0.04) && v > 0.3 && v < 0.74;
-  const ring = Math.abs(r - 0.3) < 0.03 || Math.abs(r - 0.4) < 0.02;
-  if (eye) return hunt ? [196, 72, 52, 1] : [196, 206, 140, 1];
-  if (r < 0.1) return [168, 184, 96, 0.95];
-  if (ring) return hunt ? [176, 84, 58, 0.9] : [140, 156, 78, 0.85];
-  return [30 + (1 - r) * 40, 48 + (1 - r) * 50, 28, 0.22 + (0.5 - r)];
+  const glow = Math.hypot(x / 0.58, (y - 0.48) / 0.62);
+  if (glow >= 1) return null;
+  return [gr * 0.7, gg * 0.75, gb * 0.55, (1 - glow) ** 2 * 0.34 * pulse];
 }
 
 export function drawBeacon(ctx, w, h, body, ping) {
