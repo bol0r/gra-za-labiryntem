@@ -40,9 +40,13 @@ button { cursor: pointer; }
 
 #screen.is-game #world {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 440px);
+  grid-template-columns: minmax(0, 1fr) minmax(min(280px, 100%), 440px);
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: 100dvh;
+  overflow: hidden;
 }
 #screen.is-game[data-role="runner"] #world { grid-template-columns: 1fr; }
 #screen.is-game #map { position: relative; min-width: 0; min-height: 0; height: 100%; }
@@ -55,7 +59,10 @@ button { cursor: pointer; }
     linear-gradient(180deg, rgba(231, 225, 214, 0.04), transparent 72px),
     #12110e;
   border-left: 1px solid var(--line);
-  overflow: auto;
+  overflow-x: clip;
+  overflow-y: auto;
+  min-width: 0;
+  max-width: 100%;
   min-height: 0;
 }
 
@@ -179,18 +186,31 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
+  width: 100%;
+  min-width: 0;
+  container-type: inline-size;
 }
 .call-row button {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   min-height: 76px;
-  padding: 8px 4px 7px;
-  font-size: 13px;
+  padding: 8px 2px 7px;
+  font-size: clamp(10px, 3.2cqi, 13px);
   line-height: 1.1;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
+}
+.call-row button span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .call-row button svg { width: 20px; height: 20px; display: block; }
 .call-row button small {
@@ -210,6 +230,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
   position: relative;
   overflow: hidden;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  align-self: stretch;
   min-height: 64px;
   font-size: 18px;
   background: linear-gradient(180deg, #6a6054 0%, #3a342c 100%);
@@ -337,16 +360,20 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
 
 @media (max-width: 800px) {
   #screen.is-game[data-role="guide"] #world {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(240px, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
   }
   #screen.is-game[data-role="guide"] #panel {
     border-left: 0;
     border-top: 1px solid var(--line);
     max-height: 46dvh;
+    padding-left: 12px;
+    padding-right: 12px;
   }
   h1 { letter-spacing: 0.08em; }
-  .call-row button { font-size: 12px; min-height: 68px; }
+  .call-row { gap: 4px; }
+  .call-row button { min-height: 64px; }
+  .call-row button svg { width: 16px; height: 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
