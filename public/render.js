@@ -583,6 +583,8 @@ export function drawGuide(ctx, w, h, view) {
   ctx.arc(ex, ey, poolR, 0, Math.PI * 2);
   ctx.fill();
 
+  drawHeartPath(ctx, maze, explorer, relic, toX, toY, size);
+
   const thick = Math.max(5, size * 0.2);
   const shadow = 3;
   for (let y = 0; y < maze.h; y++) {
@@ -637,12 +639,6 @@ export function drawGuide(ctx, w, h, view) {
     ctx.restore();
   }
 
-  const pulse = 0.65 + 0.35 * Math.sin(time * 3);
-  ctx.fillStyle = `rgba(226, 164, 90, ${0.35 + pulse * 0.4})`;
-  ctx.beginPath();
-  ctx.arc(toX(relic.x + 0.5), toY(relic.y + 0.5), Math.max(5, size * 0.28) * pulse, 0, Math.PI * 2);
-  ctx.fill();
-
   if (sentinel) {
     const hunting = sentinel.state === "hunt";
     const beat = hunting ? 0.82 + 0.18 * Math.sin(time * 8) : 1;
@@ -652,6 +648,7 @@ export function drawGuide(ctx, w, h, view) {
     ctx.restore();
   }
   drawActor(ctx, ex, ey, explorer.a, "#8a3e12", size * 1.15);
+  drawHeartMark(ctx, relic, toX, toY, size, time);
 
   if (ping && ping.ttl > 0) {
     const radius = (1.2 - ping.ttl / 12) * size * 0.8;
@@ -663,6 +660,70 @@ export function drawGuide(ctx, w, h, view) {
   }
 
   return { ox, oy, size };
+}
+
+function drawHeartPath(ctx, maze, explorer, relic, toX, toY, size) {
+  if (!relic) return;
+  ctx.fillStyle = "rgba(226, 164, 70, 0.5)";
+  ctx.fillRect(toX(relic.x) + 1, toY(relic.y) + 1, Math.max(2, size - 2), Math.max(2, size - 2));
+  const path = gridPath(maze, Math.floor(explorer.x), Math.floor(explorer.y), relic.x, relic.y);
+  if (!path || path.length < 2) return;
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(232, 150, 42, 0.95)";
+  ctx.lineWidth = Math.max(4, size * 0.16);
+  ctx.setLineDash([Math.max(7, size * 0.28), Math.max(5, size * 0.18)]);
+  ctx.beginPath();
+  path.forEach((cell, index) => {
+    const x = toX(cell.x + 0.5);
+    const y = toY(cell.y + 0.5);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.setLineDash([]);
+  for (let i = 1; i < path.length; i += 3) {
+    const prev = path[i - 1];
+    const cell = path[i];
+    const ang = Math.atan2(cell.y - prev.y, cell.x - prev.x);
+    const x = toX(cell.x + 0.5);
+    const y = toY(cell.y + 0.5);
+    const tip = Math.max(6, size * 0.22);
+    ctx.fillStyle = "#f0d7a4";
+    ctx.beginPath();
+    ctx.moveTo(x + Math.cos(ang) * tip, y + Math.sin(ang) * tip);
+    ctx.lineTo(x + Math.cos(ang + 2.4) * tip * 0.7, y + Math.sin(ang + 2.4) * tip * 0.7);
+    ctx.lineTo(x + Math.cos(ang - 2.4) * tip * 0.7, y + Math.sin(ang - 2.4) * tip * 0.7);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawHeartMark(ctx, relic, toX, toY, size, time) {
+  if (!relic) return;
+  const rx = toX(relic.x + 0.5);
+  const ry = toY(relic.y + 0.5);
+  const pulse = 0.9 + 0.1 * Math.sin(time * 3);
+  ctx.strokeStyle = "#f3e2c4";
+  ctx.lineWidth = Math.max(2, size * 0.06);
+  ctx.beginPath();
+  ctx.arc(rx, ry, Math.max(10, size * 0.36) * pulse, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = "#e2a45a";
+  ctx.beginPath();
+  ctx.arc(rx, ry, Math.max(4, size * 0.12), 0, Math.PI * 2);
+  ctx.fill();
+  const font = Math.max(13, Math.min(28, size * 0.42));
+  ctx.font = `600 ${font}px Palatino, Georgia, serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "#1a1008";
+  ctx.strokeText("SERCE", rx, ry - size * 0.46);
+  ctx.fillStyle = "#f6e6c8";
+  ctx.fillText("SERCE", rx, ry - size * 0.46);
 }
 
 function stoneWall(ctx, x, y, w, h, shadow) {

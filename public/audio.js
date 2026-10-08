@@ -10,6 +10,7 @@ export function createAudio() {
   let muted = false;
   let stepAt = 0;
   let stepFlip = false;
+  let warmed = false;
 
   function ensure() {
     if (ctx) return;
@@ -17,10 +18,11 @@ export function createAudio() {
     if (!AC) return;
     ctx = new AC();
     master = ctx.createGain();
-    master.gain.value = 0.32;
+    master.gain.value = 0.8;
     master.connect(ctx.destination);
-    droneA = osc(40, "sine", 0.028);
-    droneB = osc(60.5, "sine", 0.012);
+    droneA = osc(52, "sine", 0.05);
+    droneB = osc(104, "triangle", 0.05);
+    osc(156, "sine", 0.022);
     startWind();
     const lfo = ctx.createOscillator();
     const lfoGain = ctx.createGain();
@@ -97,9 +99,9 @@ export function createAudio() {
     src.loop = true;
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.value = 240;
+    filter.frequency.value = 640;
     const amp = ctx.createGain();
-    amp.gain.value = 0.045;
+    amp.gain.value = 0.07;
     src.connect(filter);
     filter.connect(amp);
     amp.connect(master);
@@ -149,12 +151,19 @@ export function createAudio() {
   return {
     unlock() {
       ensure();
-      if (ctx && ctx.state === "suspended") ctx.resume();
+      if (!ctx) return;
+      const resume = ctx.state === "running" ? Promise.resolve() : ctx.resume();
+      Promise.resolve(resume).then(() => {
+        if (warmed || muted || !ctx || ctx.state !== "running") return;
+        warmed = true;
+        tone(196, 0.1, "sine", 0.14);
+        tone(294, 0.18, "triangle", 0.08);
+      }).catch(() => {});
     },
     toggle() {
       ensure();
       muted = !muted;
-      if (master) master.gain.value = muted ? 0 : 0.32;
+      if (master) master.gain.value = muted ? 0 : 0.8;
       return muted;
     },
     get muted() {
@@ -162,46 +171,101 @@ export function createAudio() {
     },
     play(name) {
       ensure();
+      if (ctx && ctx.state !== "running") ctx.resume();
       if (name === "ping") {
-        tone(156, 0.18, "sine", 0.06);
-        shaped(noise, "bandpass", 190, 0.8, 0.08, 0.1);
+        tone(420, 0.16, "sine", 0.16);
+        shaped(noise, "bandpass", 480, 0.8, 0.08, 0.22);
+      }
+      if (name === "knock") {
+        tone(168, 0.07, "triangle", 0.2);
+        tone(96, 0.14, "sine", 0.16);
+        shaped(noise, "lowpass", 320, 0.7, 0.1, 0.24);
       }
       if (name === "seal") {
-        tone(740, 0.16, "sine", 0.055);
-        tone(1180, 0.1, "sine", 0.03);
-        tone(186, 0.22, "triangle", 0.05);
+        tone(740, 0.16, "sine", 0.12);
+        tone(1180, 0.1, "sine", 0.07);
+        tone(220, 0.22, "triangle", 0.12);
       }
       if (name === "veil") {
-        shaped(noise, "bandpass", 240, 0.5, 0.18, 0.08);
-        tone(156, 0.28, "sine", 0.04);
+        shaped(noise, "bandpass", 360, 0.5, 0.22, 0.18);
+        tone(196, 0.28, "sine", 0.1);
       }
-      if (name === "alert") shaped(noise, "bandpass", 320, 1, 0.07, 0.12);
-      if (name === "hunt") tone(36, 0.55, "sine", 0.08);
+      if (name === "alert") shaped(noise, "bandpass", 520, 1, 0.08, 0.22);
+      if (name === "hunt") tone(82, 0.55, "sine", 0.16);
       if (name === "win") {
-        tone(247, 0.4, "triangle", 0.045);
-        shaped(noise, "bandpass", 520, 1.4, 0.04, 0.035);
+        tone(247, 0.4, "triangle", 0.12);
+        shaped(noise, "bandpass", 520, 1.4, 0.05, 0.08);
         setTimeout(() => {
-          tone(370, 0.55, "triangle", 0.038);
-          shaped(noise, "bandpass", 680, 1.2, 0.035, 0.028);
+          tone(370, 0.55, "triangle", 0.1);
+          shaped(noise, "bandpass", 680, 1.2, 0.04, 0.06);
         }, 190);
       }
       if (name === "lose") {
-        tone(58, 0.9, "sine", 0.07);
+        tone(110, 0.9, "sine", 0.16);
         loseWash();
       }
-      if (name === "start") tone(98, 0.4, "sine", 0.05);
+      if (name === "start") {
+        tone(196, 0.22, "sine", 0.12);
+        tone(294, 0.32, "triangle", 0.08);
+      }
+    },
+    hear(pan, dist) {
+      ensure();
+      if (!ctx || muted) return;
+      if (ctx.state !== "running") ctx.resume();
+      const node = ctx.createOscillator();
+      const amp = ctx.createGain();
+      const width = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+      node.type = "sine";
+      node.frequency.value = dist < 4 ? 220 : 160;
+      amp.gain.setValueAtTime(dist < 4 ? 0.18 : 0.1, ctx.currentTime);
+      amp.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.28);
+      node.connect(amp);
+      if (width) {
+        width.pan.value = Math.max(-1, Math.min(1, pan));
+        amp.connect(width);
+        width.connect(master);
+      } else amp.connect(master);
+      node.start();
+      node.stop(ctx.currentTime + 0.3);
+    },
+    bubble() {
+      ensure();
+      if (!ctx || muted) return;
+      const resume = ctx.state === "running" ? Promise.resolve() : ctx.resume();
+      Promise.resolve(resume).then(() => {
+        if (!ctx || muted || ctx.state !== "running") return;
+        const now = ctx.currentTime;
+        for (let i = 0; i < 16; i++) {
+          const t = now + i * 0.12 + Math.random() * 0.04;
+          const node = ctx.createOscillator();
+          const amp = ctx.createGain();
+          node.type = "sine";
+          const freq = 80 + Math.random() * 90;
+          node.frequency.setValueAtTime(freq, t);
+          node.frequency.exponentialRampToValueAtTime(Math.max(42, freq * 0.42), t + 0.16);
+          amp.gain.setValueAtTime(0.0001, t);
+          amp.gain.exponentialRampToValueAtTime(0.18, t + 0.025);
+          amp.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+          node.connect(amp);
+          amp.connect(master);
+          node.start(t);
+          node.stop(t + 0.22);
+        }
+        shaped(noise, "lowpass", 260, 0.5, 1.7, 0.22);
+      }).catch(() => {});
     },
     update(dt, world) {
       if (!ctx || !world) return;
       const dist = world.dist;
       const near = Math.max(0, 1 - dist / 8);
       if (sentGain) {
-        const target = muted ? 0 : near * near * (world.role === "runner" ? 0.16 : 0.05);
+        const target = muted ? 0 : near * near * (world.role === "runner" ? 0.28 : 0.12);
         sentGain.gain.value += (target - sentGain.gain.value) * 0.08;
       }
       if (sentinel) {
-        const hunt = world.state === "hunt" ? 6 : 0;
-        sentinel.frequency.value = 30 + near * 14 + hunt;
+        const hunt = world.state === "hunt" ? 18 : 0;
+        sentinel.frequency.value = 70 + near * 50 + hunt;
       }
       if (!world.moving || muted) return;
       stepAt -= dt;
@@ -209,8 +273,8 @@ export function createAudio() {
         stepAt = world.sprint ? 0.28 : 0.46;
         stepFlip = !stepFlip;
         const loud = world.role === "runner";
-        shaped(cloth, "lowpass", world.sprint ? 520 : 340, 0.7, 0.07, loud ? 0.11 : 0.03);
-        if (stepFlip) shaped(cloth, "bandpass", 640, 0.6, 0.16, loud ? 0.035 : 0.012);
+        shaped(cloth, "lowpass", world.sprint ? 680 : 420, 0.7, 0.08, loud ? 0.26 : 0.1);
+        if (stepFlip) shaped(cloth, "bandpass", 720, 0.6, 0.14, loud ? 0.1 : 0.04);
       }
     },
   };

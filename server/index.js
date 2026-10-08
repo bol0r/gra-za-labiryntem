@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
@@ -32,6 +33,48 @@ try {
 
 const rooms = new Map();
 const tokens = new Map();
+const scorePath = path.join(root, "data", "highscores.json");
+const SCORE_SEED = [
+  { name: "Olo", time: 84, chambers: 3 },
+  { name: "Bartek", time: 126, chambers: 2 },
+  { name: "Mariusz", time: 151, chambers: 2 },
+];
+
+function validScore(row) {
+  return row && typeof row.name === "string" && Number.isFinite(Number(row.time)) && Number.isFinite(Number(row.chambers));
+}
+
+function loadScores() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(scorePath, "utf8"));
+    if (Array.isArray(raw) && raw.length) return raw.filter(validScore).slice(0, 24);
+  } catch {
+    // pierwsza tablica bierze się z nasion
+  }
+  return SCORE_SEED.map((row) => ({ ...row }));
+}
+
+let scores = loadScores();
+
+function publicScores() {
+  return [...scores].sort((a, b) => b.chambers - a.chambers || a.time - b.time).slice(0, 12);
+}
+
+function saveScores() {
+  try {
+    fs.mkdirSync(path.dirname(scorePath), { recursive: true });
+    fs.writeFileSync(scorePath, JSON.stringify(scores));
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function cleanName(value) {
+  return String(value || "")
+    .replace(/[^\p{L}\p{N} .'-]/gu, "")
+    .trim()
+    .slice(0, 16);
+}
 
 function lanUrls(port) {
   const found = [];
@@ -208,7 +251,7 @@ function beginRound(room) {
 function finishRound(room, result) {
   room.phase = "result";
   room.result = result;
-  room.nextIn = 5;
+  room.nextIn = result === "win" ? 12 : 8;
   room.fx.push(result);
   if (result === "win") room.heat = Math.min(2, room.heat + 1);
   else room.heat = Math.max(0, room.heat - 1);
@@ -218,9 +261,7 @@ function tick(room) {
   if (room.phase === "play") {
     if (!bothOnline(room)) {
       room.phase = "wait";
-      room.note = !online(room.runner)
-        ? "Latarnik stracił światło. Gra stoi."
-        : "Kartograf zniknął. Gra stoi.";
+      room.note = !online(room.runner) ? "Latarnik zniknął." : "Kartograf zniknął.";
     } else {
       room.note = "";
       room.roundT += DT;
@@ -474,6 +515,27 @@ async function onMessage(ws, msg) {
     room.nextIn = 0;
     return;
   }
+  if (msg.t === "score" && room.phase === "result" && room.result === "win") {
+    const name = cleanName(msg.name);
+    if (!name || ws.player.scored === room.round) return;
+    ws.player.scored = room.round;
+    scores.push({ name, time: Math.max(0, Math.round(room.roundT || 0)), chambers: room.round || 1 });
+    if (scores.length > 24) scores = publicScores();
+    saveScores();
+    const board = { t: "scores", scores: publicScores() };
+    for (const role of ["guide", "runner"]) {
+      if (online(room[role])) send(room[role].ws, board);
+    }
+    return;
+  }
+  if (msg.t === "knock" && ws.player.role === "runner" && room.phase === "play" && room.explorer) {
+    const now = Date.now();
+    if (now - (room.knockAt || 0) < 4500) return;
+    room.knockAt = now;
+    room.ping = { x: room.explorer.x, y: room.explorer.y, ttl: 8 };
+    room.fx.push("knock");
+    return;
+  }
   if (msg.t === "pose" && ws.player.role === "runner") return onPose(room, msg);
   if (ws.player.role === "guide" && (msg.t === "ping" || msg.t === "seal" || msg.t === "veil" || msg.t === "call")) {
     return onGuide(room, msg);
@@ -499,7 +561,7 @@ function onClose(ws) {
     ws.player.goneAt = Date.now();
     if (room.phase === "play") {
       room.phase = "wait";
-      room.note = ws.player.role === "runner" ? "Latarnik stracił światło. Gra stoi." : "Kartograf zniknął. Gra stoi.";
+      room.note = ws.player.role === "runner" ? "Latarnik zniknął." : "Kartograf zniknął.";
       broadcastSnap(room);
     } else sendLobby(room);
   }
@@ -512,6 +574,9 @@ app.use((req, res, next) => {
 });
 app.get("/siec", (_req, res) => {
   res.json({ urls: lanUrls(PORT_LIVE) });
+});
+app.get("/tablica", (_req, res) => {
+  res.json({ scores: publicScores() });
 });
 app.use("/shared", express.static(path.join(root, "shared")));
 app.use(express.static(path.join(root, "public")));

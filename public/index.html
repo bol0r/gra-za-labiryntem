@@ -23,27 +23,53 @@
         <p class="lead">Nasłuchuję sygnału z ruiny…</p>
       </div>
     </div>
+    <div id="intro" hidden>
+      <p class="kicker">Planeta bez nazwy</p>
+      <h1>Za labiryntem</h1>
+      <div id="intro-lines"></div>
+      <div class="menu-list">
+        <button id="intro-go" type="button" hidden>Wejdź</button>
+        <button id="intro-skip" type="button">Pomiń</button>
+      </div>
+      <p class="fine">Dotknij, żeby obudzić dźwięk.</p>
+    </div>
     <div id="touch" hidden>
       <div id="stick-zone"></div>
       <div id="look-zone"></div>
     </div>
     <div id="stick" hidden><i></i></div>
-    <button id="sprint" type="button" hidden>Bieg</button>
+    <div id="deck" hidden>
+      <button id="sprint" type="button">Bieg</button>
+      <button id="listen" type="button">Nasłuch</button>
+      <button id="knock" type="button">Stuk</button>
+    </div>
     <p id="hint" hidden></p>
     <div id="toast"></div>
     <button id="mute" type="button">Wycisz</button>
     <button id="full" type="button">Pełny ekran</button>
     <p id="pad-note" hidden>Pad podłączony</p>
     <p id="pad-help" hidden></p>
-    <div id="waitbanner" class="is-off"></div>
+    <div id="waitbanner" class="is-off">
+      <p id="wait-text"></p>
+      <button id="wait-menu" type="button">Do menu</button>
+    </div>
     <div id="result" class="is-off">
       <div class="result-card">
         <p class="kicker" id="result-kicker"></p>
         <h2 id="result-title"></h2>
         <p id="result-time"></p>
-        <button id="next" type="button">Następna komora</button>
+        <form id="score-form" hidden>
+          <input id="score-name" maxlength="16" placeholder="Imię" aria-label="Imię" autocomplete="nickname">
+          <button type="submit">Wpisz się</button>
+        </form>
+        <div class="menu-list">
+          <button id="next" type="button">Dalej</button>
+          <button id="quit-result" type="button">Do menu</button>
+        </div>
       </div>
     </div>
+    <button id="quit" type="button" hidden>Menu</button>
+    <div id="smoke" hidden><i></i><i></i><i></i></div>
   </div>
   <script type="module" src="/client.js"></script>
 </body>
