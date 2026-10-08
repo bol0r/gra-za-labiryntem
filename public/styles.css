@@ -9,9 +9,6 @@
   --amber: #c4893a;
   --alert: #c45c42;
   --guard: #a3b56a;
-  --ink: #1c1814;
-  --plate-top: #2e2a25;
-  --plate-bot: #161411;
   color-scheme: dark;
 }
 
@@ -35,7 +32,6 @@ body {
 }
 button, input { font: inherit; color: inherit; }
 input { user-select: text; -webkit-user-select: text; }
-button, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 [hidden] { display: none !important; }
 

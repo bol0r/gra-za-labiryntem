@@ -48,6 +48,14 @@ Przegrana, runda 6: znowu ten sam tekst. Kicker „Strażnik”, tytuł „Stra�
 
 Płyta wyniku żyje około pięciu sekund i następna komora startuje sama. Zrzut ekranu złapał już kolejną rundę, ale napis zostawiony w obu dokumentach był identyczny.
 
+### 9. Porządek
+
+Z arkusza zeszły trzy zmienne po starej płycie, których nic już nie czyta: `--ink`, `--plate-top`, `--plate-bot`. Zdublowana reguła `button, input` też. Reszta rysowania, dźwięku i symulacji jest używana. `docs/BRIEF.md` opisuje to, co jest: dźwięk rundy, krąg na niebie, sylwetkę strażnika, tekstury 128×128, płytki od 360 px i sprawdzoną wygraną oraz przegraną na dwóch kartach.
+
+### Planeta u latarnika
+
+Miedziany krąg w prawym górnym rogu nieba to nie obiekt rundy. Brief od początku jest o labiryncie na obcej planecie, a ekran startu ma kicker „Planeta bez nazwy”. Ten sam krąg jest tłem lobby od pierwszego grywalnego commita (7 października 2026, `drawLobby`, gradient nazwany `planet`). W korytarzu jest domalowany w pikselach nieba i stoi w miejscu na ekranie: obrót go nie przesuwa. Polerowanie go nie dodawało. Przy kurzu i winiecie po prostu łatwiej go zobaczyć. Gwiazdy obok to osobny szum tego samego nieba.
+
 ## Pominięte
 
 Brak.
@@ -55,3 +63,15 @@ Brak.
 ## Do decyzji
 
 Brak.
+
+## Podsumowanie
+
+Na gałęzi `polish-1` jest ten sam kierunek: kamień, popiół, miedź, bursztyn. Doszły płytki w jednym rzędzie, strażnik i pieczęcie w korytarzu, kołysanie i płynny obrót, kurz z winietą, dźwięk rundy z wyciszeniem, ekrany startu i wyniku, telefon bez przewijania i płótno, które samo schodzi z rozdzielczością. Dwie karty doszły do wygranej i do przegranej tym samym tekstem.
+
+Nic z listy nie zostało pominięte. Prawdziwego wcięcia iPhone’a nie dało się tu wywołać; marginesy są w CSS i włączą się, gdy system je poda. Zasad rundy, sieci i protokołu nie ruszałem.
+
+## Następna runda
+
+1. Osadzić miedziany krąg w kierunku nieba, żeby zostawał w świecie przy obrocie, i nie dopuścić, żeby ściana przy samym nosie wypełniała cały kadr. Tak wyglądała klatka zaraz po wygranej.
+2. Zatrzymać płytę wyniku tak, żeby dało się ją przeczytać. Pięć sekund mija, zanim drugi gracz spojrzy, i komora już jest następna.
+3. Dać latarnikowi wcześniejszy znak strażnika niż zielona sylwetka w snopie. Bieg słychać przez ściany, a pościg dopada w korytarzu bez zapowiedzi, z której da się skorzystać.

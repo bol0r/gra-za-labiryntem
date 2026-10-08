@@ -20,9 +20,11 @@ Palatino jest w tytułach i w zawołaniu na środku ekranu latarnika. Przyciski 
 
 Pięć zawołań to płyty obok siebie, ze słowem i cyfrą. Zasłona jest jedną szeroką płytą pod nimi. Wciśnięcie lekko zapada się w kamień.
 
-Światło latarnika jest stożkiem, który gaśnie z odległością. Krawędź ściany i styk z podłogą są ciemniejsze, żeby skręt było widać z bliska. Na podłodze widać, jak daleko sięga snop.
+Światło latarnika jest stożkiem, który gaśnie z odległością. Krawędź ściany i styk z podłogą są ciemniejsze, żeby skręt było widać z bliska. Na podłodze widać, jak daleko sięga snop. W snopie unoszą się drobinki, na kadrze leży rzadkie ziarno i winieta.
 
-Dźwięk: suche stuknięcie kamienia przy zawołaniu, niski wiatr w tle, pieczęć jako jedno uderzenie metalu. Pościg schodzi niżej, bez piły.
+Nad korytarzem wisi miedziany krąg tej planety. W lobby jest tłem planszy. U latarnika jest namalowany w niebie i zostaje w tym samym miejscu kadru, gdy postać się obraca. Strażnika w zasięgu wzroku widać jako zieloną sylwetkę, pieczęć jako bursztynowy blask na ścianie. Ściana i mgła je zasłaniają.
+
+Dźwięk: krok to tkanina i co drugi raz oddech, w tle niski dron. Zawołanie to jedno ciepłe uderzenie, pieczęć zostaje jednym uderzeniem metalu. Wygrana to dwa tony kości, przegrana opada w szum. Przy strażniku narasta sub-bas, bez piły. Całość da się wyciszyć.
 
 Mechaniki rundy przy tym kierunku się nie zmieniają.
 
@@ -56,6 +58,8 @@ Sprawdzone w tej sesji:
 - `npm run check`: labirynty 15, 19 i 21 są spójne, mają pieczęcie, da się dojść do serca. Czas samego marszu optymalną ścieżką wyszedł około 70 s, 116 s i 128 s.
 - `node server/smoke.js`: utworzenie pokoju, dołączenie, start, znak, pieczęć, zasłona, zawołanie „Stój” i pozycja latarnika dochodzą do drugiego klienta.
 - Przeglądarka, dwa okna: lobby, kod, QR, obie role, mapa kartografa, widok korytarza, ruch latarnika widać na mapie, znak „Stój” pojawia się u latarnika.
+- Dwie karty, pokój WBHW: runda do wygranej („Serce ruiny odpowiada.”, 1:07) i runda do przegranej („Strażnik zamyka przejście.”, 1:23). Oba ekrany dostały ten sam tekst i razem weszły w następną komorę.
+- Pięć płytek zawołania mieści się w jednym rzędzie od 360 px. Na telefonie gra nie przewija strony. Latarnik sam obniża rozdzielczość płótna, gdy klatka nie wyrabia; mapa kartografa zostaje ostra.
 
 ## Co nie działa albo nie jest zrobione
 
@@ -67,10 +71,10 @@ Sprawdzone w tej sesji:
 
 ## Znane problemy
 
-- Widok latarnika to programowy raycaster. Światło jest stożkiem z gaśnięciem i ciemniejszym stykiem podłogi, ale tekstury są nadal generowane, 64×64, bez osobnych assetów. Z bardzo bliska ściana wciąż wypełnia ekran.
+- Widok latarnika to programowy raycaster. Światło jest stożkiem z gaśnięciem i ciemniejszym stykiem podłogi, ale tekstury są nadal generowane, 128×128, bez osobnych assetów. Z bardzo bliska ściana wciąż wypełnia ekran.
 - Karta w tle prawie nie rysuje klatek. Po powrocie obraz może być przez chwilę pusty, dopóki pętla znowu nie namaluje kadru.
 - Zostawiona runda sama wchodzi w „ruina się budzi”. Długi przestój w teście zaostrza strażnika.
 - Dobrze gadająca para może skończyć pierwszą komorę szybciej niż zakładane 3–5 minut, bo optymalny marsz 15×15 to około minuty. Czekanie na strażnika i złe skręty to wydłużają.
 - Serwer ufa pozycji latarnika, jeśli mieści się w limicie prędkości i nie wchodzi w ścianę. To gra dla dwóch osób, nie turniej.
-- Kartograf na wąskim ekranie ma mapę i panel jeden pod drugim. Da się grać, ale ciasno.
+- Kartograf węższy niż 800 px ma mapę i panel jeden pod drugim. Pięć płytek zostaje w jednym rzędzie, a panel w trakcie gry się nie przewija. W poziomie, przy wysokości poniżej 520 px, panel wraca obok mapy.
 - Adres dla telefonu zależy od interfejsu sieciowego maszyny. Przy kilku adresach QR bierze pierwszy preferowany (najpierw 192.168, potem 10, potem 172).
