@@ -81,7 +81,7 @@ function setPhase(phase) {
   screen.classList.toggle("is-game", !menu);
   screen.dataset.phase = phase;
   screen.dataset.role = state.role || "";
-  lobby.hidden = !menu;
+  lobby.classList.toggle("is-off", !menu);
   const playing = phase === "play" && state.role === "runner";
   touch.hidden = !playing;
   sprintBtn.hidden = !playing;
@@ -91,9 +91,20 @@ function setPhase(phase) {
     state.input.strafe = 0;
   }
   if (menu) hint.hidden = true;
-  result.hidden = phase !== "result";
-  waitbanner.hidden = phase !== "wait";
+  result.classList.toggle("is-off", phase !== "result");
+  waitbanner.classList.toggle("is-off", phase !== "wait");
   resize();
+}
+
+function fillPlate(key, html) {
+  if (plate.dataset.paint !== key) {
+    plate.dataset.paint = key;
+    plate.classList.add("is-swap");
+    plate.innerHTML = html;
+    requestAnimationFrame(() => requestAnimationFrame(() => plate.classList.remove("is-swap")));
+    return;
+  }
+  plate.innerHTML = html;
 }
 
 function setErr(text) {
@@ -110,7 +121,7 @@ function setErr(text) {
 
 function paintHome() {
   const suggested = narrow ? "runner" : "guide";
-  plate.innerHTML = `
+  fillPlate("home", `
     <p class="kicker">Planeta bez nazwy</p>
     <h1>Za labiryntem</h1>
     <p class="lead">Jedna osoba zostaje przy mapie. Druga schodzi z latarnią. Na końcu jest serce ruiny. W korytarzach chodzi strażnik.</p>
@@ -124,18 +135,20 @@ function paintHome() {
     </form>
     <p class="err" id="err">${state.err || ""}</p>
     <p class="fine">Dźwięk głosu zostawcie sobie. Bez rozmowy kartograf i tak wyśle znak. Oba ekrany muszą być w tym samym Wi-Fi. ${suggested === "runner" ? "Na tym ekranie naturalnie schodzi się w dół." : "Na tym ekranie naturalnie zostaje się przy mapie."}</p>
-  `;
+  `);
 }
 
 function paintLobby() {
   const roleName = state.role === "runner" ? "Latarnik" : "Kartograf";
   const code = (state.code || "").split("").join(" ");
   const urls = (state.urls || []).map((url) => `<div class="urls">${url}</div>`).join("");
-  plate.innerHTML = `
+  const waiting = !state.both;
+  fillPlate(waiting ? "lobby-wait" : "lobby-ready", `
     <p class="kicker">${roleName}</p>
-    <h1 class="code">${code}</h1>
+    <h1 class="code" aria-label="Kod ${state.code || ""}">${code}</h1>
+    <p class="dictate">Czytaj po jednej literze.</p>
     ${state.qr ? `<img class="qr" alt="Kod QR komory ${state.code}" src="${state.qr}">` : ""}
-    <p class="fine">${state.both ? "Oboje jesteście w komorze." : "Druga osoba skanuje kod albo wpisuje go na stronie."}</p>
+    <p class="wait ${waiting ? "is-waiting" : "is-ready"}">${waiting ? "Czekam na drugą osobę." : "Oboje jesteście. Można schodzić."}</p>
     ${urls}
     <p class="fine">Telefon i komputer w tym samym Wi-Fi. Jeśli telefon nie wchodzi, komputer może zapytać, czy pozwolić na połączenia w sieci lokalnej.</p>
     <div class="roles">
@@ -143,7 +156,7 @@ function paintLobby() {
       <button class="ghost" type="button" data-act="leave">Opuść</button>
     </div>
     <p class="err" id="err">${state.err || ""}</p>
-  `;
+  `);
 }
 
 const callIcon = {
@@ -217,8 +230,12 @@ function showCall(id) {
 }
 
 function showResult(snap) {
-  result.hidden = snap.phase !== "result";
-  if (snap.phase !== "result") return;
+  const on = snap.phase === "result";
+  result.classList.toggle("is-off", !on);
+  if (!on) {
+    screen.classList.remove("flash-win", "flash-lose");
+    return;
+  }
   const win = snap.result === "win";
   resultKicker.textContent = win ? "Komora" : "Strażnik";
   resultTitle.textContent = win ? "Serce ruiny odpowiada." : "Strażnik zamyka przejście.";
@@ -273,14 +290,14 @@ function onSnap(msg) {
   if (msg.phase === "result") {
     showResult(msg);
     if (msg.result === "lose" && navigator.vibrate && state.role === "runner") navigator.vibrate(180);
-  } else {
-    result.hidden = true;
+  } else if (msg.phase) {
+    result.classList.add("is-off");
     screen.classList.remove("flash-win", "flash-lose");
   }
   if (msg.phase === "wait") {
-    waitbanner.hidden = false;
+    waitbanner.classList.remove("is-off");
     waitbanner.textContent = msg.note || "Gra stoi.";
-  } else waitbanner.hidden = true;
+  } else if (msg.phase) waitbanner.classList.add("is-off");
   if (state.role === "runner" && state.phase === "play") {
     if (msg.immunity > 0.2) {
       hint.hidden = false;
