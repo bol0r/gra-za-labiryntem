@@ -290,6 +290,61 @@ export function drawExplorer(canvas, view) {
   }
 
   ctx.putImageData(image, 0, 0);
+  paintAir(ctx, w, h, time);
+}
+
+const motes = Array.from({ length: 40 }, (_, i) => ({
+  u: hash01(i * 19, 3),
+  v: hash01(i * 7, 11),
+  z: 0.25 + hash01(i, 5) * 0.75,
+  s: (i % 4) * 0.6 + 0.8,
+  drift: 0.012 + (i % 5) * 0.004,
+}));
+
+let grainCanvas = null;
+
+function grainTile() {
+  if (grainCanvas) return grainCanvas;
+  grainCanvas = document.createElement("canvas");
+  grainCanvas.width = 96;
+  grainCanvas.height = 96;
+  const g = grainCanvas.getContext("2d");
+  const img = g.createImageData(96, 96);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const n = 70 + ((i * 17) % 97);
+    img.data[i] = n;
+    img.data[i + 1] = n;
+    img.data[i + 2] = n;
+    img.data[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  return grainCanvas;
+}
+
+function paintAir(ctx, w, h, time) {
+  ctx.save();
+  ctx.fillStyle = "rgba(231, 214, 186, 0.9)";
+  for (const mote of motes) {
+    const rise = (mote.v + time * mote.drift) % 1;
+    const x = w * (0.5 + (mote.u - 0.5) * mote.z * 0.9);
+    const y = h * (0.08 + rise * 0.84);
+    const dx = (x - w * 0.5) / (w * 0.42);
+    const dy = (y - h * 0.5) / (h * 0.48);
+    const cone = 1 - dx * dx - dy * dy * 0.65;
+    if (cone < 0.08) continue;
+    const size = Math.max(1.4, mote.s * (w / 780));
+    ctx.globalAlpha = cone * cone * 0.42 * (0.35 + mote.z);
+    ctx.fillRect(x, y, size, size);
+  }
+  ctx.globalAlpha = 0.055;
+  ctx.globalCompositeOperation = "overlay";
+  const tile = grainTile();
+  const pattern = ctx.createPattern(tile, "repeat");
+  if (pattern) {
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, w, h);
+  }
+  ctx.restore();
 }
 
 function blitSprite(data, z, w, h, horizon, body, sprite, time) {
@@ -412,10 +467,10 @@ export function drawBeacon(ctx, w, h, body, ping) {
 }
 
 export function drawVignette(ctx, w, h, threat, veil) {
-  const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.2, w / 2, h / 2, Math.min(w, h) * 0.72);
-  g.addColorStop(0, "rgba(20,12,8,0)");
-  g.addColorStop(0.55, "rgba(20,12,8,0)");
-  g.addColorStop(1, `rgba(20,12,8,${0.38 + threat * 0.2})`);
+  const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.18, w / 2, h / 2, Math.min(w, h) * 0.74);
+  g.addColorStop(0, "rgba(12,9,7,0)");
+  g.addColorStop(0.5, "rgba(12,9,7,0)");
+  g.addColorStop(1, `rgba(8,6,5,${0.52 + threat * 0.18})`);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
   if (threat > 0.08) {
