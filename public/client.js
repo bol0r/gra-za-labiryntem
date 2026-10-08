@@ -19,6 +19,9 @@ const sprintBtn = document.getElementById("sprint");
 const hint = document.getElementById("hint");
 const toast = document.getElementById("toast");
 const muteBtn = document.getElementById("mute");
+const fullBtn = document.getElementById("full");
+const padNote = document.getElementById("pad-note");
+const padHelp = document.getElementById("pad-help");
 const waitbanner = document.getElementById("waitbanner");
 const result = document.getElementById("result");
 const resultKicker = document.getElementById("result-kicker");
@@ -57,6 +60,7 @@ const state = {
 
 const narrow = window.matchMedia("(max-width: 800px)").matches;
 const queryCode = (new URLSearchParams(location.search).get("pokoj") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+let hostLine = "";
 
 function send(obj) {
   if (state.ws && state.ws.readyState === 1) state.ws.send(JSON.stringify(obj));
@@ -93,6 +97,7 @@ function setPhase(phase) {
   if (menu) hint.hidden = true;
   result.classList.toggle("is-off", phase !== "result");
   waitbanner.classList.toggle("is-off", phase !== "wait");
+  syncPadUi();
   resize();
 }
 
@@ -134,8 +139,10 @@ function paintHome() {
       <button class="solid" type="submit">Wejdź</button>
     </form>
     <p class="err" id="err">${state.err || ""}</p>
+    <p class="host">${hostLine ? `Na innym urządzeniu wpisz ${hostLine}` : "Brak adresu w sieci lokalnej. Zostańcie na tym komputerze."}</p>
     <p class="fine">Dźwięk głosu zostawcie sobie. Bez rozmowy kartograf i tak wyśle znak. Oba ekrany muszą być w tym samym Wi-Fi. ${suggested === "runner" ? "Na tym ekranie naturalnie schodzi się w dół." : "Na tym ekranie naturalnie zostaje się przy mapie."}</p>
   `);
+  paintPadFocus();
 }
 
 function paintLobby() {
@@ -157,6 +164,7 @@ function paintLobby() {
     </div>
     <p class="err" id="err">${state.err || ""}</p>
   `);
+  paintPadFocus();
 }
 
 const callIcon = {
@@ -271,6 +279,7 @@ function onRound(msg) {
     onRound.hint = setTimeout(() => {
       if (hint.textContent.startsWith("Lewa")) hint.hidden = true;
     }, 14000);
+    settleHint();
   }
 }
 
@@ -289,10 +298,15 @@ function onSnap(msg) {
   }
   if (msg.phase === "result") {
     showResult(msg);
-    if (msg.result === "lose" && navigator.vibrate && state.role === "runner") navigator.vibrate(180);
+    if (msg.result === "lose" && feltResult !== "lose" && state.role === "runner") {
+      if (navigator.vibrate) navigator.vibrate(180);
+      rumble(220, 0.9, 0.5);
+    }
+    feltResult = msg.result || "";
   } else if (msg.phase) {
     result.classList.add("is-off");
     screen.classList.remove("flash-win", "flash-lose");
+    feltResult = "";
   }
   if (msg.phase === "wait") {
     waitbanner.classList.remove("is-off");
@@ -303,6 +317,7 @@ function onSnap(msg) {
       hint.hidden = false;
       hint.textContent = "Strażnik jeszcze was nie słyszy.";
     } else if (hint.textContent.startsWith("Strażnik")) hint.textContent = controlHint();
+    settleHint();
   }
   updatePanel(msg);
   if (msg.phase === "result") showResult(msg);
@@ -365,6 +380,214 @@ function readKeys(dt) {
   state.input.forward = forward;
   state.input.strafe = strafe;
   state.input.sprint = keys.has("shift") || state.sprintLatch;
+}
+
+const PAD_DEAD = 0.2;
+let padOn = false;
+let turnRate = 0;
+let focusI = 0;
+let feltResult = "";
+let rumbleAt = 0;
+const padDown = [];
+const dirHold = { up: 0, down: 0, left: 0, right: 0 };
+
+function axis1(v) {
+  const a = Math.abs(v);
+  if (a < PAD_DEAD) return 0;
+  return Math.sign(v) * Math.min(1, (a - PAD_DEAD) / (1 - PAD_DEAD));
+}
+
+function stick2(x, y) {
+  const mag = Math.hypot(x, y);
+  if (mag < PAD_DEAD) return { x: 0, y: 0 };
+  const scaled = Math.min(1, (mag - PAD_DEAD) / (1 - PAD_DEAD));
+  return { x: (x / mag) * scaled, y: (y / mag) * scaled };
+}
+
+function activePad() {
+  const list = navigator.getGamepads ? navigator.getGamepads() : [];
+  for (const pad of list) if (pad && pad.connected) return pad;
+  return null;
+}
+
+function buttonOn(pad, i) {
+  const button = pad.buttons && pad.buttons[i];
+  return !!(button && (button.pressed || button.value > 0.45));
+}
+
+function buttonEdge(pad, i) {
+  const on = buttonOn(pad, i);
+  const was = !!padDown[i];
+  padDown[i] = on;
+  return on && !was;
+}
+
+function rumble(ms, strong, weak) {
+  const pad = activePad();
+  const act = pad && (pad.vibrationActuator || (pad.hapticActuators && pad.hapticActuators[0]));
+  if (!act || !act.playEffect) return;
+  try {
+    const done = act.playEffect("dual-rumble", {
+      startDelay: 0,
+      duration: ms,
+      strongMagnitude: strong,
+      weakMagnitude: weak,
+    });
+    if (done && done.catch) done.catch(() => {});
+  } catch {
+    // pad bez wibracji
+  }
+}
+
+function toggleFull() {
+  const el = document.documentElement;
+  const on = document.fullscreenElement || document.webkitFullscreenElement;
+  try {
+    if (on) {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+    } else {
+      const ask = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (ask) Promise.resolve(ask.call(el)).catch(() => {});
+    }
+  } catch {
+    // pełny ekran bywa zablokowany poza gestem
+  }
+}
+
+function syncFullLabel() {
+  const on = document.fullscreenElement || document.webkitFullscreenElement;
+  fullBtn.textContent = on ? "Okno" : "Pełny ekran";
+}
+
+function focusables() {
+  if (state.phase !== "home" && state.phase !== "lobby" && state.phase !== "result") return [];
+  const root = state.phase === "result" ? result : plate;
+  return [...root.querySelectorAll("button, input"), fullBtn, muteBtn].filter((el) => el && !el.disabled);
+}
+
+function paintPadFocus() {
+  document.querySelectorAll(".is-pad").forEach((el) => el.classList.remove("is-pad"));
+  if (!padOn) return;
+  const list = focusables();
+  if (!list.length) return;
+  focusI = ((focusI % list.length) + list.length) % list.length;
+  list[focusI].classList.add("is-pad");
+}
+
+function moveFocus(step) {
+  const list = focusables();
+  if (!list.length) return;
+  focusI = (focusI + step + list.length) % list.length;
+  paintPadFocus();
+}
+
+function activateFocus() {
+  const list = focusables();
+  if (!list.length) return;
+  const el = list[((focusI % list.length) + list.length) % list.length];
+  audio.unlock();
+  if (el instanceof HTMLInputElement) {
+    el.focus();
+    return;
+  }
+  el.click();
+}
+
+function padSheetOn() {
+  return padOn && state.role === "runner" && (state.phase === "play" || state.phase === "result");
+}
+
+function settleHint() {
+  const keyboard = hint.textContent.startsWith("WASD") || hint.textContent.startsWith("Lewa połowa");
+  if (!keyboard) return;
+  hint.hidden = padSheetOn();
+}
+
+function syncPadUi() {
+  padNote.hidden = !padOn;
+  const showHelp = padSheetOn();
+  padHelp.hidden = !showHelp;
+  if (showHelp) {
+    padHelp.textContent = state.phase === "result"
+      ? "Lewa gałka: krok. Prawa: wzrok. RT lub A: bieg. X: wyciszenie. Y: pełny ekran. Menu: następna komora."
+      : "Lewa gałka: krok. Prawa: wzrok. RT lub A: bieg. X: wyciszenie. Y: pełny ekran.";
+  }
+  settleHint();
+}
+
+function dirPulse(name, down, dt) {
+  if (!down) {
+    dirHold[name] = 0;
+    return false;
+  }
+  if (dirHold[name] === 0) {
+    dirHold[name] = 0.01;
+    return true;
+  }
+  dirHold[name] += dt;
+  if (dirHold[name] >= 0.42) {
+    dirHold[name] = 0.24;
+    return true;
+  }
+  return false;
+}
+
+function readPad(dt) {
+  const pad = activePad();
+  const nextOn = !!pad;
+  if (nextOn !== padOn) {
+    padOn = nextOn;
+    turnRate = 0;
+    if (pad) for (let i = 0; i < 16; i++) padDown[i] = buttonOn(pad, i);
+    else padDown.length = 0;
+    syncPadUi();
+    if (padOn) paintPadFocus();
+    else document.querySelectorAll(".is-pad").forEach((el) => el.classList.remove("is-pad"));
+  }
+  if (!pad) return;
+  const menu = state.phase === "home" || state.phase === "lobby" || state.phase === "result";
+  if (menu) {
+    if (dirPulse("up", buttonOn(pad, 12), dt) || dirPulse("left", buttonOn(pad, 14), dt)) moveFocus(-1);
+    if (dirPulse("down", buttonOn(pad, 13), dt) || dirPulse("right", buttonOn(pad, 15), dt)) moveFocus(1);
+    if (buttonEdge(pad, 0)) activateFocus();
+  } else {
+    for (const name of Object.keys(dirHold)) dirHold[name] = 0;
+    buttonEdge(pad, 0);
+  }
+  if (buttonEdge(pad, 2)) muteBtn.click();
+  if (buttonEdge(pad, 3)) toggleFull();
+  if (buttonEdge(pad, 9) && state.phase === "result") nextBtn.click();
+  if (!(state.role === "runner" && state.phase === "play")) {
+    turnRate = 0;
+    return;
+  }
+  const axes = pad.axes || [];
+  const move = stick2(axes[0] || 0, axes[1] || 0);
+  if (move.x || move.y) {
+    state.input.forward = -move.y;
+    state.input.strafe = move.x;
+  }
+  const rx = axis1(axes[2] || 0);
+  const target = Math.sign(rx) * rx * rx * 2.4;
+  turnRate += (target - turnRate) * (1 - Math.exp(-dt / 0.09));
+  if (Math.abs(turnRate) > 0.0001) state.look = normalizeAngle(state.look + turnRate * dt);
+  const sprint = buttonOn(pad, 7) || buttonOn(pad, 0);
+  if (sprint) state.input.sprint = true;
+  sprintBtn.classList.toggle("on", state.sprintLatch || sprint || keys.has("shift"));
+}
+
+function feelGuardian(dt, dist) {
+  if (!(state.role === "runner" && state.phase === "play")) return;
+  if (dist >= 3.4) {
+    rumbleAt = 0;
+    return;
+  }
+  rumbleAt -= dt;
+  if (rumbleAt > 0) return;
+  rumbleAt = dist < 1.6 ? 0.32 : 0.6;
+  const mag = clamp((3.4 - dist) / 3.4, 0.25, 0.75);
+  rumble(80, mag, mag * 0.55);
 }
 
 const PIXEL_STEPS = [1, 0.8, 0.64, 0.5];
@@ -717,6 +940,17 @@ muteBtn.addEventListener("click", () => {
   const muted = audio.toggle();
   muteBtn.textContent = muted ? "Dźwięk" : "Wycisz";
 });
+fullBtn.addEventListener("click", () => {
+  audio.unlock();
+  toggleFull();
+});
+document.addEventListener("fullscreenchange", syncFullLabel);
+document.addEventListener("webkitfullscreenchange", syncFullLabel);
+history.pushState({ za: 1 }, "", location.href);
+window.addEventListener("popstate", () => history.pushState({ za: 1 }, "", location.href));
+window.addEventListener("keydown", (event) => {
+  if (event.key === "GamepadB" || event.keyCode === 196) event.preventDefault();
+}, true);
 window.addEventListener("pointerdown", () => audio.unlock(), { once: false });
 window.addEventListener("contextmenu", (event) => event.preventDefault());
 window.addEventListener("resize", resize);
@@ -727,9 +961,21 @@ function frame(now) {
   const t0 = performance.now();
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  if (state.role === "runner" && state.phase === "play" && state.maze) {
+  const playing = state.role === "runner" && state.phase === "play" && state.maze;
+  if (playing) {
     try {
       readKeys(dt);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+  try {
+    readPad(dt);
+  } catch (error) {
+    console.error(error);
+  }
+  if (playing) {
+    try {
       const turn = normalizeAngle(state.look - state.body.a);
       const glide = 1 - Math.exp(-dt / 0.034);
       state.body.a = normalizeAngle(state.body.a + turn * (Math.abs(turn) < 0.0004 ? 1 : glide));
@@ -766,11 +1012,25 @@ function frame(now) {
       sprint: state.role === "runner" ? !!state.body.sprint : false,
       role: state.role,
     });
+    if (state.role === "runner" && state.phase === "play") feelGuardian(dt, Math.hypot(sn.x - body.x, sn.y - body.y));
   }
   watchFrames((performance.now() - t0) / 1000);
   requestAnimationFrame(frame);
 }
 
+async function loadHost() {
+  try {
+    const res = await fetch("/siec");
+    const data = await res.json();
+    const url = data.urls && data.urls[0];
+    hostLine = url ? url.replace(/^https?:\/\//, "") : "";
+  } catch {
+    hostLine = "";
+  }
+  if (state.phase === "home") paintHome();
+}
+
 resize();
 requestAnimationFrame(frame);
+loadHost();
 connect();

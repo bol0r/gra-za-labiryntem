@@ -56,6 +56,27 @@ Z arkusza zeszły trzy zmienne po starej płycie, których nic już nie czyta: `
 
 Miedziany krąg w prawym górnym rogu nieba to nie obiekt rundy. Brief od początku jest o labiryncie na obcej planecie, a ekran startu ma kicker „Planeta bez nazwy”. Ten sam krąg jest tłem lobby od pierwszego grywalnego commita (7 października 2026, `drawLobby`, gradient nazwany `planet`). W korytarzu jest domalowany w pikselach nieba i stoi w miejscu na ekranie: obrót go nie przesuwa. Polerowanie go nie dodawało. Przy kurzu i winiecie po prostu łatwiej go zobaczyć. Gwiazdy obok to osobny szum tego samego nieba.
 
+### Pad
+
+Latarnik i ekrany wyboru biorą standardowy pad (Gamepad API). Protokół pokoju bez zmian. Doszedł tylko `GET /siec`, żeby start znał adres w sieci. Serwer już słuchał na `0.0.0.0`.
+
+Mapowanie:
+
+- Lewa gałka: krok w przód i w bok. Martwa strefa 0,2, potem wychylenie rośnie do pełnego kroku.
+- Prawa gałka, w poziomie: obrót. Ta sama martwa strefa. Cel to kwadrat wychylenia razy 2,4 rad/s i schodzi w około 90 ms, a potem jeszcze płynny obrót kamery.
+- RT albo A, przytrzymane w korytarzu: bieg. Na starcie, w lobby i na płycie wyniku A włącza podświetloną rzecz.
+- X: wyciszenie.
+- Y: pełny ekran. Napis schodzi na „Okno”, gdy ekran jest pełny.
+- Menu: następna komora, tylko gdy wisi wynik.
+- D-pad: fokus na starcie, w lobby i na wyniku. Góra i lewo cofają, dół i prawo idą dalej. Po przytrzymaniu powtarza się.
+- B nie opuszcza strony. Wejście w historię jest dopchnięte, a klawisz B pada jest tłumiony. B nie znaczy „Opuść”.
+
+Gdy pad się pojawi, na dole zostaje „Pad podłączony”. W korytarzu latarnika pod spodem jest ściąga, a napis WASD schodzi. Przy strażniku bliżej niż 3,4 jednostki idzie krótka wibracja (częściej poniżej 1,6). Złapanie daje jeden dłuższy impuls. Pad bez wibracji jest po cichu pomijany.
+
+Start pokazuje „Na innym urządzeniu wpisz” i adres z portem. Gdy interfejs nie ma adresu, zostaje zdanie, żeby zostać na tym komputerze.
+
+Sprawdzone bez fizycznego pada i bez Edge na Xboksie: `navigator.getGamepads` podstawiony sztucznym padem. D-pad przeniósł fokus z „Przy mapie” na „W korytarzu”, A weszło jako latarnik. Cofnięcie historii zostało na stronie, a klawisz B pada miał zablokowaną domyślną akcję. W pokoju NS3S, z kartografem podłączonym osobno: wychylenie 0,15 nie ruszyło pozycji, pełna gałka w przód przesunęła latarnika bez biegu, prawa gałka obróciła wzrok, RT ustawił bieg w pozie, X przełączył „Wycisz” na „Dźwięk”. Konsola czysta. Na 390×844 ściąga stoi nad „Bieg” i prostokąty się nie nachodzą. Serwer wypisał `http://192.168.1.219:8792`, a start pokazał ten sam adres. Wibracji nie było jak wyzwolić: strażnik nie wszedł w zasięg i nie było złapania. Pełny ekran wymaga gestu, więc Y tylko woła przeglądarkę.
+
 ## Pominięte
 
 Brak.
@@ -68,7 +89,7 @@ Brak.
 
 Na gałęzi `polish-1` jest ten sam kierunek: kamień, popiół, miedź, bursztyn. Doszły płytki w jednym rzędzie, strażnik i pieczęcie w korytarzu, kołysanie i płynny obrót, kurz z winietą, dźwięk rundy z wyciszeniem, ekrany startu i wyniku, telefon bez przewijania i płótno, które samo schodzi z rozdzielczością. Dwie karty doszły do wygranej i do przegranej tym samym tekstem.
 
-Nic z listy nie zostało pominięte. Prawdziwego wcięcia iPhone’a nie dało się tu wywołać; marginesy są w CSS i włączą się, gdy system je poda. Zasad rundy, sieci i protokołu nie ruszałem.
+Nic z listy nie zostało pominięte. Prawdziwego wcięcia iPhone’a nie dało się tu wywołać; marginesy są w CSS i włączą się, gdy system je poda. Zasad rundy, sieci i protokołu nie ruszałem. Po liście doszedł pad latarnika i adres Maca na starcie; mapowanie jest w sekcji „Pad”.
 
 ## Następna runda
 

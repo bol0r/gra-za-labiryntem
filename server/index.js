@@ -510,6 +510,9 @@ app.use((req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
   next();
 });
+app.get("/siec", (_req, res) => {
+  res.json({ urls: lanUrls(PORT_LIVE) });
+});
 app.use("/shared", express.static(path.join(root, "shared")));
 app.use(express.static(path.join(root, "public")));
 

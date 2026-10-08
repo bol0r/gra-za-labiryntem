@@ -342,11 +342,10 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
   text-shadow: 0 10px 40px #000;
 }
 #toast.show { opacity: 1; }
-#mute {
+#mute, #full {
   position: fixed;
   z-index: 9;
   top: calc(10px + env(safe-area-inset-top));
-  right: calc(10px + env(safe-area-inset-right));
   background: transparent;
   border: 0;
   color: var(--dim);
@@ -355,10 +354,49 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
   font-size: 13px;
   min-height: 36px;
 }
+#mute { right: calc(10px + env(safe-area-inset-right)); }
+#full { left: calc(10px + env(safe-area-inset-left)); }
 #screen.is-game[data-role="guide"] #mute {
   right: auto;
   left: calc(12px + env(safe-area-inset-left));
 }
+#screen.is-game[data-role="guide"] #full {
+  left: auto;
+  right: calc(10px + env(safe-area-inset-right));
+}
+#pad-note, #pad-help {
+  position: fixed;
+  z-index: 5;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  text-align: center;
+  pointer-events: none;
+  text-shadow: 0 2px 12px #000;
+}
+#pad-note {
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  color: var(--copper-bright);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+#pad-help {
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  width: min(560px, calc(100% - 128px));
+  color: var(--bone);
+  font-size: 13px;
+  line-height: 1.45;
+}
+#screen.is-game #pad-note { bottom: calc(62px + env(safe-area-inset-bottom)); }
+@media (max-width: 800px) {
+  #screen.is-game #pad-help {
+    bottom: calc(112px + env(safe-area-inset-bottom));
+    width: min(560px, calc(100% - 28px));
+  }
+  #screen.is-game #pad-note { bottom: calc(168px + env(safe-area-inset-bottom)); }
+}
+.is-pad { outline: 2px solid var(--amber); outline-offset: 3px; }
+.host { margin: 14px 0 0; color: var(--copper-bright); font-size: 18px; letter-spacing: 0.03em; }
 #waitbanner {
   position: absolute;
   z-index: 7;
