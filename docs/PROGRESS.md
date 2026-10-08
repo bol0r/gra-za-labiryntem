@@ -38,6 +38,16 @@ Sprawdzone: kartograf 360×740 (brak scrolla strony i panelu, pięć płytek w r
 
 Latarnik mierzy czas własnej klatki, nie odstęp między odświeżeniami. Gdy rysowanie trwa średnio ponad 12 ms, bufor płótna schodzi stopniami 0,8 → 0,64 → 0,5. Poniżej 6 ms wraca w górę. Mapa kartografa zostaje ostra. Sprawdzone: w tym oknie korytarz siada na połowie bufora retina i klatka zostaje przy 60; małe okno wraca do pełnej ostrości. Przy 390 px korytarz, pieczęć i kurz zostają czytelne. Konsola czysta.
 
+### 8. Dwie karty
+
+Pokój WBHW na lokalnym serwerze: kartograf „Przy mapie”, latarnik wchodzi kodem. Pełna runda do wygranej i osobna do przegranej, bez zmian zasad ani protokołu.
+
+Wygrana, runda 5: oba ekrany dostały ten sam wynik. Kicker „Komora”, tytuł „Serce ruiny odpowiada.”, czas „1:07 w ruinie”. Potem oba przeszły do rundy 6.
+
+Przegrana, runda 6: znowu ten sam tekst. Kicker „Strażnik”, tytuł „Strażnik zamyka przejście.”, czas „1:23 w ruinie”. Potem oba są w rundzie 7. Mapa i korytarz zostają w tej samej komorze. Konsola obu kart czysta.
+
+Płyta wyniku żyje około pięciu sekund i następna komora startuje sama. Zrzut ekranu złapał już kolejną rundę, ale napis zostawiony w obu dokumentach był identyczny.
+
 ## Pominięte
 
 Brak.
