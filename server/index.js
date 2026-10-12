@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import { WebSocketServer } from "ws";
 import { generateMaze, mazeSize } from "./maze.js";
+import { appendRun, runRecord } from "./runs.js";
 import { createSentinel, roundOutcome, stepSentinel } from "./sentinel.js";
 import {
   SPRINT,
@@ -241,6 +242,11 @@ function beginRound(room) {
   room.sealCharges = 2;
   room.veil = 0;
   room.veilCd = 0;
+  room.chaseAt = null;
+  room.chasePct = null;
+  room.usedSeals = [];
+  room.takenLoot = [];
+  room.veilUsed = false;
   room.ping = null;
   room.call = null;
   room.result = null;
@@ -252,6 +258,11 @@ function beginRound(room) {
 }
 
 function finishRound(room, result) {
+  try {
+    appendRun(runRecord(room, result));
+  } catch (err) {
+    console.error(err);
+  }
   room.phase = "result";
   room.result = result;
   room.nextIn = result === "win" ? 12 : 8;
@@ -269,6 +280,8 @@ function gather(room) {
     if (item.taken) continue;
     if (Math.hypot(item.x - room.explorer.x, item.y - room.explorer.y) > 0.42) continue;
     item.taken = true;
+    room.takenLoot = room.takenLoot || [];
+    room.takenLoot.push(item.kind);
     room.points = (room.points || 0) + (item.kind === "key" ? 25 : 10);
     room.fx.push(item.kind === "key" ? "key" : "shard");
   }
@@ -508,6 +521,8 @@ function onGuide(room, msg) {
     room.sealCharges -= 1;
     seal.open = true;
     applySeals(room.maze);
+    room.usedSeals = room.usedSeals || [];
+    room.usedSeals.push({ t: room.roundT || 0, axis: seal.axis, x: seal.x, y: seal.y });
     room.fx.push("seal");
     return;
   }
@@ -515,6 +530,7 @@ function onGuide(room, msg) {
     if (room.veilCd > 0) return;
     room.veil = 6;
     room.veilCd = 26;
+    room.veilUsed = true;
     room.fx.push("veil");
     return;
   }

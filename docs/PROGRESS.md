@@ -4,6 +4,12 @@ Gałąź `polish-1`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zos
 
 ## Zrobione
 
+### Zapis rund
+
+Po wygranej albo przegranej serwer dopisuje jedną linię JSON do `data/runs.jsonl`. Żar, rozmiar, czas i wynik są z rundy, zanim żar się zmieni. Czas pierwszego pościgu jest `null`, gdy pościgu nie było. Procent trasy to skrót do serca, który latarnikowi jeszcze został, liczony po korytarzach. Pieczęcie mają czas otwarcia, łup to zebrane rodzaje, zasłona to fakt użycia. Zasady rundy bez zmian. `node server/runs.js` wypisuje krótkie podsumowanie. Plik jest w `data/` i nie wchodzi do gita.
+
+Sprawdzone: `npm run check`. `node server/smoke.js`, pokój FYVG. Osobna runda NCFV doszła do przegranej w 16,6 s: pościg w 16,3 s przy 40,3% trasy, jeden odłamek, zasłona użyta, pieczęci brak. `node server/runs.js` to wypisał. Potem ta linia testowa została skasowana, żeby sesja we dwójkę zaczynała od pustego pliku. Dwie karty, pokój SBB4: kartograf i latarnik weszli w korytarz. Konsola obu kart pusta, serwer bez błędu.
+
 ### Intro bez nazw
 
 W twórcach zostaje jedna linia „Dead Net Lab”. Zeszły imię, nazwisko, Claude i Grok. Testerzy zostają. Intro schodzi od klawisza (sam modyfikator nie), od kliknięcia w kadr i od A na padzie. A nie odpala „Graj”.

@@ -7,6 +7,7 @@ import {
   senses,
   sentSpeed,
 } from "../shared/sim.js";
+import { pathPercent } from "./runs.js";
 
 function detect(room) {
   if (room.immunity > 0 || room.veil > 0) return null;
@@ -30,6 +31,10 @@ function setState(room, next) {
   if (prev === "hunt" && next !== "hunt" && room.phase === "play") {
     room.points = (room.points || 0) + 15;
     room.fx.push("escape");
+  }
+  if (next === "hunt" && room.chaseAt == null && room.phase === "play") {
+    room.chaseAt = room.roundT || 0;
+    room.chasePct = pathPercent(room.maze, room.explorer);
   }
 }
 
