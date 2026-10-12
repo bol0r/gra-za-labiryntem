@@ -4,6 +4,12 @@ Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zosta
 
 ## Zrobione
 
+### Opcje
+
+W menu głównym jest „Opcje”. W trakcie rundy ten sam ekran otwiera przycisk Menu, bez opuszczania komory: „Wróć” wraca do gry, „Do menu” wychodzi jak dawny przycisk Menu. Tekstury HD, głośność 0–100 (domyślnie 80) i dźwięk są w `localStorage` (`zl-hd`, `zl-vol`, `zl-mute`) i czytane przy starcie. Suwak rusza jeden GainNode od razu; przy 80 poziom jest taki jak dotychczasowe 0,62. Wyciszenie trzyma suwak i do niego wraca. Przycisk „Wycisz” zszedł z rogu. Zostają klawisz M i X na padzie. Strzałki w lewo i w prawo na głośności zmieniają ją o 10. Pad i klawiatura chodzą jak w reszcie menu, B wraca.
+
+Sprawdzone: przełączniki, suwak, M gasi i oddaje ten sam poziom, zapis zostaje po odświeżeniu. Ekran mieści się przy 390 px. Dwie karty, pokój 6DMQ: obaj w korytarzu, Menu otwiera opcje, „Wróć” zostawia rundę. Serwer bez błędu.
+
 ### Budzenie od połowy drogi
 
 Ruina liczy postęp latarnika po drodze do serca. Około 50% trasy budzenie startuje i dochodzi do pełnego przy sercu. Zegar 110 s zostaje górną granicą ciszy, pełne pobudzenie z samego czasu około 230 s. Bierze się to, co jest dalej. Najdalszy osiągnięty punkt zostaje, cofnięcie nie usypia ruiny. Obchód schodzi z długiego odcinka ścieżki: boczny korytarz przecina drogę do serca. Reszta zasad bez zmian.

@@ -1,4 +1,10 @@
-export function createAudio() {
+function clampPercent(value, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+export function createAudio(initial = {}) {
   let ctx = null;
   let master = null;
   let droneA = null;
@@ -6,10 +12,16 @@ export function createAudio() {
   let sentGain = null;
   let noise = null;
   let cloth = null;
-  let muted = false;
+  let volume = clampPercent(initial.volume, 80);
+  let muted = !!initial.muted;
   let stepAt = 0;
   let stepFlip = false;
   let warmed = false;
+
+  function applyGain() {
+    if (!master) return;
+    master.gain.value = muted ? 0 : (volume / 80) * 0.62;
+  }
 
   function ensure() {
     if (ctx) return;
@@ -17,8 +29,8 @@ export function createAudio() {
     if (!AC) return;
     ctx = new AC();
     master = ctx.createGain();
-    master.gain.value = 0.62;
     master.connect(ctx.destination);
+    applyGain();
     droneA = osc(46, "sine", 0.012);
     startWind();
     const lfo = ctx.createOscillator();
@@ -160,8 +172,20 @@ export function createAudio() {
     toggle() {
       ensure();
       muted = !muted;
-      if (master) master.gain.value = muted ? 0 : 0.62;
+      applyGain();
+      if (ctx && ctx.state !== "running") ctx.resume();
       return muted;
+    },
+    setMuted(on) {
+      muted = !!on;
+      applyGain();
+    },
+    setVolume(percent) {
+      volume = clampPercent(percent, volume);
+      applyGain();
+    },
+    volumePercent() {
+      return volume;
     },
     get muted() {
       return muted;

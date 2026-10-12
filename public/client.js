@@ -30,7 +30,7 @@ const introGo = document.getElementById("intro-go");
 const smoke = document.getElementById("smoke");
 const hint = document.getElementById("hint");
 const toast = document.getElementById("toast");
-const muteBtn = document.getElementById("mute");
+const optLayer = document.getElementById("opt-layer");
 const fullBtn = document.getElementById("full");
 const padNote = document.getElementById("pad-note");
 const padHelp = document.getElementById("pad-help");
@@ -42,7 +42,37 @@ const resultKicker = document.getElementById("result-kicker");
 const resultTitle = document.getElementById("result-title");
 const resultTime = document.getElementById("result-time");
 const nextBtn = document.getElementById("next");
-const audio = createAudio();
+function prefBool(key, fallback) {
+  try {
+    const value = localStorage.getItem(key);
+    if (value == null) return fallback;
+    return value === "1";
+  } catch {
+    return fallback;
+  }
+}
+
+function prefNum(key, fallback) {
+  try {
+    const value = localStorage.getItem(key);
+    if (value == null || value === "") return fallback;
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function storePref(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // prywatna przeglądarka
+  }
+}
+
+const audio = createAudio({ volume: prefNum("zl-vol", 80), muted: prefBool("zl-mute", false) });
+let optionsOverPlay = false;
 const keys = new Set();
 const looks = new Map();
 const sticks = new Map();
@@ -73,7 +103,7 @@ const state = {
   scores: null,
 };
 
-const SHELL = new Set(["boot", "intro", "menu", "story", "credits", "scores", "home", "lobby"]);
+const SHELL = new Set(["boot", "intro", "menu", "options", "story", "credits", "scores", "home", "lobby"]);
 
 const narrow = window.matchMedia("(max-width: 800px)").matches;
 const queryCode = (new URLSearchParams(location.search).get("pokoj") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
@@ -96,6 +126,11 @@ function saveSession() {
 }
 
 function setPhase(phase) {
+  if (optionsOverPlay && phase !== "play") {
+    optionsOverPlay = false;
+    optLayer.hidden = true;
+    optLayer.innerHTML = "";
+  }
   state.phase = phase;
   const menu = SHELL.has(phase);
   screen.classList.toggle("is-menu", menu);
@@ -153,6 +188,7 @@ function paintMenu() {
     <h1>Za labiryntem</h1>
     <div class="menu-list">
       <button type="button" data-act="play">Graj</button>
+      <button type="button" data-act="options">Opcje</button>
       <button type="button" data-act="story">Fabuła</button>
       <button type="button" data-act="scores">Tablica</button>
       <button type="button" data-act="credits">Twórcy</button>
@@ -161,6 +197,144 @@ function paintMenu() {
     <p class="fine">Mapa na telefonie. Latarnia na komputerze.</p>
   `);
   paintPadFocus();
+}
+
+function optionsMarkup(leave) {
+  const hd = prefBool("zl-hd", true);
+  const vol = audio.volumePercent();
+  const sound = !audio.muted;
+  return `
+    <div class="opt-plate" role="dialog" aria-label="Opcje">
+      <p class="kicker">Opcje</p>
+      <h2>Obraz i dźwięk</h2>
+      <div class="opt-row">
+        <div><b>Tekstury HD</b><p>Kamień, niebo i planeta w wysokiej rozdzielczości. Na słabszym telefonie wyłącz.</p></div>
+        <button class="opt-toggle" type="button" role="switch" aria-checked="${hd ? "true" : "false"}" aria-label="Tekstury HD" data-act="opt-hd"></button>
+      </div>
+      <div class="opt-row">
+        <div><b>Głośność</b><p>Dron, kroki, zawołania i strażnik.</p></div>
+        <div class="opt-slider">
+          <input data-act="opt-vol" type="range" min="0" max="100" value="${vol}" aria-label="Głośność">
+          <output data-out="vol">${vol}</output>
+        </div>
+      </div>
+      <div class="opt-row">
+        <div><b>Dźwięk</b><p>Wyłączony zachowuje ustawioną głośność. Skrót: M albo X na padzie.</p></div>
+        <button class="opt-toggle" type="button" role="switch" aria-checked="${sound ? "true" : "false"}" aria-label="Dźwięk" data-act="opt-sound"></button>
+      </div>
+      <div class="opt-back">
+        <div class="opt-pad"><span><i class="pad-a">A</i>Zmień</span><span><i class="pad-b">B</i>Wróć</span></div>
+        <div class="opt-actions">
+          ${leave ? `<button class="opt-leave" type="button" data-act="opt-leave">Do menu</button>` : ""}
+          <button class="stone-btn" type="button" data-act="opt-back">Wróć</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function syncVolUi(input) {
+  input.style.setProperty("--v", `${input.value}%`);
+  const out = input.parentElement && input.parentElement.querySelector("[data-out=vol]");
+  if (out) out.textContent = input.value;
+}
+
+function paintOptions(root, leave) {
+  const html = optionsMarkup(leave);
+  if (root === plate) fillPlate("options", html);
+  else root.innerHTML = html;
+  const vol = root.querySelector("[data-act=opt-vol]");
+  if (vol) {
+    syncVolUi(vol);
+    vol.addEventListener("focus", () => {
+      const list = focusables();
+      const index = list.indexOf(vol);
+      if (index < 0) return;
+      focusI = index;
+      paintPadFocus();
+    });
+  }
+  root.querySelectorAll(".opt-row").forEach((row) => {
+    row.addEventListener("pointerenter", () => {
+      const control = row.querySelector("button, input");
+      const list = focusables();
+      const index = list.indexOf(control);
+      if (index < 0) return;
+      focusI = index;
+      paintPadFocus();
+    });
+  });
+}
+
+function openOptions() {
+  const during = state.phase === "play" || state.phase === "wait" || state.phase === "result";
+  if (during) {
+    optionsOverPlay = true;
+    state.input.forward = 0;
+    state.input.strafe = 0;
+    state.input.sprint = false;
+    sprintBtn.classList.remove("on");
+    optLayer.hidden = false;
+    paintOptions(optLayer, true);
+  } else {
+    optionsOverPlay = false;
+    optLayer.hidden = true;
+    setPhase("options");
+    paintOptions(plate, false);
+  }
+  focusI = 0;
+  paintPadFocus();
+}
+
+function closeOptions() {
+  if (optionsOverPlay) {
+    optionsOverPlay = false;
+    optLayer.hidden = true;
+    optLayer.innerHTML = "";
+    focusI = 0;
+    paintPadFocus();
+    return;
+  }
+  if (state.phase === "options") {
+    setPhase("menu");
+    paintMenu();
+  }
+}
+
+function onVolumeInput(input) {
+  audio.setVolume(Number(input.value));
+  storePref("zl-vol", String(audio.volumePercent()));
+  audio.unlock();
+  syncVolUi(input);
+}
+
+function adjustVolume(delta) {
+  const next = Math.max(0, Math.min(100, audio.volumePercent() + delta));
+  audio.setVolume(next);
+  storePref("zl-vol", String(audio.volumePercent()));
+  audio.unlock();
+  const input = (optionsRoot() || document).querySelector("[data-act=opt-vol]");
+  if (!input) return;
+  input.value = String(audio.volumePercent());
+  syncVolUi(input);
+}
+
+function syncSoundSwitch() {
+  const btn = document.querySelector("[data-act=opt-sound]");
+  if (btn) btn.setAttribute("aria-checked", audio.muted ? "false" : "true");
+}
+
+function toggleMute() {
+  audio.unlock();
+  audio.toggle();
+  storePref("zl-mute", audio.muted ? "1" : "0");
+  syncSoundSwitch();
+}
+
+function toggleHd(btn) {
+  const on = btn.getAttribute("aria-checked") !== "true";
+  btn.setAttribute("aria-checked", on ? "true" : "false");
+  storePref("zl-hd", on ? "1" : "0");
 }
 
 function paintStory() {
@@ -591,20 +765,36 @@ function syncFullLabel() {
   fullBtn.textContent = on ? "Okno" : "Pełny ekran";
 }
 
+function optionsRoot() {
+  if (optionsOverPlay) return optLayer;
+  if (state.phase === "options") return plate;
+  return null;
+}
+
 function focusables() {
+  const root = optionsRoot();
+  if (root) return [...root.querySelectorAll("button, input")].filter((el) => el && !el.disabled && !el.hidden);
   if (state.phase === "intro") return [introGo, document.getElementById("intro-skip")].filter((el) => el && !el.hidden);
-  if (state.phase === "result") return [...result.querySelectorAll("button, input"), fullBtn, muteBtn].filter((el) => el && !el.disabled && !el.hidden);
+  if (state.phase === "result") return [...result.querySelectorAll("button, input"), fullBtn].filter((el) => el && !el.disabled && !el.hidden);
   if (!SHELL.has(state.phase) || state.phase === "boot" || state.phase === "intro") return [];
-  return [...plate.querySelectorAll("button, input"), fullBtn, muteBtn].filter((el) => el && !el.disabled);
+  return [...plate.querySelectorAll("button, input"), fullBtn].filter((el) => el && !el.disabled);
+}
+
+function focusedEl() {
+  const list = focusables();
+  if (!list.length) return null;
+  focusI = ((focusI % list.length) + list.length) % list.length;
+  return list[focusI];
 }
 
 function paintPadFocus() {
   document.querySelectorAll(".is-pad").forEach((el) => el.classList.remove("is-pad"));
-  if (!padOn) return;
-  const list = focusables();
-  if (!list.length) return;
-  focusI = ((focusI % list.length) + list.length) % list.length;
-  list[focusI].classList.add("is-pad");
+  document.querySelectorAll(".opt-row.on").forEach((el) => el.classList.remove("on"));
+  const el = focusedEl();
+  if (!el) return;
+  const row = el.closest(".opt-row");
+  if (row) row.classList.add("on");
+  if (padOn) el.classList.add("is-pad");
 }
 
 function moveFocus(step) {
@@ -685,19 +875,31 @@ function readPad(dt) {
     buttonEdge(pad, 9);
     return;
   }
-  const menu = SHELL.has(state.phase) || state.phase === "result";
+  const inOptions = state.phase === "options" || optionsOverPlay;
+  const menu = SHELL.has(state.phase) || state.phase === "result" || inOptions;
   if (menu) {
-    if (dirPulse("up", buttonOn(pad, 12), dt) || dirPulse("left", buttonOn(pad, 14), dt)) moveFocus(-1);
-    if (dirPulse("down", buttonOn(pad, 13), dt) || dirPulse("right", buttonOn(pad, 15), dt)) moveFocus(1);
+    const left = dirPulse("left", buttonOn(pad, 14), dt);
+    const right = dirPulse("right", buttonOn(pad, 15), dt);
+    const up = dirPulse("up", buttonOn(pad, 12), dt);
+    const down = dirPulse("down", buttonOn(pad, 13), dt);
+    const onVol = inOptions && focusedEl() && focusedEl().dataset.act === "opt-vol";
+    if (onVol && (left || right)) adjustVolume((right ? 10 : 0) - (left ? 10 : 0));
+    else {
+      if (up || left) moveFocus(-1);
+      if (down || right) moveFocus(1);
+    }
     if (buttonEdge(pad, 0)) activateFocus();
+    if (inOptions && buttonEdge(pad, 1)) closeOptions();
+    else buttonEdge(pad, 1);
   } else {
     for (const name of Object.keys(dirHold)) dirHold[name] = 0;
     buttonEdge(pad, 0);
+    buttonEdge(pad, 1);
   }
-  if (buttonEdge(pad, 2)) muteBtn.click();
+  if (buttonEdge(pad, 2)) toggleMute();
   if (buttonEdge(pad, 3)) toggleFull();
-  if (buttonEdge(pad, 9) && state.phase === "result") nextBtn.click();
-  if (!(state.role === "runner" && state.phase === "play")) {
+  if (buttonEdge(pad, 9) && state.phase === "result" && !inOptions) nextBtn.click();
+  if (inOptions || !(state.role === "runner" && state.phase === "play")) {
     turnRate = 0;
     return;
   }
@@ -861,7 +1063,7 @@ function connect() {
       state.qr = msg.qr || state.qr;
       state.urls = msg.urls || state.urls;
       if (msg.role) state.role = msg.role;
-      if (state.phase === "menu" || state.phase === "intro" || state.phase === "story" || state.phase === "credits" || state.phase === "scores") return;
+      if (state.phase === "menu" || state.phase === "intro" || state.phase === "options" || state.phase === "story" || state.phase === "credits" || state.phase === "scores") return;
       setPhase("lobby");
       paintLobby();
     } else if (msg.t === "scores") {
@@ -903,6 +1105,11 @@ lobby.addEventListener("click", (event) => {
     setPhase("home");
     paintHome();
   }
+  if (btn.dataset.act === "options") openOptions();
+  if (btn.dataset.act === "opt-hd") toggleHd(btn);
+  if (btn.dataset.act === "opt-sound") toggleMute();
+  if (btn.dataset.act === "opt-back") closeOptions();
+  if (btn.dataset.act === "opt-leave") goMenu();
   if (btn.dataset.act === "story") {
     setPhase("story");
     paintStory();
@@ -923,6 +1130,10 @@ lobby.addEventListener("click", (event) => {
   if (btn.dataset.act === "create") send({ t: "create", role: btn.dataset.role });
   if (btn.dataset.act === "start") send({ t: "start" });
   if (btn.dataset.act === "leave") goMenu();
+});
+
+lobby.addEventListener("input", (event) => {
+  if (event.target.dataset && event.target.dataset.act === "opt-vol") onVolumeInput(event.target);
 });
 
 lobby.addEventListener("submit", (event) => {
@@ -1007,7 +1218,38 @@ window.addEventListener("keydown", (event) => {
     finishIntro();
     return;
   }
-  if (event.target instanceof HTMLInputElement) return;
+  const typing = event.target instanceof HTMLInputElement && event.target.type !== "range";
+  if (typing) return;
+  if (event.key.toLowerCase() === "m" && !event.repeat) {
+    event.preventDefault();
+    toggleMute();
+    return;
+  }
+  if (state.phase === "options" || optionsOverPlay) {
+    const key = event.key;
+    if (key === "ArrowLeft" || key === "ArrowRight") {
+      event.preventDefault();
+      if (focusedEl() && focusedEl().dataset.act === "opt-vol") adjustVolume(key === "ArrowRight" ? 10 : -10);
+      else moveFocus(key === "ArrowRight" ? 1 : -1);
+      return;
+    }
+    if (key === "ArrowUp" || key === "ArrowDown") {
+      event.preventDefault();
+      moveFocus(key === "ArrowDown" ? 1 : -1);
+      return;
+    }
+    if (key === "Enter" || key === " ") {
+      event.preventDefault();
+      activateFocus();
+      return;
+    }
+    if (key === "Escape") {
+      event.preventDefault();
+      closeOptions();
+      return;
+    }
+    return;
+  }
   if (event.key === "F1" || event.key.toLowerCase() === "p") {
     event.preventDefault();
     toggleHelp();
@@ -1117,10 +1359,17 @@ sprintBtn.addEventListener("pointerdown", (event) => {
 });
 
 nextBtn.addEventListener("click", () => send({ t: "skip" }));
-muteBtn.addEventListener("click", () => {
+optLayer.addEventListener("click", (event) => {
+  const btn = event.target.closest("[data-act]");
+  if (!btn) return;
   audio.unlock();
-  const muted = audio.toggle();
-  muteBtn.textContent = muted ? "Dźwięk" : "Wycisz";
+  if (btn.dataset.act === "opt-hd") toggleHd(btn);
+  if (btn.dataset.act === "opt-sound") toggleMute();
+  if (btn.dataset.act === "opt-back") closeOptions();
+  if (btn.dataset.act === "opt-leave") goMenu();
+});
+optLayer.addEventListener("input", (event) => {
+  if (event.target.dataset.act === "opt-vol") onVolumeInput(event.target);
 });
 fullBtn.addEventListener("click", () => {
   audio.unlock();
@@ -1146,7 +1395,11 @@ function frame(now) {
   const playing = state.role === "runner" && state.phase === "play" && state.maze;
   if (playing) {
     try {
-      readKeys(dt);
+      if (optionsOverPlay) {
+        state.input.forward = 0;
+        state.input.strafe = 0;
+        state.input.sprint = false;
+      } else readKeys(dt);
     } catch (error) {
       console.error(error);
     }
@@ -1379,7 +1632,7 @@ helpOpen.addEventListener("click", () => {
   toggleHelp();
 });
 intro.addEventListener("click", () => finishIntro());
-quitBtn.addEventListener("click", () => goMenu());
+quitBtn.addEventListener("click", () => openOptions());
 document.getElementById("wait-menu").addEventListener("click", () => goMenu());
 document.getElementById("quit-result").addEventListener("click", () => goMenu());
 listenBtn.addEventListener("click", () => doListen());
