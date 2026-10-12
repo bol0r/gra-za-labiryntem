@@ -1,8 +1,14 @@
 # Postęp polerowania
 
-Gałąź `polish-1`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zostaje. Zasady rundy, sieć i protokół bez zmian.
+Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zostaje.
 
 ## Zrobione
+
+### Budzenie od połowy drogi
+
+Ruina liczy postęp latarnika po drodze do serca. Około 50% trasy budzenie startuje i dochodzi do pełnego przy sercu. Zegar 110 s zostaje górną granicą ciszy, pełne pobudzenie z samego czasu około 230 s. Bierze się to, co jest dalej. Najdalszy osiągnięty punkt zostaje, cofnięcie nie usypia ruiny. Obchód schodzi z długiego odcinka ścieżki: boczny korytarz przecina drogę do serca. Reszta zasad bez zmian.
+
+Sprawdzone: `npm run check` na 40 nasionach dla siatek 15, 19 i 21. Smoke, pokój UCNS. Runda KQBK: przy 23,1 s budzenie było już 0,03, zanim ruszy zegar, bo latarnik minął połowę trasy. Dwie karty, pokój Q6Z2: obaj w korytarzu, na mapie obchód schodzi w bok i wraca na drogę, panel na starcie mówi „Cisza”. Konsola obu kart pusta, serwer bez błędu.
 
 ### Zapis rund
 

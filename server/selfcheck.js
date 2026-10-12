@@ -9,6 +9,7 @@ import {
   moveBody,
   raycast,
   stepExplorer,
+  wakeLevel,
 } from "../shared/sim.js";
 
 const corridor = {
@@ -32,7 +33,39 @@ assert.equal(hasLos(corridor, 0.5, 0.5, 0.5, 1.4), false);
 const blocked = moveBody(corridor, 0.5, 0.5, 0, -0.4, 0.17);
 assert.ok(blocked.y > 0.2, "should not cross the north wall");
 
+assert.equal(wakeLevel(0, 0), 0);
+assert.equal(wakeLevel(109, 0.4), 0);
+assert.equal(wakeLevel(0, 0.5), 0);
+assert.equal(wakeLevel(0, 0.75), 0.5);
+assert.equal(wakeLevel(0, 1), 1);
+assert.ok(Math.abs(wakeLevel(170, 0) - 0.5) < 0.001);
+assert.equal(wakeLevel(40, 0.75), 0.5);
+assert.equal(wakeLevel(230, 0.2), 1);
+
+function patrolCrosses(maze) {
+  const spine = gridPath(maze, maze.start.x, maze.start.y, maze.relic.x, maze.relic.y);
+  assert.ok(spine && spine.length > 2);
+  const on = new Set(spine.map((cell) => cell.y * maze.w + cell.x));
+  const route = new Set();
+  const patrol = maze.patrol || [];
+  assert.ok(patrol.length >= 2, "patrol needs a crossing");
+  for (let i = 0; i < patrol.length; i++) {
+    const a = patrol[i];
+    const b = patrol[(i + 1) % patrol.length];
+    const leg = gridPath(maze, a.x, a.y, b.x, b.y) || [];
+    for (const cell of leg) route.add(cell.y * maze.w + cell.x);
+  }
+  let onRoute = 0;
+  let offRoute = 0;
+  for (const key of route) {
+    if (on.has(key)) onRoute += 1;
+    else offRoute += 1;
+  }
+  assert.ok(onRoute > 0 && offRoute > 0, "patrol should cross the path to the heart");
+}
+
 for (const size of [15, 19, 21]) {
+  for (let seed = 1; seed <= 40; seed++) patrolCrosses(generateMaze(size, seed * 17 + size));
   const maze = generateMaze(size, 1000 + size);
   const dist = distanceMap(maze, maze.start.x, maze.start.y);
   for (let y = 0; y < maze.h; y++) {

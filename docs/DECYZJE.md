@@ -30,7 +30,7 @@ Cisza: krótki wzrok, zero słuchu. Chód: średni wzrok, słuch tylko z bliska.
 
 ## Budzenie ruiny zamiast zegara porażki
 
-Od około 110 sekundy strażnik przyspiesza i lepiej wyczuwa. Runda może trwać dłużej, ale stanie w miejscu przestaje być bezpieczne. Nie ma osobnego „czas minął”.
+Budzenie idzie od postępu po drodze do serca i zaczyna się około połowy trasy. Zegar około 110 s jest górną granicą ciszy: co nastąpi pierwsze. Potem strażnik przyspiesza i lepiej wyczuwa, aż do pełnego pobudzenia. Stanie w miejscu po tym czasie przestaje być bezpieczne. Nie ma osobnego „czas minął”.
 
 ## Rozmiar labiryntu rośnie po wygranej
 

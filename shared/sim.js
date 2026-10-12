@@ -43,8 +43,10 @@ export function hashString(s) {
   return h >>> 0;
 }
 
-export function wakeLevel(roundT) {
-  return clamp((roundT - 110) / 120, 0, 1);
+export function wakeLevel(roundT, along = 0) {
+  const byTime = clamp((roundT - 110) / 120, 0, 1);
+  const byPath = clamp(((along || 0) - 0.5) / 0.5, 0, 1);
+  return Math.max(byTime, byPath);
 }
 
 export function senses(quiet, sprint, wake) {

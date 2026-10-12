@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import { WebSocketServer } from "ws";
 import { generateMaze, mazeSize } from "./maze.js";
-import { appendRun, runRecord } from "./runs.js";
+import { appendRun, pathPercent, runRecord } from "./runs.js";
 import { createSentinel, roundOutcome, stepSentinel } from "./sentinel.js";
 import {
   SPRINT,
@@ -238,6 +238,7 @@ function beginRound(room) {
   room.phase = "play";
   room.roundT = 0;
   room.wake = 0;
+  room.along = 0;
   room.immunity = 2.4;
   room.sealCharges = 2;
   room.veil = 0;
@@ -295,7 +296,9 @@ function tick(room) {
     } else {
       room.note = "";
       room.roundT += DT;
-      room.wake = wakeLevel(room.roundT);
+      const pct = pathPercent(room.maze, room.explorer);
+      if (pct != null) room.along = Math.max(room.along || 0, pct / 100);
+      room.wake = wakeLevel(room.roundT, room.along || 0);
       room.immunity = Math.max(0, room.immunity - DT);
       room.veil = Math.max(0, room.veil - DT);
       room.veilCd = Math.max(0, room.veilCd - DT);

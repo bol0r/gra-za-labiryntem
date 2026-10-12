@@ -1,4 +1,4 @@
-import { distanceMap, gridPath, mulberry32 } from "../shared/sim.js";
+import { distanceMap, gridPath, mulberry32, neighbors } from "../shared/sim.js";
 
 function openings(maze, x, y) {
   let n = 0;
@@ -106,13 +106,7 @@ export function generateMaze(size, seed) {
   }
 
   const path = gridPath(maze, start.x, start.y, relic.x, relic.y) || [start, relic];
-  const slice = path.slice(Math.floor(path.length * 0.42), Math.max(Math.floor(path.length * 0.42) + 1, Math.floor(path.length * 0.86)));
-  const patrol = [];
-  for (let i = 0; i < 4; i++) {
-    const cell = slice[Math.min(slice.length - 1, Math.floor((i / 3) * (slice.length - 1)))] || slice[0];
-    if (!patrol.some((p) => p.x === cell.x && p.y === cell.y)) patrol.push({ x: cell.x, y: cell.y });
-  }
-  if (!patrol.length) patrol.push({ x: relic.x, y: relic.y });
+  const patrol = placePatrol(maze, path);
 
   maze.start = { x: start.x, y: start.y };
   maze.relic = { x: relic.x, y: relic.y };
@@ -120,6 +114,70 @@ export function generateMaze(size, seed) {
   maze.pathLength = path.length;
   maze.loot = placeLoot(maze, rng, start, relic);
   return maze;
+}
+
+function branchTip(maze, origin, on) {
+  const seeds = neighbors(maze, origin.x, origin.y).filter(([x, y]) => !on.has(y * maze.w + x));
+  let best = null;
+  let bestD = 0;
+  for (const seed of seeds) {
+    const q = [[seed[0], seed[1], 1]];
+    const seen = new Set([origin.y * maze.w + origin.x, seed[1] * maze.w + seed[0]]);
+    let tip = { x: seed[0], y: seed[1] };
+    let depth = 1;
+    for (let i = 0; i < q.length; i++) {
+      const [x, y, d] = q[i];
+      if (d > depth) {
+        depth = d;
+        tip = { x, y };
+      }
+      if (d >= 8) continue;
+      for (const [nx, ny] of neighbors(maze, x, y)) {
+        const key = ny * maze.w + nx;
+        if (seen.has(key) || on.has(key)) continue;
+        seen.add(key);
+        q.push([nx, ny, d + 1]);
+      }
+    }
+    if (depth > bestD) {
+      bestD = depth;
+      best = tip;
+    }
+  }
+  return best ? { tip: best, depth: bestD } : null;
+}
+
+function placePatrol(maze, path) {
+  const on = new Set(path.map((cell) => cell.y * maze.w + cell.x));
+  const windows = [
+    [Math.floor(path.length * 0.4), Math.floor(path.length * 0.78)],
+    [1, Math.max(1, path.length - 2)],
+  ];
+  let best = null;
+  for (const [lo, hi] of windows) {
+    for (let i = lo; i <= hi && i < path.length - 1; i++) {
+      const cell = path[i];
+      const branch = branchTip(maze, cell, on);
+      if (!branch) continue;
+      const score = branch.depth * 1000 - Math.abs(i - path.length * 0.62);
+      if (!best || score > best.score) best = { ...branch, cell, index: i, score };
+    }
+    if (best) break;
+  }
+  if (!best) {
+    const mid = path[Math.min(path.length - 1, Math.floor(path.length * 0.6))] || path[0];
+    return [{ x: mid.x, y: mid.y }];
+  }
+  const patrol = [best.tip, { x: best.cell.x, y: best.cell.y }];
+  const ahead = path[Math.min(path.length - 2, best.index + 4)];
+  if (
+    ahead &&
+    (ahead.x !== best.cell.x || ahead.y !== best.cell.y) &&
+    (ahead.x !== best.tip.x || ahead.y !== best.tip.y)
+  ) {
+    patrol.push({ x: ahead.x, y: ahead.y });
+  }
+  return patrol;
 }
 
 function placeLoot(maze, rng, start, relic) {

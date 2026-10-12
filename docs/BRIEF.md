@@ -40,7 +40,7 @@ Twórca pokoju wybiera rolę. Druga osoba dostaje tę, która została.
 
 - Labirynt jest doskonały (recursive backtracker) plus do trzech zamkniętych skrótów. Skrót nie jest obowiązkowy. Da się wygrać bez kartografa, ale bez niego jest ślepo.
 - Start to ślepy zaułek daleko od serca. Serce to komórka najdalsza od narożnika, a start to zaułek najdalszy od serca.
-- Strażnik patroluje drugą połowę drogi do serca. Stany: obchód, czuwa, pościg, szuka. Widzi w stożku, słyszy bieg przez ściany, chód tylko z bliska, stanie w miejscu jest ciche.
+- Strażnik obchodzi boczny korytarz, który przecina drogę do serca. Stany: obchód, czuwa, pościg, szuka. Widzi w stożku, słyszy bieg przez ściany, chód tylko z bliska, stanie w miejscu jest ciche.
 - Po starcie rundy jest krótka odporność, około 2,4 s, żeby zły układ nie zabił od razu.
 - Dotknięcie strażnika przegrywa. Wejście na komórkę serca wygrywa.
 - Pieczęcie: 2 ładunki na rundę, otwierają ścianę na stałe w tej komorze. Kartograf wydaje ładunek kliknięciem w drzwi. Drzwi puszczają tylko wtedy, gdy latarnik stoi przy nich, bliżej niż około 1,2. Inaczej kartograf słyszy „Latarnik musi stanąć przy drzwiach.”
@@ -49,7 +49,7 @@ Twórca pokoju wybiera rolę. Druga osoba dostaje tę, która została.
 - Zasłona: 6 s, potem około 26 s odnowienia. Nie daje przejścia przez strażnika, tylko psuje wykrycie.
 - Znak na mapie trwa około 12 s. Stuk latarnika stawia znak w jego miejscu na około 8 s.
 - P albo F1, oraz przycisk Pomoc, otwierają pomoc. U latarnika i u kartografa tekst jest inny.
-- Od około 110 s rundy ruina się budzi: strażnik szybszy, widzi i słyszy dalej. Pełne pobudzenie około 230 s. Nie ma twardego limitu czasu.
+- Ruina budzi się od postępu latarnika po drodze do serca. Około połowy trasy zaczyna, przy sercu jest pełna. Zegar około 110 s jest górną granicą ciszy: budzi to, co nastąpi pierwsze. Z samego czasu pełne pobudzenie jest około 230 s. Strażnik robi się szybszy i wyczuwa dalej. Nie ma twardego limitu czasu. Cofnięcie się nie usypia ruiny.
 - Wygrana podnosi „żar” (większy labirynt), przegrana obniża. Rozmiary: 15, 19, 21. Numer rundy rośnie niezależnie.
 - Po wygranej płyta wisi około 12 s, po przegranej około 8 s, i sama startuje następna komora. Przycisk **Dalej** skraca czekanie i pokazuje odliczanie. Wygrana mówi „Ruina was puszcza.”, przegrana „Strażnik was ma.” Obie podają czas i punkty. Po wygranej można wpisać imię na tablicę.
 - Tablica trzyma imię, czas, numer komory i punkty. Kolejność: więcej komór, potem więcej punktów, potem krótszy czas. Widać ją z menu i pod `GET /tablica`.
