@@ -196,13 +196,7 @@ function paintCredits() {
   fillPlate("credits", `
     <p class="kicker">Twórcy</p>
     <h1>Za labiryntem</h1>
-    <ul class="credits">
-      <li>Dead Net</li>
-      <li>Aleksander Bielecki</li>
-      <li>Claude</li>
-      <li>Grok</li>
-    </ul>
-    <p class="powered">powered by Cursor</p>
+    <p class="studio">Dead Net Lab</p>
     <p class="kicker">Testerzy</p>
     <ul class="credits">
       <li>Mariusz B.</li>
@@ -684,6 +678,13 @@ function readPad(dt) {
     else document.querySelectorAll(".is-pad").forEach((el) => el.classList.remove("is-pad"));
   }
   if (!pad) return;
+  if (state.phase === "intro") {
+    if (buttonEdge(pad, 0)) finishIntro();
+    buttonEdge(pad, 2);
+    buttonEdge(pad, 3);
+    buttonEdge(pad, 9);
+    return;
+  }
   const menu = SHELL.has(state.phase) || state.phase === "result";
   if (menu) {
     if (dirPulse("up", buttonOn(pad, 12), dt) || dirPulse("left", buttonOn(pad, 14), dt)) moveFocus(-1);
@@ -894,7 +895,7 @@ function connect() {
 }
 
 lobby.addEventListener("click", (event) => {
-  if (event.target.closest("h1") || event.target.closest("li")?.textContent === "Dead Net") noteTap();
+  if (event.target.closest("h1") || event.target.closest(".studio")) noteTap();
   const btn = event.target.closest("[data-act]");
   if (!btn || btn.dataset.act === "join") return;
   audio.unlock();
@@ -1000,6 +1001,12 @@ document.addEventListener("mousemove", (event) => {
 });
 
 window.addEventListener("keydown", (event) => {
+  if (state.phase === "intro") {
+    if (event.repeat || event.key === "Shift" || event.key === "Control" || event.key === "Alt" || event.key === "Meta") return;
+    event.preventDefault();
+    finishIntro();
+    return;
+  }
   if (event.target instanceof HTMLInputElement) return;
   if (event.key === "F1" || event.key.toLowerCase() === "p") {
     event.preventDefault();
@@ -1219,6 +1226,7 @@ function clearIntro() {
 }
 
 function finishIntro() {
+  if (state.phase !== "intro") return;
   clearIntro();
   setPhase("menu");
   paintMenu();
@@ -1370,8 +1378,7 @@ helpOpen.addEventListener("click", () => {
   audio.unlock();
   toggleHelp();
 });
-introGo.addEventListener("click", () => finishIntro());
-document.getElementById("intro-skip").addEventListener("click", () => finishIntro());
+intro.addEventListener("click", () => finishIntro());
 quitBtn.addEventListener("click", () => goMenu());
 document.getElementById("wait-menu").addEventListener("click", () => goMenu());
 document.getElementById("quit-result").addEventListener("click", () => goMenu());

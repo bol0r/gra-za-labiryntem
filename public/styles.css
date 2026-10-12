@@ -528,7 +528,13 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--glow); outl
   border-bottom: 1px solid var(--line);
   font-size: 18px;
 }
-.powered { margin: 4px 0 18px; color: var(--copper-bright); letter-spacing: 0.08em; font-size: 13px; }
+.studio {
+  margin: 2px 0 20px;
+  color: var(--dim);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-align: center;
+}
 #score-form { display: flex; gap: 8px; margin: 12px 0; }
 #score-form[hidden] { display: none; }
 #score-form input {
