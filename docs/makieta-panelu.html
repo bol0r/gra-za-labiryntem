@@ -1,0 +1,515 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tablica kartografa</title>
+<style>
+/* Układ: telefon 390×844 w środku, obok ściąga stanów dla Cursora. Jeden ciemny świat gry, bez trybu jasnego. */
+:root {
+  --bg: #0b0b0d;
+  --stone-0: #17140f;
+  --stone-1: #221d17;
+  --stone-2: #2e271f;
+  --bone: #e7e1d6;
+  --dim: #8e877c;
+  --line: rgba(231, 225, 214, 0.14);
+  --copper: #8f6a52;
+  --copper-hi: #c4a48a;
+  --amber: #d39340;
+  --alert: #c45c42;
+  --guard: #a3b56a;
+  --f-title: "Palatino Linotype", Palatino, "Book Antiqua", "URW Palladio L", Georgia, serif;
+  --f-ui: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--bone); font-family: var(--f-ui);
+  -webkit-tap-highlight-color: transparent;
+}
+.page {
+  min-height: 100%;
+  display: flex; flex-wrap: wrap; gap: 40px; justify-content: center; align-items: flex-start;
+  padding-inline: 16px; padding-block: 28px 48px;
+}
+
+/* ---------- telefon ---------- */
+.phone {
+  width: 390px; max-width: 100%; height: 844px; flex: 0 0 auto;
+  border-radius: 44px; padding: 12px; background: #050505;
+  box-shadow: 0 0 0 1px #2a2620, 0 30px 80px rgba(0,0,0,.6);
+}
+.scr {
+  position: relative; width: 100%; height: 100%; border-radius: 34px; overflow: hidden;
+  background: radial-gradient(120% 60% at 50% 0%, #1b1712 0%, var(--bg) 60%);
+  display: flex; flex-direction: column;
+}
+
+/* górny pasek */
+.top { display: flex; align-items: center; gap: 8px; padding: 14px 14px 6px; }
+.ico {
+  width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
+  border: 1px solid rgba(196,164,138,.28); background: rgba(23,20,15,.7); color: var(--copper-hi);
+  cursor: pointer;
+}
+.ico svg { width: 18px; height: 18px; }
+.ico:focus-visible, .key:focus-visible, .veil:focus-visible, .demo button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.room {
+  flex: 1; text-align: center; font: 600 11px/1 var(--f-ui); letter-spacing: .32em; color: var(--dim);
+}
+.room b { color: var(--copper-hi); font-weight: 600; }
+
+/* mapa */
+.mapzone { flex: 1; min-height: 0; display: grid; place-items: center; padding: 6px 14px 14px; }
+.mapwrap { position: relative; width: 100%; max-height: 100%; aspect-ratio: 1; max-width: 100%; }
+.mapwrap canvas { width: 100%; height: 100%; display: block; border-radius: 6px; }
+.bracket { position: absolute; width: 18px; height: 18px; border: 1.5px solid var(--copper); pointer-events: none; }
+.bracket.tl { top: -5px; left: -5px; border-right: 0; border-bottom: 0; }
+.bracket.tr { top: -5px; right: -5px; border-left: 0; border-bottom: 0; }
+.bracket.bl { bottom: -5px; left: -5px; border-right: 0; border-top: 0; }
+.bracket.br { bottom: -5px; right: -5px; border-left: 0; border-top: 0; }
+.chip {
+  position: absolute; top: 8px; left: 8px; display: flex; gap: 8px; align-items: baseline;
+  padding: 5px 9px 5px 10px; border-radius: 3px; background: rgba(14,12,10,.82);
+  border: 1px solid rgba(196,164,138,.25); font: 600 10px/1 var(--f-ui); letter-spacing: .22em; color: var(--copper-hi);
+}
+.chip time { font: 600 12px/1 var(--f-ui); letter-spacing: .04em; color: var(--bone); font-variant-numeric: tabular-nums; }
+
+/* tablica */
+.board {
+  position: relative; padding: 14px 14px 22px;
+  background:
+    linear-gradient(180deg, rgba(255,240,220,.05), transparent 30%),
+    var(--stone-tex, none),
+    linear-gradient(180deg, var(--stone-1), var(--stone-0));
+  background-size: auto, 256px 256px, auto;
+  border-top: 1px solid rgba(196,164,138,.22);
+  box-shadow: 0 -18px 30px rgba(0,0,0,.45);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.board::before {
+  content: ""; position: absolute; left: 50%; top: -1px; width: 120px; height: 2px; transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, var(--copper-hi), transparent); opacity: .6;
+}
+
+/* strażnik + przebudzenie */
+.threat { display: grid; grid-template-columns: 58px 1fr auto; gap: 12px; align-items: center; }
+.eye {
+  --c: var(--guard);
+  width: 58px; height: 58px; border-radius: 50%; position: relative; display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--c) 30%, transparent), transparent 62%), var(--stone-2);
+  box-shadow: inset 0 2px 3px rgba(0,0,0,.6), inset 0 -1px 0 rgba(255,255,255,.05), 0 0 0 1px rgba(196,164,138,.25);
+}
+.eye svg { width: 34px; height: 34px; color: var(--c); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--c) 60%, transparent)); }
+.eye::after {
+  content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid var(--c); opacity: 0;
+}
+.scr[data-sn="hunt"] .eye { --c: var(--alert); }
+.scr[data-sn="alert"] .eye { --c: var(--amber); }
+.scr[data-sn="search"] .eye { --c: #8a9a5a; }
+.scr[data-sn="hunt"] .eye::after { animation: ping 1s ease-out infinite; }
+.scr[data-sn="alert"] .eye::after { animation: ping 1.8s ease-out infinite; }
+@keyframes ping { from { opacity: .9; transform: scale(.9); } to { opacity: 0; transform: scale(1.35); } }
+
+.sn-name { font: 400 30px/1.05 var(--f-title); letter-spacing: .02em; color: var(--c, var(--guard)); margin: 0 0 9px; text-wrap: balance; }
+.scr[data-sn="patrol"] .sn-name { --c: var(--guard); }
+.scr[data-sn="alert"] .sn-name { --c: var(--amber); }
+.scr[data-sn="hunt"] .sn-name { --c: var(--alert); }
+.scr[data-sn="search"] .sn-name { --c: #a8b47a; }
+.sn-sub { margin: 4px 0 7px; font: 600 10px/1 var(--f-ui); letter-spacing: .24em; text-transform: uppercase; color: var(--dim); }
+.wake { display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px; }
+.wake i {
+  height: 6px; border-radius: 1px; background: rgba(231,225,214,.08);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.5);
+}
+.wake i.on { background: var(--copper-hi); box-shadow: 0 0 6px rgba(196,164,138,.4); }
+.wake i.on.hot { background: var(--amber); box-shadow: 0 0 8px rgba(211,147,64,.55); }
+.wake i.on.wild { background: var(--alert); box-shadow: 0 0 8px rgba(196,92,66,.6); }
+.wake-l { display: flex; justify-content: space-between; margin-top: 4px; font: 500 9px/1 var(--f-ui); letter-spacing: .14em; text-transform: uppercase; color: rgba(142,135,124,.7); }
+
+.loot { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; }
+.seals { display: flex; gap: 5px; }
+.seal { width: 22px; height: 25px; color: var(--amber); }
+.seal.spent { color: rgba(231,225,214,.16); }
+.seal.spent .core { opacity: 0; }
+.seal:not(.spent) { filter: drop-shadow(0 0 5px rgba(211,147,64,.55)); }
+.pts { font: 600 20px/1 var(--f-ui); font-variant-numeric: tabular-nums; color: var(--bone); display: flex; align-items: center; gap: 5px; }
+.pts small { font: 600 9px/1 var(--f-ui); letter-spacing: .22em; color: var(--dim); }
+.pts .keyic { width: 16px; height: 16px; color: rgba(231,225,214,.2); }
+.pts .keyic.has { color: var(--amber); filter: drop-shadow(0 0 4px rgba(211,147,64,.6)); }
+
+/* drzwi gotowe */
+.door {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 4px;
+  background: linear-gradient(90deg, rgba(211,147,64,.22), rgba(211,147,64,.06));
+  border: 1px solid rgba(211,147,64,.55); color: #f1c98d; font: 600 12px/1.25 var(--f-ui);
+  animation: breathe 1.6s ease-in-out infinite;
+}
+.door svg { width: 20px; height: 20px; flex: none; }
+@keyframes breathe { 50% { box-shadow: 0 0 18px rgba(211,147,64,.35); } }
+
+/* zawołania */
+.keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; position: relative; }
+.key, .veil {
+  position: relative; min-height: 70px; border-radius: 6px; border: 0; cursor: pointer; color: var(--bone);
+  font: inherit; padding: 8px 6px 7px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255,235,210,.09), transparent 60%),
+    var(--stone-tex, none),
+    linear-gradient(180deg, #3a3128, #251f19);
+  background-size: auto, 200px 200px, auto;
+  box-shadow:
+    inset 0 1px 0 rgba(255,240,220,.16),
+    inset 0 -3px 0 rgba(0,0,0,.45),
+    0 3px 0 #0e0c0a,
+    0 6px 12px rgba(0,0,0,.45);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  transition: transform .06s, box-shadow .06s, filter .2s;
+  touch-action: manipulation;
+}
+.key svg { width: 24px; height: 24px; color: var(--copper-hi); filter: drop-shadow(0 1px 0 rgba(0,0,0,.7)); }
+.key span { font: 700 12px/1 var(--f-ui); letter-spacing: .2em; text-transform: uppercase; }
+.key small {
+  position: absolute; top: 6px; right: 8px; font: 600 9px/1 var(--f-ui); color: rgba(196,164,138,.55);
+}
+.key.dir { background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255,235,210,.09), transparent 60%),
+    var(--stone-tex, none),
+    linear-gradient(180deg, #403427, #2a2119);
+  background-size: auto, 200px 200px, auto; }
+.key.stop svg { color: var(--alert); }
+.key:active, .key.down {
+  transform: translateY(3px);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.6), inset 0 0 0 1px rgba(211,147,64,.6), 0 0 0 #0e0c0a, 0 0 16px rgba(211,147,64,.35);
+}
+.key.sent::after {
+  content: ""; position: absolute; inset: 0; border-radius: 6px; border: 1.5px solid var(--amber);
+  animation: sent .7s ease-out forwards;
+}
+@keyframes sent { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.12); } }
+
+.veil {
+  --p: 1; padding: 0;
+  background:
+    radial-gradient(circle at 50% 50%, #2a231c 0 46%, transparent 47%),
+    conic-gradient(var(--copper-hi) calc(var(--p) * 360deg), rgba(231,225,214,.08) 0),
+    linear-gradient(180deg, #3a3128, #251f19);
+}
+.veil .ring {
+  position: absolute; inset: 7px; margin: auto; aspect-ratio: 1; height: calc(100% - 14px); border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--copper-hi) calc(var(--p) * 360deg), rgba(231,225,214,.09) 0);
+  -webkit-mask: radial-gradient(circle, transparent 62%, #000 63%); mask: radial-gradient(circle, transparent 62%, #000 63%);
+}
+.veil { background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255,235,210,.09), transparent 60%),
+    linear-gradient(180deg, #2c2520, #1c1814); }
+.veil { flex-direction: column; gap: 3px; }
+.veil b { position: relative; font: 700 10px/1 var(--f-ui); letter-spacing: .16em; text-transform: uppercase; }
+.veil em:empty { display: none; }
+.veil em { position: relative; font: 600 18px/1 var(--f-ui); font-style: normal; font-variant-numeric: tabular-nums; color: var(--copper-hi); }
+.veil.on .ring { background: conic-gradient(var(--amber) 360deg, transparent 0); animation: spin 2.2s linear infinite; }
+.veil.on b { color: #f1c98d; }
+.veil.cool { color: var(--dim); }
+.veil.cool .ring { background: conic-gradient(rgba(196,164,138,.6) calc(var(--p) * 360deg), rgba(231,225,214,.08) 0); }
+@keyframes spin { to { filter: hue-rotate(0deg); transform: rotate(360deg); } }
+
+.echo {
+  position: absolute; left: 50%; top: -30px; transform: translateX(-50%); white-space: nowrap;
+  font: 600 10px/1 var(--f-ui); letter-spacing: .3em; text-transform: uppercase; color: #f1c98d;
+  padding: 6px 10px; border-radius: 3px; background: rgba(14,12,10,.85); border: 1px solid rgba(211,147,64,.4);
+  opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none;
+}
+.echo.show { opacity: 1; transform: translate(-50%, -4px); }
+
+/* ---------- ściąga ---------- */
+.spec { width: 440px; max-width: 100%; min-width: 0; display: flex; flex-direction: column; gap: 18px; padding-top: 8px; }
+.spec h1 { font: 400 34px/1.1 var(--f-title); margin: 0; text-wrap: balance; }
+.spec p, .spec li { color: #cfc7ba; font-size: 14px; line-height: 1.55; }
+.spec p { margin: 0; }
+.spec h2 { font: 600 11px/1 var(--f-ui); letter-spacing: .24em; text-transform: uppercase; color: var(--copper-hi); margin: 6px 0 0; }
+.demo { display: flex; flex-wrap: wrap; gap: 6px; }
+.demo button {
+  font: 600 12px/1 var(--f-ui); padding: 9px 12px; border-radius: 4px; cursor: pointer;
+  color: var(--bone); background: var(--stone-1); border: 1px solid var(--line);
+}
+.demo button[aria-pressed="true"] { border-color: var(--amber); color: #f1c98d; }
+.spec ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.spec code { font: 12px/1 ui-monospace, Menlo, monospace; color: var(--copper-hi); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+@media (max-width: 440px) {
+  .page { padding-inline: 0; padding-block: 0 40px; }
+  .phone { border-radius: 0; padding: 0; height: 100svh; min-height: 680px; box-shadow: none; width: 100%; }
+  .scr { border-radius: 0; }
+  .spec { padding-inline: 16px; }
+}
+</style>
+
+<div class="page">
+  <div class="phone">
+    <div class="scr" id="scr" data-sn="patrol">
+      <div class="top">
+        <button class="ico" id="b-mute" type="button" aria-label="Wycisz">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10h3l4-3v10l-4-3H5z"/><path d="M16 9c1.3 1.6 1.3 4.4 0 6M18.5 7c2.4 2.8 2.4 7.2 0 10"/></svg>
+        </button>
+        <div class="room">KOMORA <b>W B H W</b></div>
+        <button class="ico" type="button" aria-label="Pomoc">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9.5 9a2.6 2.6 0 1 1 3.6 2.4c-.8.4-1.1.9-1.1 1.8v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>
+        </button>
+        <button class="ico" type="button" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 8h14M5 12h14M5 16h14"/></svg>
+        </button>
+      </div>
+
+      <div class="mapzone"><div class="mapwrap">
+        <canvas id="map" width="720" height="720" aria-label="Plan ruiny"></canvas>
+        <i class="bracket tl"></i><i class="bracket tr"></i><i class="bracket bl"></i><i class="bracket br"></i>
+        <div class="chip">RUINA 3 <time id="clock">1:07</time></div>
+      </div></div>
+
+      <section class="board" aria-label="Tablica kartografa">
+        <div class="threat">
+          <div class="eye" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20c4.5-7 9.5-10 16-10s11.5 3 16 10c-4.5 7-9.5 10-16 10S8.5 27 4 20z"/><circle cx="20" cy="20" r="5.5" fill="currentColor" stroke="none"/><path d="M20 4v3M8 8l2 2M32 8l-2 2"/></svg>
+          </div>
+          <div style="min-width:0">
+            <p class="sn-sub">Strażnik</p>
+            <h2 class="sn-name" id="sn">Obchód</h2>
+            <div class="wake" id="wake" aria-label="Przebudzenie ruiny"></div>
+            <div class="wake-l"><span>Cisza</span><span>Niepokój</span><span>Budzi się</span></div>
+          </div>
+          <div class="loot">
+            <div class="seals" id="seals" aria-label="Pieczęcie"></div>
+            <div class="pts"><svg class="keyic" id="keyic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="12" r="3.5"/><path d="M11.5 12H20M17 12v3M20 12v2"/></svg><span id="pts">35</span><small>PKT</small></div>
+          </div>
+        </div>
+
+        <div class="door" id="door" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 21V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v16"/><circle cx="12" cy="12" r="3"/><path d="M4 21h16"/></svg>
+          <span>Latarnik stoi przy drzwiach. Dotknij klamry na mapie.</span>
+        </div>
+
+        <div class="keys" id="keys">
+          <p class="echo" id="echo">Wysłano · Stój</p>
+          <button class="key dir" type="button" data-say="W lewo"><small>4</small>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 6l-6 6 6 6"/></svg><span>Lewo</span></button>
+          <button class="key stop" type="button" data-say="Stój"><small>1</small>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6.5" y="6.5" width="11" height="11" rx="1"/></svg><span>Stój</span></button>
+          <button class="key dir" type="button" data-say="W prawo"><small>5</small>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 6l6 6-6 6"/></svg><span>Prawo</span></button>
+          <button class="key" type="button" data-say="Cicho"><small>2</small>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10h3l4-3v10l-4-3H5z"/><path d="M16 10l4 4M20 10l-4 4"/></svg><span>Cicho</span></button>
+          <button class="key" type="button" data-say="Biegnij"><small>3</small>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h10M10 7l5 5-5 5M17 7l5 5-5 5"/></svg><span>Biegnij</span></button>
+          <button class="veil" id="veil" type="button" aria-label="Zasłona"><i class="ring"></i><b id="veil-b">Zasłona</b><em id="veil-n"></em></button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <aside class="spec">
+    <h1>Tablica kartografa</h1>
+    <p>Makieta panelu dla telefonu. Dotknij płytek, żeby zobaczyć wciśnięcie i potwierdzenie wysłania. Przyciski poniżej przełączają stany z gry.</p>
+
+    <h2>Strażnik</h2>
+    <div class="demo" id="d-sn">
+      <button type="button" data-v="patrol" aria-pressed="true">Obchód</button>
+      <button type="button" data-v="alert" aria-pressed="false">Czuwa</button>
+      <button type="button" data-v="hunt" aria-pressed="false">Pościg</button>
+      <button type="button" data-v="search" aria-pressed="false">Szuka</button>
+    </div>
+    <h2>Ruina</h2>
+    <div class="demo" id="d-wake">
+      <button type="button" data-v="0.05" aria-pressed="true">Cisza</button>
+      <button type="button" data-v="0.35" aria-pressed="false">Niepokój</button>
+      <button type="button" data-v="0.8" aria-pressed="false">Budzi się</button>
+    </div>
+    <h2>Pieczęcie i drzwi</h2>
+    <div class="demo" id="d-seal">
+      <button type="button" data-v="2" aria-pressed="true">2 pieczęcie</button>
+      <button type="button" data-v="1" aria-pressed="false">1</button>
+      <button type="button" data-v="door" aria-pressed="false">Drzwi gotowe</button>
+      <button type="button" data-v="key" aria-pressed="false">Klucz zebrany</button>
+    </div>
+
+    <h2>Dla Cursora</h2>
+    <ul>
+      <li>Dane są te same co dziś w <code>updatePanel</code>: <code>sn.state</code>, <code>wake</code>, <code>sealCharges</code>, gotowość drzwi, <code>points</code>, <code>veil</code> i <code>veilCd</code>, <code>roundT</code>, kod pokoju. Protokół bez zmian.</li>
+      <li>Kierunki w górnym rzędzie (Lewo, Stój, Prawo), bo to najczęstsze zawołania i leżą pod kciukiem. Cyfry klawiszy zostają.</li>
+      <li>Zasłona to okrągły przycisk z pierścieniem odnowienia (<code>conic-gradient</code> z <code>--p</code>), w trakcie trwania kręci się bursztynem.</li>
+      <li>Przebudzenie to 14 segmentów z progami 0,12 i 0,55, jak w obecnym tekście „Cisza / Niepokój / Ruina się budzi”.</li>
+      <li>Po wysłaniu zawołania: wciśnięcie 3 px, bursztynowy obrys, napis „Wysłano · …” nad płytkami i krótka wibracja (18 ms).</li>
+      <li>Ikony mute, pomoc i menu na górze w kółkach; pełny ekran przechodzi do menu, bo na telefonie z QR i tak nie działa w Safari.</li>
+      <li>Kamień płytek to szum z płótna (256 px) jako tło w CSS, bez plików.</li>
+    </ul>
+  </aside>
+</div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const scr = $("#scr");
+
+  // kamienne ziarno do tła płytek i tablicy
+  try {
+    const c = document.createElement("canvas"); c.width = c.height = 256;
+    const g = c.getContext("2d"); const im = g.createImageData(256, 256);
+    let s = 7;
+    const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < im.data.length; i += 4) {
+      const v = 128 + (rnd() - 0.5) * 70;
+      im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 22;
+    }
+    g.putImageData(im, 0, 0);
+    document.documentElement.style.setProperty("--stone-tex", `url(${c.toDataURL()})`);
+  } catch (e) {}
+
+  // przebudzenie
+  const wake = $("#wake");
+  for (let i = 0; i < 14; i++) wake.appendChild(document.createElement("i"));
+  function setWake(v) {
+    const n = Math.round(v * 14);
+    [...wake.children].forEach((el, i) => {
+      el.className = i < n ? "on" + (i >= 8 ? " wild" : i >= 2 ? " hot" : "") : "";
+    });
+  }
+
+  // pieczęcie
+  const sealSvg = `<svg viewBox="0 0 22 25"><path d="M11 1.5l8.7 5v10.5L11 23.5 2.3 17V6.5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path class="core" d="M7 10l4 3.5 4-3.5M7 14l4 3.5 4-3.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`;
+  function setSeals(n) {
+    $("#seals").innerHTML = [0, 1].map((i) => `<span class="seal${i < n ? "" : " spent"}">${sealSvg}</span>`).join("");
+  }
+
+  const names = { patrol: "Obchód", alert: "Czuwa", hunt: "Pościg", search: "Szuka" };
+  function setSn(v) { scr.dataset.sn = v; $("#sn").textContent = names[v]; }
+
+  function group(id, fn) {
+    const box = $(id);
+    box.addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      if (id !== "#d-seal" || (b.dataset.v !== "door" && b.dataset.v !== "key")) {
+        box.querySelectorAll("button").forEach((x) => { if (!(id === "#d-seal" && (x.dataset.v === "door" || x.dataset.v === "key"))) x.setAttribute("aria-pressed", "false"); });
+        b.setAttribute("aria-pressed", "true");
+      } else {
+        b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true");
+      }
+      fn(b.dataset.v, b);
+    });
+  }
+  group("#d-sn", setSn);
+  group("#d-wake", (v) => setWake(+v));
+  group("#d-seal", (v, b) => {
+    const on = b.getAttribute("aria-pressed") === "true";
+    if (v === "door") $("#door").hidden = !on;
+    else if (v === "key") { $("#keyic").classList.toggle("has", on); $("#pts").textContent = on ? "60" : "35"; }
+    else setSeals(+v);
+  });
+
+  // zawołania
+  const echo = $("#echo"); let echoT;
+  document.querySelectorAll(".key").forEach((k) => {
+    k.addEventListener("click", () => {
+      k.classList.remove("sent"); void k.offsetWidth; k.classList.add("sent");
+      echo.textContent = "Wysłano · " + k.dataset.say;
+      echo.classList.add("show"); clearTimeout(echoT); echoT = setTimeout(() => echo.classList.remove("show"), 1300);
+      try { navigator.vibrate && navigator.vibrate(18); } catch (e) {}
+    });
+  });
+
+  // zasłona: 6 s trwa, 26 s odnowienia
+  const veil = $("#veil"), vb = $("#veil-b");
+  let vState = "ready", vT = 0, vLast = 0;
+  veil.addEventListener("click", () => { if (vState === "ready") { vState = "on"; vT = 6; } });
+  function veilTick(dt) {
+    if (vState === "on") { vT -= dt; if (vT <= 0) { vState = "cool"; vT = 26; } }
+    else if (vState === "cool") { vT -= dt; if (vT <= 0) vState = "ready"; }
+    veil.classList.toggle("on", vState === "on"); veil.classList.toggle("cool", vState === "cool");
+    veil.disabled = vState !== "ready";
+    const p = vState === "cool" ? 1 - vT / 26 : 1;
+    veil.style.setProperty("--p", p.toFixed(3));
+    vb.textContent = vState === "on" ? "Trwa" : vState === "cool" ? "Odnowa" : "Zasłona";
+    $("#veil-n").textContent = vState === "ready" ? "" : Math.ceil(vT);
+  }
+
+  // mapa: labirynt 15×15, ścieżka do serca, latarnik i strażnik
+  const cv = $("#map"), ctx = cv.getContext("2d");
+  const N = 15, C = cv.width / N;
+  let seed = 11; const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const walls = []; for (let y = 0; y < N; y++) { walls.push([]); for (let x = 0; x < N; x++) walls[y].push([1, 1, 1, 1]); } // N E S W
+  const seen = new Set(); const st = [[0, N - 1]]; seen.add(`0,${N - 1}`);
+  const D = [[0, -1, 0, 2], [1, 0, 1, 3], [0, 1, 2, 0], [-1, 0, 3, 1]];
+  while (st.length) {
+    const [x, y] = st[st.length - 1];
+    const opts = D.filter(([dx, dy]) => { const nx = x + dx, ny = y + dy; return nx >= 0 && ny >= 0 && nx < N && ny < N && !seen.has(`${nx},${ny}`); });
+    if (!opts.length) { st.pop(); continue; }
+    const [dx, dy, a, b] = opts[Math.floor(r() * opts.length)];
+    walls[y][x][a] = 0; walls[y + dy][x + dx][b] = 0; seen.add(`${x + dx},${y + dy}`); st.push([x + dx, y + dy]);
+  }
+  const heart = [12, 2], runner = [1, 12];
+  function bfs(s, t) {
+    const prev = new Map([[s.join(), null]]); const q = [s];
+    while (q.length) { const [x, y] = q.shift(); if (x === t[0] && y === t[1]) break;
+      D.forEach(([dx, dy, a]) => { if (walls[y][x][a]) return; const k = `${x + dx},${y + dy}`; if (!prev.has(k)) { prev.set(k, [x, y]); q.push([x + dx, y + dy]); } }); }
+    const path = []; let k = t; while (k) { path.unshift(k); k = prev.get(k.join()); } return path;
+  }
+  const path = bfs(runner, heart);
+  const patrol = bfs([9, 9], [13, 6]);
+
+  function draw(t) {
+    ctx.fillStyle = "#e6d9c0"; ctx.fillRect(0, 0, cv.width, cv.height);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const v = ((x * 7 + y * 13) % 5) / 5;
+      ctx.fillStyle = `rgba(120,96,64,${0.04 + v * 0.05})`; ctx.fillRect(x * C, y * C, C, C);
+    }
+    // ścieżka
+    ctx.setLineDash([C * 0.22, C * 0.16]); ctx.lineDashOffset = -t * 18;
+    ctx.strokeStyle = "rgba(211,147,64,.85)"; ctx.lineWidth = C * 0.12; ctx.lineCap = "round";
+    ctx.beginPath(); path.forEach(([x, y], i) => ctx[i ? "lineTo" : "moveTo"]((x + .5) * C, (y + .5) * C)); ctx.stroke();
+    ctx.setLineDash([]);
+    // obchód
+    ctx.strokeStyle = "rgba(163,181,106,.35)"; ctx.lineWidth = C * 0.08; ctx.setLineDash([C * 0.1, C * 0.12]);
+    ctx.beginPath(); patrol.forEach(([x, y], i) => ctx[i ? "lineTo" : "moveTo"]((x + .5) * C, (y + .5) * C)); ctx.stroke(); ctx.setLineDash([]);
+    // ściany z cieniem
+    const wall = (x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+    for (const [col, off, w] of [["rgba(60,46,32,.35)", 3, C * 0.24], ["#5d5144", 0, C * 0.17]]) {
+      ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = "square";
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        const [n, e, s, wv] = walls[y][x], X = x * C + off, Y = y * C + off;
+        if (n) wall(X, Y, X + C, Y); if (wv) wall(X, Y, X, Y + C);
+        if (x === N - 1 && e) wall(X + C, Y, X + C, Y + C); if (y === N - 1 && s) wall(X, Y + C, X + C, Y + C);
+      }
+    }
+    // serce
+    const hx = (heart[0] + .5) * C, hy = (heart[1] + .5) * C, pulse = 1 + Math.sin(t * 3) * 0.12;
+    const hg = ctx.createRadialGradient(hx, hy, 0, hx, hy, C * 1.6 * pulse);
+    hg.addColorStop(0, "rgba(211,147,64,.75)"); hg.addColorStop(1, "rgba(211,147,64,0)");
+    ctx.fillStyle = hg; ctx.fillRect(hx - C * 2, hy - C * 2, C * 4, C * 4);
+    ctx.fillStyle = "#b9742c"; ctx.beginPath(); ctx.arc(hx, hy, C * 0.22, 0, 7); ctx.fill();
+    // strażnik i jego stożek
+    const k = (Math.sin(t * 0.5) * 0.5 + 0.5) * (patrol.length - 1);
+    const i0 = Math.floor(k), f = k - i0, p0 = patrol[i0], p1 = patrol[Math.min(i0 + 1, patrol.length - 1)];
+    const sx = (p0[0] + (p1[0] - p0[0]) * f + .5) * C, sy = (p0[1] + (p1[1] - p0[1]) * f + .5) * C;
+    const ang = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]) || 0;
+    const sn = scr.dataset.sn, coneCol = sn === "hunt" ? "196,92,66" : sn === "alert" ? "211,147,64" : "163,181,106";
+    const cg = ctx.createRadialGradient(sx, sy, 0, sx, sy, C * 3.2);
+    cg.addColorStop(0, `rgba(${coneCol},.45)`); cg.addColorStop(1, `rgba(${coneCol},0)`);
+    ctx.fillStyle = cg; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.arc(sx, sy, C * 3.2, ang - .6, ang + .6); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = `rgba(${coneCol},.35)`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx, sy, C * 1.8, 0, 7); ctx.stroke();
+    ctx.fillStyle = `rgb(${coneCol})`; ctx.beginPath(); ctx.arc(sx, sy, C * 0.24, 0, 7); ctx.fill();
+    // latarnik
+    const rx = (runner[0] + .5) * C, ry = (runner[1] + .5) * C;
+    const lg = ctx.createRadialGradient(rx, ry, 0, rx, ry, C * 2.4);
+    lg.addColorStop(0, "rgba(255,226,170,.6)"); lg.addColorStop(1, "rgba(255,226,170,0)");
+    ctx.fillStyle = lg; ctx.beginPath(); ctx.moveTo(rx, ry); ctx.arc(rx, ry, C * 2.4, -1.57 - .5, -1.57 + .5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#2a241d"; ctx.beginPath(); ctx.arc(rx, ry, C * 0.26, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#e7e1d6"; ctx.lineWidth = 2.5; ctx.stroke();
+  }
+
+  setWake(0.05); setSeals(2);
+  let last = performance.now(), clock = 67, acc = 0;
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    acc += dt; if (acc >= 1) { acc -= 1; clock++; $("#clock").textContent = `${Math.floor(clock / 60)}:${String(clock % 60).padStart(2, "0")}`; }
+    veilTick(dt); draw(now / 1000); requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
