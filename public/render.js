@@ -60,6 +60,73 @@ function stoneTex(seed) {
   return data;
 }
 
+function runeTex() {
+  const data = stoneTex(9);
+  const ink = (x, y) => {
+    if (x < 0 || y < 0 || x >= TEX || y >= TEX) return;
+    const i = (y * TEX + x) * 4;
+    data[i] = 92;
+    data[i + 1] = 64;
+    data[i + 2] = 40;
+  };
+  const line = (x0, y0, x1, y1) => {
+    const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+    for (let s = 0; s <= steps; s++) {
+      const x = Math.round(x0 + ((x1 - x0) * s) / steps);
+      const y = Math.round(y0 + ((y1 - y0) * s) / steps);
+      ink(x, y);
+      ink(x + 1, y);
+    }
+  };
+  for (let row = 0; row < 2; row++) {
+    for (let g = 0; g < 3; g++) {
+      const ox = 16 + g * 36;
+      const oy = 34 + row * 42;
+      const code = (row + 1) * (g + 3);
+      line(ox, oy, ox + 18, oy + 24);
+      if (code % 2) line(ox + 18, oy, ox, oy + 24);
+      if (code % 3) line(ox, oy + 12, ox + 18, oy + 12);
+      line(ox + 9, oy - 6, ox + 9, oy + 28);
+    }
+  }
+  return data;
+}
+
+function floorTex() {
+  const data = new Uint8ClampedArray(TEX * TEX * 4);
+  for (let y = 0; y < TEX; y++) {
+    for (let x = 0; x < TEX; x++) {
+      const col = Math.floor(x / 32);
+      const row = Math.floor(y / 26);
+      const lx = x - col * 32;
+      const ly = y - row * 26;
+      const mortar = lx < 2 || ly < 2 || lx > 29;
+      const tone = hash01(col * 5 + 2, row * 9 + 4);
+      const grit = (hash01(x * 3, y * 5) - 0.5) * 22;
+      const crack = Math.abs(lx - 14 - (row % 3) * 4) < 1 && ly > 6 && ly < 22;
+      let r = 78 + tone * 36 + grit;
+      let g = 62 + tone * 22 + grit * 0.6;
+      let b = 46 + tone * 12 + grit * 0.3;
+      if (mortar) {
+        r = 36;
+        g = 30;
+        b = 24;
+      }
+      if (crack) {
+        r *= 0.45;
+        g *= 0.45;
+        b *= 0.45;
+      }
+      const i = (y * TEX + x) * 4;
+      data[i] = byte(r);
+      data[i + 1] = byte(g);
+      data[i + 2] = byte(b);
+      data[i + 3] = 255;
+    }
+  }
+  return data;
+}
+
 function sealTex() {
   const data = new Uint8ClampedArray(TEX * TEX * 4);
   for (let y = 0; y < TEX; y++) {
@@ -84,7 +151,7 @@ function sealTex() {
 }
 
 function buildTextures() {
-  return [stoneTex(1), stoneTex(2), stoneTex(3), stoneTex(4), sealTex()];
+  return [stoneTex(1), stoneTex(2), stoneTex(3), stoneTex(4), sealTex(), runeTex(), floorTex()];
 }
 
 function texAt(id, u, v) {
@@ -169,10 +236,11 @@ export function drawExplorer(canvas, view) {
   const pcx = w * 0.7;
   const pcy = h * 0.2;
   const pr = Math.min(w, h) * 0.18;
+  const focal = (w * 0.5) / Math.tan(FOV * 0.5);
   const rayX = new Float32Array(w);
   const rayY = new Float32Array(w);
   for (let x = 0; x < w; x++) {
-    const ang = aim + (x / w - 0.5) * FOV;
+    const ang = aim + Math.atan((x - w * 0.5) / focal);
     rayX[x] = Math.cos(ang);
     rayY[x] = Math.sin(ang);
   }
@@ -203,20 +271,20 @@ export function drawExplorer(canvas, view) {
         }
       } else {
         const row = Math.max(1, y - horizon);
-        const dist = (h * 0.5) / row;
-        const camera = (x / w - 0.5) * FOV;
+        const camera = Math.atan((x - w * 0.5) / focal);
+        const dist = ((0.5 * focal) / row) / Math.cos(camera);
         const cone = Math.max(0.2, 1 - (Math.abs(camera) / (FOV * 0.48)) ** 2);
         const fall = 1 / (1 + dist * dist * 0.05);
         const lamp = fall * cone * flick;
         const wx = body.x + rayX[x] * dist;
         const wy = body.y + rayY[x] * dist;
-        const grain = (hash01(Math.floor(wx * 18), Math.floor(wy * 18)) - 0.5) * 16;
-        const tile = hash01(Math.floor(wx * 2), Math.floor(wy * 2));
+        const slab = texAt(6, wx * 0.55, wy * 0.55);
+        const grain = (hash01(Math.floor(wx * 24), Math.floor(wy * 24)) - 0.5) * 8;
         const near = clamp(1 - dist / 9, 0, 1);
         const glow = lamp * lamp;
-        r = 24 + near * 10 + tile * 10 + glow * 168 + grain;
-        g = 16 + near * 6 + tile * 5 + glow * 72 + grain * 0.45;
-        b = 10 + near * 2 + tile * 2 + glow * 22;
+        r = slab[0] * (0.35 + near * 0.25) + glow * 150 + grain;
+        g = slab[1] * (0.35 + near * 0.2) + glow * 62 + grain * 0.45;
+        b = slab[2] * (0.35 + near * 0.15) + glow * 18;
         const fx = Math.abs(wx - Math.floor(wx));
         const fy = Math.abs(wy - Math.floor(wy));
         if (fx < 0.04 || fy < 0.04) {
@@ -233,19 +301,20 @@ export function drawExplorer(canvas, view) {
     }
   }
 
-  const pa = aim;
   for (let col = 0; col < w; col++) {
-    const camera = (col / w - 0.5) * FOV;
-    const hit = raycast(maze, body.x, body.y, pa + camera);
+    const ang = aim + Math.atan((col - w * 0.5) / focal);
+    const hit = raycast(maze, body.x, body.y, ang);
     z[col] = hit.dist;
-    const line = h / hit.dist;
+    const line = focal / hit.dist;
     const top = Math.max(0, Math.floor(horizon - line / 2));
     const bot = Math.min(h - 1, Math.floor(horizon + line / 2));
+    const camera = ang - aim;
     const cone = Math.max(0.22, 1 - (Math.abs(camera) / (FOV * 0.48)) ** 2);
     const fall = 1 / (1 + hit.dist * hit.dist * 0.05);
     const side = hit.side === 1 ? 0.85 : 1;
     const fog = clamp((hit.dist - 1.2) / 12, 0, 0.58);
-    const id = hit.seal >= 0 ? 4 : Math.abs(hit.mapX * 13 + hit.mapY * 7 + hit.side * 5) % 4;
+    const carved = hash01(hit.wx * 3 + 1, hit.wy * 5 + hit.side) > 0.78;
+    const id = hit.seal >= 0 ? 4 : carved ? 5 : Math.abs(hit.mapX * 13 + hit.mapY * 7 + hit.side * 5) % 4;
     for (let y = top; y <= bot; y++) {
       const v = line <= 1 ? 0 : (y - (horizon - line / 2)) / line;
       const rgb = texAt(id, hit.wallX, v);
@@ -279,13 +348,17 @@ export function drawExplorer(canvas, view) {
     const len = Math.hypot(dx, dy) || 1;
     sprites.push({ x: sx + (dx / len) * 0.16, y: sy + (dy / len) * 0.16, kind: "seal" });
   }
+  for (const item of maze.loot || []) {
+    if (item.taken) continue;
+    sprites.push({ x: item.x, y: item.y, kind: item.kind === "key" ? "key" : "shard" });
+  }
   sprites.sort((a, b) => {
     const da = (a.x - body.x) ** 2 + (a.y - body.y) ** 2;
     const db = (b.x - body.x) ** 2 + (b.y - body.y) ** 2;
     return db - da;
   });
   for (const sprite of sprites) {
-    if ((sprite.kind === "sentinel" || sprite.kind === "seal") && !hasLos(maze, body.x, body.y, sprite.x, sprite.y)) continue;
+    if ((sprite.kind === "sentinel" || sprite.kind === "seal" || sprite.kind === "key" || sprite.kind === "shard") && !hasLos(maze, body.x, body.y, sprite.x, sprite.y)) continue;
     blitSprite(data, z, w, h, horizon, { ...body, a: aim }, sprite, time);
   }
 
@@ -353,14 +426,16 @@ function blitSprite(data, z, w, h, horizon, body, sprite, time) {
   const dist = Math.hypot(dx, dy);
   if (dist < 0.2 || dist > 10.4) return;
   const ang = normalizeAngle(Math.atan2(dy, dx) - body.a);
-  if (Math.abs(ang) > FOV * 0.62) return;
+  if (Math.abs(ang) > FOV * 0.58) return;
+  const focal = (w * 0.5) / Math.tan(FOV * 0.5);
   const fog = clamp((dist - 1.5) / 7.2, 0, 1);
   const cone = Math.max(0, 1 - (Math.abs(ang) / (FOV * 0.55)) ** 2);
   const fade = (1 - fog * fog) * (0.22 + 0.78 * cone);
   if (fade < 0.04) return;
-  const screenX = (0.5 + ang / FOV) * w;
+  const screenX = w * 0.5 + Math.tan(ang) * focal;
   const mark = sprite.kind === "seal";
-  const tall = sprite.kind === "sentinel" ? 0.95 : sprite.kind === "ping" ? 1.1 : 0.72;
+  const pickup = sprite.kind === "key" || sprite.kind === "shard";
+  const tall = sprite.kind === "sentinel" ? 0.95 : sprite.kind === "ping" ? 1.1 : pickup ? 0.34 : 0.72;
   const aspect = sprite.kind === "sentinel" ? 0.46 : sprite.kind === "ping" ? 0.16 : 1;
   const size = mark ? Math.min(h * 0.32, (h * 0.3) / dist) : Math.min(h * 0.92, (h * tall) / dist);
   const width = Math.max(2, Math.floor(mark ? size : size * aspect));
@@ -397,6 +472,8 @@ function spriteColor(sprite, u, v, time) {
     return [176, 124, 86, (1 - band * 1.6) * pulse];
   }
   if (sprite.kind === "seal") return sealGlow(u, v, time);
+  if (sprite.kind === "key") return glyphMark(u, v, time, true);
+  if (sprite.kind === "shard") return glyphMark(u, v, time, false);
   if (sprite.kind === "sentinel") return sentinelShade(u, v, time, sprite.state);
   const cx = u - 0.5;
   const cy = v - 0.56;
@@ -405,6 +482,18 @@ function spriteColor(sprite, u, v, time) {
   const core = d < 0.12 ? 1 : 0;
   const pulse = 0.75 + 0.25 * Math.sin(time * 3);
   return [220 * pulse, 150 * pulse, 70, core ? 0.95 : 0.55 + (0.42 - d)];
+}
+
+function glyphMark(u, v, time, key) {
+  const x = u - 0.5;
+  const y = v - 0.5;
+  const d = Math.hypot(x * 1.4, y);
+  if (d > 0.46) return null;
+  const pulse = 0.8 + 0.2 * Math.sin(time * 3);
+  if (key && Math.abs(x) < 0.08 && Math.abs(y) < 0.28) return [232, 196, 140, 0.95 * pulse];
+  if (key && Math.hypot(x - 0.12, y) < 0.16) return [196, 140, 72, 0.9 * pulse];
+  if (!key && d < 0.22) return [226, 164, 90, 0.9 * pulse];
+  return [160, 110, 64, (0.46 - d) * pulse];
 }
 
 function sealGlow(u, v, time) {
@@ -627,16 +716,36 @@ export function drawGuide(ctx, w, h, view) {
     const x = toX(midX);
     const y = toY(midY);
     const s = Math.max(6, size * 0.22);
-    ctx.fillStyle = "rgba(226, 150, 48, 0.55)";
-    ctx.beginPath();
-    ctx.arc(x, y, s * 1.7, 0, Math.PI * 2);
-    ctx.fill();
+    const nearDoor = explorer && Math.hypot(explorer.x - midX, explorer.y - midY) < 1.2;
     ctx.save();
+    ctx.globalAlpha = nearDoor ? 1 : 0.38;
+    ctx.fillStyle = nearDoor ? "rgba(226, 176, 90, 0.7)" : "rgba(226, 150, 48, 0.35)";
+    ctx.beginPath();
+    ctx.arc(x, y, s * (nearDoor ? 1.9 : 1.4), 0, Math.PI * 2);
+    ctx.fill();
     ctx.translate(x, y);
     ctx.rotate(Math.PI / 4);
-    ctx.fillStyle = "#e2a45a";
+    ctx.fillStyle = nearDoor ? "#f0d7a4" : "#a07848";
     ctx.fillRect(-s / 2, -s / 2, s, s);
     ctx.restore();
+  }
+
+  for (const item of maze.loot || []) {
+    if (item.taken) continue;
+    const x = toX(item.x);
+    const y = toY(item.y);
+    ctx.fillStyle = item.kind === "key" ? "#e7d3a8" : "#c4893a";
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(3, size * (item.kind === "key" ? 0.12 : 0.08)), 0, Math.PI * 2);
+    ctx.fill();
+    if (item.kind === "key") {
+      ctx.strokeStyle = "#8f6a52";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.max(4, size * 0.14), y);
+      ctx.stroke();
+    }
   }
 
   if (sentinel) {
@@ -644,10 +753,10 @@ export function drawGuide(ctx, w, h, view) {
     const beat = hunting ? 0.82 + 0.18 * Math.sin(time * 8) : 1;
     ctx.save();
     ctx.globalAlpha = beat;
-    drawActor(ctx, toX(sentinel.x), toY(sentinel.y), sentinel.a, "#1f8a32", size * (hunting ? 1.15 * beat : 1));
+    drawActor(ctx, toX(sentinel.x), toY(sentinel.y), sentinel.a, "guard", size * (hunting ? 1.15 * beat : 1));
     ctx.restore();
   }
-  drawActor(ctx, ex, ey, explorer.a, "#8a3e12", size * 1.15);
+  drawActor(ctx, ex, ey, explorer.a, "lantern", size * 1.15);
   drawHeartMark(ctx, relic, toX, toY, size, time);
 
   if (ping && ping.ttl > 0) {
@@ -736,18 +845,30 @@ function stoneWall(ctx, x, y, w, h, shadow) {
   else ctx.fillRect(x, y, Math.max(1, w * 0.28), h);
 }
 
-function drawActor(ctx, x, y, angle, color, size) {
+function drawActor(ctx, x, y, angle, kind, size) {
+  const guard = kind === "guard";
   ctx.save();
   ctx.translate(x, y);
-  ctx.rotate(angle);
-  ctx.fillStyle = color;
+  ctx.rotate(angle + Math.PI / 2);
+  const s = Math.max(8, size * 0.34);
+  ctx.fillStyle = guard ? "#243024" : "#3a2418";
   ctx.beginPath();
-  const tip = Math.max(7, size * 0.28);
-  ctx.moveTo(tip, 0);
-  ctx.lineTo(-tip * 0.7, tip * 0.55);
-  ctx.lineTo(-tip * 0.4, 0);
-  ctx.lineTo(-tip * 0.7, -tip * 0.55);
+  ctx.moveTo(0, -s);
+  ctx.lineTo(s * 0.55, s * 0.15);
+  ctx.lineTo(s * 0.28, s * 0.85);
+  ctx.lineTo(-s * 0.28, s * 0.85);
+  ctx.lineTo(-s * 0.55, s * 0.15);
   ctx.closePath();
   ctx.fill();
+  ctx.fillStyle = guard ? "#8aa36a" : "#e2b07a";
+  ctx.beginPath();
+  ctx.arc(0, -s * 0.15, guard ? s * 0.18 : s * 0.22, 0, Math.PI * 2);
+  ctx.fill();
+  if (!guard) {
+    ctx.fillStyle = "#f6e2b8";
+    ctx.beginPath();
+    ctx.arc(0, -s * 0.72, s * 0.16, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
 }

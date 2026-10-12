@@ -118,5 +118,32 @@ export function generateMaze(size, seed) {
   maze.relic = { x: relic.x, y: relic.y };
   maze.patrol = patrol;
   maze.pathLength = path.length;
+  maze.loot = placeLoot(maze, rng, start, relic);
   return maze;
+}
+
+function placeLoot(maze, rng, start, relic) {
+  const cells = [];
+  for (let y = 0; y < maze.h; y++) {
+    for (let x = 0; x < maze.w; x++) {
+      if ((x === start.x && y === start.y) || (x === relic.x && y === relic.y)) continue;
+      if (Math.hypot(x - start.x, y - start.y) < 2) continue;
+      if (Math.hypot(x - relic.x, y - relic.y) < 2) continue;
+      cells.push({ x, y });
+    }
+  }
+  for (let i = cells.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [cells[i], cells[j]] = [cells[j], cells[i]];
+  }
+  const loot = [];
+  cells.slice(0, 4).forEach((cell, index) => {
+    loot.push({
+      kind: index === 0 ? "key" : "shard",
+      x: cell.x + 0.5,
+      y: cell.y + 0.5,
+      taken: false,
+    });
+  });
+  return loot;
 }

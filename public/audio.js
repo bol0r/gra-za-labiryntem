@@ -2,7 +2,6 @@ export function createAudio() {
   let ctx = null;
   let master = null;
   let droneA = null;
-  let droneB = null;
   let sentinel = null;
   let sentGain = null;
   let noise = null;
@@ -18,16 +17,14 @@ export function createAudio() {
     if (!AC) return;
     ctx = new AC();
     master = ctx.createGain();
-    master.gain.value = 0.8;
+    master.gain.value = 0.62;
     master.connect(ctx.destination);
-    droneA = osc(52, "sine", 0.05);
-    droneB = osc(104, "triangle", 0.05);
-    osc(156, "sine", 0.022);
+    droneA = osc(46, "sine", 0.012);
     startWind();
     const lfo = ctx.createOscillator();
     const lfoGain = ctx.createGain();
-    lfo.frequency.value = 0.07;
-    lfoGain.gain.value = 8;
+    lfo.frequency.value = 0.05;
+    lfoGain.gain.value = 1.2;
     lfo.connect(lfoGain);
     lfoGain.connect(droneA.frequency);
     lfo.start();
@@ -99,9 +96,9 @@ export function createAudio() {
     src.loop = true;
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.value = 640;
+    filter.frequency.value = 240;
     const amp = ctx.createGain();
-    amp.gain.value = 0.07;
+    amp.gain.value = 0.028;
     src.connect(filter);
     filter.connect(amp);
     amp.connect(master);
@@ -163,7 +160,7 @@ export function createAudio() {
     toggle() {
       ensure();
       muted = !muted;
-      if (master) master.gain.value = muted ? 0 : 0.8;
+      if (master) master.gain.value = muted ? 0 : 0.62;
       return muted;
     },
     get muted() {
@@ -205,9 +202,15 @@ export function createAudio() {
         loseWash();
       }
       if (name === "start") {
-        tone(196, 0.22, "sine", 0.12);
-        tone(294, 0.32, "triangle", 0.08);
+        tone(196, 0.22, "sine", 0.08);
+        tone(294, 0.32, "sine", 0.05);
       }
+      if (name === "key") {
+        tone(392, 0.12, "sine", 0.08);
+        tone(523, 0.22, "sine", 0.06);
+      }
+      if (name === "shard") tone(330, 0.16, "sine", 0.07);
+      if (name === "escape") tone(146, 0.28, "sine", 0.06);
     },
     hear(pan, dist) {
       ensure();
@@ -260,12 +263,12 @@ export function createAudio() {
       const dist = world.dist;
       const near = Math.max(0, 1 - dist / 8);
       if (sentGain) {
-        const target = muted ? 0 : near * near * (world.role === "runner" ? 0.28 : 0.12);
+        const target = muted ? 0 : near * near * (world.role === "runner" ? 0.08 : 0.035);
         sentGain.gain.value += (target - sentGain.gain.value) * 0.08;
       }
       if (sentinel) {
-        const hunt = world.state === "hunt" ? 18 : 0;
-        sentinel.frequency.value = 70 + near * 50 + hunt;
+        const hunt = world.state === "hunt" ? 8 : 0;
+        sentinel.frequency.value = 55 + near * 18 + hunt;
       }
       if (!world.moving || muted) return;
       stepAt -= dt;

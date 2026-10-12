@@ -16,7 +16,7 @@
       <aside id="panel"></aside>
     </div>
     <div class="frame" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-    <div id="lobby">
+    <div id="lobby" class="is-off">
       <div class="plate" id="plate">
         <p class="kicker">Planeta bez nazwy</p>
         <h1>Za labiryntem</h1>
@@ -24,14 +24,14 @@
       </div>
     </div>
     <div id="intro" hidden>
-      <p class="kicker">Planeta bez nazwy</p>
-      <h1>Za labiryntem</h1>
-      <div id="intro-lines"></div>
-      <div class="menu-list">
-        <button id="intro-go" type="button" hidden>Wejdź</button>
+      <canvas id="intro-stage" aria-hidden="true"></canvas>
+      <div class="intro-copy">
+        <div class="menu-list">
+          <button id="intro-go" type="button" hidden>Wejdź</button>
+        </div>
         <button id="intro-skip" type="button">Pomiń</button>
+        <p class="fine">Dotknij, żeby obudzić dźwięk.</p>
       </div>
-      <p class="fine">Dotknij, żeby obudzić dźwięk.</p>
     </div>
     <div id="touch" hidden>
       <div id="stick-zone"></div>
@@ -69,6 +69,10 @@
       </div>
     </div>
     <button id="quit" type="button" hidden>Menu</button>
+    <button id="help-open" type="button">Pomoc</button>
+    <div id="help" class="is-off" hidden>
+      <div class="help-card" id="help-card"></div>
+    </div>
     <div id="smoke" hidden><i></i><i></i><i></i></div>
   </div>
   <script type="module" src="/client.js"></script>

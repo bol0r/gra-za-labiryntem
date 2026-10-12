@@ -24,8 +24,13 @@ function detect(room) {
 
 function setState(room, next) {
   if (room.sentinel.state === next) return;
+  const prev = room.sentinel.state;
   room.sentinel.state = next;
   room.fx.push(next);
+  if (prev === "hunt" && next !== "hunt" && room.phase === "play") {
+    room.points = (room.points || 0) + 15;
+    room.fx.push("escape");
+  }
 }
 
 function moveToward(maze, sn, tx, ty, speed, dt) {

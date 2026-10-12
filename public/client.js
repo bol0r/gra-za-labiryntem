@@ -1,4 +1,5 @@
 import { createAudio } from "/audio.js";
+import { INTRO_ENTER_MS, paintIntroFrame } from "/intro.js";
 import { drawBeacon, drawExplorer, drawGuide, drawLobby, drawVignette } from "/render.js";
 import { applySeals, clamp, lerpAngle, normalizeAngle, stepExplorer } from "/shared/sim.js";
 
@@ -20,8 +21,11 @@ const deck = document.getElementById("deck");
 const listenBtn = document.getElementById("listen");
 const knockBtn = document.getElementById("knock");
 const quitBtn = document.getElementById("quit");
+const help = document.getElementById("help");
+const helpCard = document.getElementById("help-card");
+const helpOpen = document.getElementById("help-open");
 const intro = document.getElementById("intro");
-const introLines = document.getElementById("intro-lines");
+const introStage = document.getElementById("intro-stage");
 const introGo = document.getElementById("intro-go");
 const smoke = document.getElementById("smoke");
 const hint = document.getElementById("hint");
@@ -113,6 +117,10 @@ function setPhase(phase) {
   result.classList.toggle("is-off", phase !== "result");
   waitbanner.classList.toggle("is-off", phase !== "wait");
   syncPadUi();
+  if (help && phase !== "play" && phase !== "wait" && phase !== "result") {
+    help.classList.add("is-off");
+    help.hidden = true;
+  }
   resize();
 }
 
@@ -150,6 +158,7 @@ function paintMenu() {
       <button type="button" data-act="credits">Twórcy</button>
     </div>
     <p class="host">${hostLine ? `Drugi ekran: ${hostLine}` : "Zostańcie na tym komputerze."}</p>
+    <p class="fine">Mapa na telefonie. Latarnia na komputerze.</p>
   `);
   paintPadFocus();
 }
@@ -158,6 +167,21 @@ function paintStory() {
   fillPlate("story", `
     <p class="kicker">Fabuła</p>
     <h1>Ruina</h1>
+    <svg class="chart" viewBox="0 0 420 230" role="img" aria-label="Stary szkic ruiny">
+      <rect width="420" height="230" fill="#efe4cf"/>
+      <path d="M18 28h384v174H18z" fill="none" stroke="#8f6a52" stroke-width="1.4"/>
+      <path d="M28 48c40-18 70 16 110-4 36-18 70 22 112 2 28-14 48 8 78-6" fill="none" stroke="#a07850" stroke-width="0.8" stroke-dasharray="3 3"/>
+      <g fill="none" stroke="#3a2a1c" stroke-width="3" stroke-linecap="square">
+        <path d="M70 70h70v40H70zM140 70h50M140 110h40v36h-40zM180 110h46M110 110v40M70 150h40"/>
+        <path d="M250 78h80v34h-40v28h40M290 112v28M250 140h40"/>
+      </g>
+      <circle cx="92" cy="92" r="5" fill="#8a3e12"/>
+      <circle cx="318" cy="156" r="6" fill="none" stroke="#c4893a" stroke-width="2"/>
+      <circle cx="318" cy="156" r="2" fill="#c4893a"/>
+      <path d="M200 36l6 14h-12z" fill="#8f6a52"/>
+      <text x="208" y="34" fill="#6a5344" font-size="11" font-family="Palatino, Georgia, serif">północ</text>
+      <text x="78" y="196" fill="#6a5344" font-size="13" font-family="Palatino, Georgia, serif">ruina bez nazwy</text>
+    </svg>
     <p class="lead">Ruina nie ma nazwy. Stoi na planecie, której nikt nie ochrzcił.</p>
     <p>Jedno z was zostaje przy mapie i widzi strażnika. Drugie schodzi w ciemność z latarnią.</p>
     <p>Na końcu komory bije serce. Dotknijcie go, a ruina puści was dalej.</p>
@@ -198,7 +222,7 @@ function clock(total) {
 
 function paintScores() {
   const rows = state.scores
-    ? state.scores.map((row) => `<li>${row.name} · ${clock(row.time)} · komora ${row.chambers}</li>`).join("") || "<li>Pusto.</li>"
+    ? state.scores.map((row) => `<li>${row.name} · ${clock(row.time)} · komora ${row.chambers} · ${row.points || 0} pkt</li>`).join("") || "<li>Pusto.</li>"
     : "<li>Ładuję.</li>";
   fillPlate("scores", `
     <p class="kicker">Tablica</p>
@@ -221,14 +245,14 @@ async function loadScores() {
 }
 
 function paintHome() {
-  const where = narrow ? "Tu naturalnie schodzi się z latarnią." : "Tu naturalnie zostaje się przy mapie.";
+  const where = narrow ? "Ten ekran jest do mapy." : "Ten ekran jest do latarni.";
   fillPlate("home", `
     <p class="kicker">Graj</p>
     <h1>Komora</h1>
-    <p class="lead">Jedno przy mapie. Drugie z latarnią.</p>
+    <p class="lead">Mapa na telefonie. Latarnia na komputerze.</p>
     <div class="roles">
-      <button type="button" data-act="create" data-role="guide">Przy mapie<small>Widzi całość.</small></button>
-      <button type="button" data-act="create" data-role="runner">Z latarnią<small>Ma tylko światło.</small></button>
+      <button type="button" data-act="create" data-role="guide">Przy mapie<small>Telefon. Widzi całość.</small></button>
+      <button type="button" data-act="create" data-role="runner">Z latarnią<small>Komputer. Ma tylko światło.</small></button>
     </div>
     <form class="join" data-act="join">
       <input name="code" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="KOD" value="${queryCode && !state.code ? queryCode : ""}" aria-label="Kod komory">
@@ -265,11 +289,11 @@ function paintLobby() {
 }
 
 const callIcon = {
-  stop: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor"/></svg>`,
-  quiet: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 9h3l4-3v12l-4-3H5z"/><path d="M16 9.5l4.5 5M20.5 9.5l-4.5 5" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>`,
-  run: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 12h11l-3.2-3.2 1.4-1.4L19.6 12l-7.4 4.6-1.4-1.4L14 12H3z"/></svg>`,
-  left: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14.5 5.5 8 12l6.5 6.5 1.4-1.4L10.8 12l5.1-5.1z"/></svg>`,
-  right: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.5 5.5 16 12l-6.5 6.5-1.4-1.4L13.2 12 8.1 6.9z"/></svg>`,
+  stop: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10H7z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`,
+  quiet: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 10h2.2L13 8v8l-2.8-2H8z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M16 10l3 4M19 10l-3 4" stroke="currentColor" stroke-width="1.4"/></svg>`,
+  run: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h9M11 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`,
+  left: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 7L9 12l5 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`,
+  right: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`,
 };
 
 function renderPanel() {
@@ -280,6 +304,7 @@ function renderPanel() {
       <h2 id="sent-state" data-state="patrol">Obchód</h2>
       <p id="wake-state" class="fine">Cisza</p>
       <p id="seal-count">Pieczęcie 2</p>
+      <p id="score-now" class="fine">Punkty 0</p>
     </div>
     <div class="call-row">
       ${plate("stop", "Stój", "1")}
@@ -323,7 +348,18 @@ function updatePanel(snap) {
     veil.disabled = snap.veilCd > 0;
   }
   const seals = panel.querySelector("#seal-count");
-  if (seals) seals.textContent = `Pieczęcie ${snap.sealCharges}`;
+  if (seals) {
+    const ex = snap.ex;
+    const ready = ex && state.maze && (state.maze.seals || []).some((seal) => {
+      if (seal.open) return false;
+      const mx = seal.axis === "v" ? seal.x : seal.x + 0.5;
+      const my = seal.axis === "v" ? seal.y + 0.5 : seal.y;
+      return Math.hypot(ex.x - mx, ex.y - my) < 1.2;
+    });
+    seals.textContent = ready ? `Drzwi gotowe · ${snap.sealCharges}` : `Pieczęcie ${snap.sealCharges}`;
+  }
+  const scoreNow = panel.querySelector("#score-now");
+  if (scoreNow) scoreNow.textContent = `Punkty ${snap.points || 0}`;
 }
 
 function showCall(id) {
@@ -345,7 +381,7 @@ function showResult(snap) {
   const win = snap.result === "win";
   resultKicker.textContent = win ? "Serce" : "Strażnik";
   resultTitle.textContent = win ? "Ruina was puszcza." : "Strażnik was ma.";
-  resultTime.textContent = `${clock(snap.roundT)} w ruinie`;
+  resultTime.textContent = `${clock(snap.roundT)} · ${snap.points || 0} pkt`;
   scoreForm.hidden = !win;
   nextBtn.textContent = snap.nextIn > 0.2 ? `Dalej · ${Math.ceil(snap.nextIn)}` : "Dalej";
   screen.classList.toggle("flash-win", win);
@@ -381,7 +417,9 @@ function onRound(msg) {
 
 function onSnap(msg) {
   if (msg.seals && state.maze) applySeals(state.maze, msg.seals);
+  if (msg.loot && state.maze) state.maze.loot = msg.loot;
   state.sealCharges = msg.sealCharges;
+  state.points = msg.points || 0;
   state.snaps.push({ ...msg, at: performance.now() });
   if (state.snaps.length > 14) state.snaps.shift();
   if (msg.fx) {
@@ -466,7 +504,7 @@ function lerpEnt(a, b, u) {
 
 function controlHint() {
   const fine = window.matchMedia("(pointer:fine)").matches;
-  return fine ? "WASD, strzałki, Shift. N: nasłuch. K: stuk." : "Lewa strona: krok. Prawa: wzrok.";
+  return fine ? "WASD, strzałki, Shift. N: nasłuch. K: stuk. P: pomoc." : "Lewa strona: krok. Prawa: wzrok. Pomoc w rogu.";
 }
 
 function readKeys(dt) {
@@ -963,10 +1001,20 @@ document.addEventListener("mousemove", (event) => {
 
 window.addEventListener("keydown", (event) => {
   if (event.target instanceof HTMLInputElement) return;
+  if (event.key === "F1" || event.key.toLowerCase() === "p") {
+    event.preventDefault();
+    toggleHelp();
+    return;
+  }
   if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(event.key.toLowerCase())) event.preventDefault();
   keys.add(event.key.toLowerCase());
   if (event.key === "Shift") state.input.sprint = true;
   if (event.key === "Escape") {
+    if (help && !help.classList.contains("is-off")) {
+      help.classList.add("is-off");
+      help.hidden = true;
+      return;
+    }
     if (state.phase === "play" || state.phase === "wait" || state.phase === "result") goMenu();
     else if (state.phase !== "menu" && state.phase !== "intro" && state.phase !== "boot") {
       setPhase("menu");
@@ -1158,19 +1206,16 @@ async function loadHost() {
   if (state.phase === "menu") paintMenu();
 }
 
-const STORY_LINES = [
-  "Ruina nie ma nazwy.",
-  "Jedno z was trzyma mapę.",
-  "Drugie schodzi z latarnią.",
-  "Na końcu bije serce.",
-  "W korytarzach chodzi strażnik.",
-];
 let introTimers = [];
+let introRaf = 0;
 let titleTaps = 0;
 
 function clearIntro() {
   introTimers.forEach((id) => clearTimeout(id));
   introTimers = [];
+  cancelAnimationFrame(introRaf);
+  introRaf = 0;
+  intro.classList.remove("is-title");
 }
 
 function finishIntro() {
@@ -1182,25 +1227,36 @@ function finishIntro() {
 function startIntro() {
   clearIntro();
   setPhase("intro");
-  introLines.replaceChildren();
   introGo.hidden = true;
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  STORY_LINES.forEach((line, index) => {
-    const add = () => {
-      const row = document.createElement("p");
-      row.className = "intro-line";
-      row.textContent = line;
-      introLines.appendChild(row);
-    };
-    if (reduced) add();
-    else introTimers.push(setTimeout(add, 700 + index * 1000));
-  });
   const showGo = () => {
     introGo.hidden = false;
     paintPadFocus();
   };
   if (reduced) showGo();
-  else introTimers.push(setTimeout(showGo, 700 + STORY_LINES.length * 1000));
+  else introTimers.push(setTimeout(showGo, INTRO_ENTER_MS));
+  const t0 = performance.now();
+  const tick = (now) => {
+    if (state.phase !== "intro") return;
+    const cssW = Math.max(1, intro.clientWidth);
+    const cssH = Math.max(1, intro.clientHeight);
+    if (cssW < 2 || cssH < 2) {
+      introRaf = requestAnimationFrame(tick);
+      return;
+    }
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const nextW = Math.round(cssW * dpr);
+    const nextH = Math.round(cssH * dpr);
+    if (introStage.width !== nextW || introStage.height !== nextH) {
+      introStage.width = nextW;
+      introStage.height = nextH;
+    }
+    const ctx = introStage.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    paintIntroFrame(ctx, cssW, cssH, reduced ? 0 : (now - t0) / 1000, reduced);
+    introRaf = requestAnimationFrame(tick);
+  };
+  introRaf = requestAnimationFrame(tick);
 }
 
 function goMenu() {
@@ -1279,7 +1335,41 @@ function noteTap() {
   }, 2600);
 }
 
-intro.addEventListener("click", () => audio.unlock());
+function toggleHelp() {
+  if (!help) return;
+  if (!help.classList.contains("is-off")) {
+    help.classList.add("is-off");
+    help.hidden = true;
+    return;
+  }
+  const runner = state.role === "runner";
+  const guide = state.role === "guide";
+  const body = runner
+    ? `<p class="kicker">Latarnik</p><h2>W korytarzu</h2>
+      <p>WASD: krok. Strzałki: wzrok. Shift: bieg. Na telefonie lewa strona to krok, prawa wzrok.</p>
+      <p>N: nasłuch, skąd strażnik. K: stuk, znak dla mapy.</p>
+      <p>Klucz i odłamki leżą w komorach. Podniesienie daje punkty. Nie są konieczne, żeby dojść do serca.</p>
+      <p>Stań przy bursztynowych drzwiach. Wtedy osoba przy mapie może je otworzyć.</p>
+      <p>Stanie w miejscu jest ciche. Bieg słychać przez ściany. Ucieczka z pościgu też daje punkty.</p>`
+    : guide
+      ? `<p class="kicker">Kartograf</p><h2>Przy mapie</h2>
+      <p>Mapa jest na telefonie. Latarnik na komputerze.</p>
+      <p>Klik w korytarz stawia znak. Klik w drzwi otwiera je tylko wtedy, gdy latarnik przy nich stoi.</p>
+      <p>Zawołania: Stój, Cicho, Biegnij, Lewo, Prawo. Zasłona na chwilę myli strażnika.</p>
+      <p>Punkty: odłamki, klucz, ucieczka z pościgu i przejście komory.</p>`
+      : `<p class="kicker">Pomoc</p><h2>Dwie role</h2>
+      <p>Mapa na telefonie, latarnia na komputerze. Ten sam Wi-Fi.</p>
+      <p>W grze P albo F1 otwiera tę tablicę. U latarnika i u kartografa tekst jest inny.</p>`;
+  helpCard.innerHTML = `${body}<div class="menu-list"><button type="button" id="help-close">Zamknij</button></div><p class="fine">P albo F1</p>`;
+  help.hidden = false;
+  help.classList.remove("is-off");
+  document.getElementById("help-close").addEventListener("click", toggleHelp);
+}
+
+helpOpen.addEventListener("click", () => {
+  audio.unlock();
+  toggleHelp();
+});
 introGo.addEventListener("click", () => finishIntro());
 document.getElementById("intro-skip").addEventListener("click", () => finishIntro());
 quitBtn.addEventListener("click", () => goMenu());
@@ -1302,4 +1392,6 @@ function scoreName() {
 resize();
 requestAnimationFrame(frame);
 loadHost();
+if (queryCode || readSession()) lobby.classList.remove("is-off");
+else startIntro();
 connect();

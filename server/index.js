@@ -57,7 +57,7 @@ function loadScores() {
 let scores = loadScores();
 
 function publicScores() {
-  return [...scores].sort((a, b) => b.chambers - a.chambers || a.time - b.time).slice(0, 12);
+  return [...scores].sort((a, b) => b.chambers - a.chambers || (b.points || 0) - (a.points || 0) || a.time - b.time).slice(0, 12);
 }
 
 function saveScores() {
@@ -178,6 +178,8 @@ function snapshot(room) {
     veil: room.veil || 0,
     veilCd: room.veilCd || 0,
     sealCharges: room.sealCharges ?? 0,
+    points: room.points || 0,
+    loot: room.maze && room.maze.loot ? room.maze.loot.map((item) => ({ kind: item.kind, x: item.x, y: item.y, taken: !!item.taken })) : [],
     result: room.result,
     nextIn: room.nextIn ?? 0,
     note: room.note || "",
@@ -209,6 +211,7 @@ function sendRound(room) {
       start: maze.start,
       relic: maze.relic,
       patrol: maze.patrol,
+      loot: (maze.loot || []).map((item) => ({ kind: item.kind, x: item.x, y: item.y, taken: !!item.taken })),
     },
     spawn: { x: room.explorer.x, y: room.explorer.y, a: room.explorer.a },
   };
@@ -253,8 +256,22 @@ function finishRound(room, result) {
   room.result = result;
   room.nextIn = result === "win" ? 12 : 8;
   room.fx.push(result);
-  if (result === "win") room.heat = Math.min(2, room.heat + 1);
-  else room.heat = Math.max(0, room.heat - 1);
+  if (result === "win") {
+    room.points = (room.points || 0) + 40;
+    room.heat = Math.min(2, room.heat + 1);
+  } else room.heat = Math.max(0, room.heat - 1);
+}
+
+function gather(room) {
+  const loot = room.maze && room.maze.loot;
+  if (!loot || !room.explorer) return;
+  for (const item of loot) {
+    if (item.taken) continue;
+    if (Math.hypot(item.x - room.explorer.x, item.y - room.explorer.y) > 0.42) continue;
+    item.taken = true;
+    room.points = (room.points || 0) + (item.kind === "key" ? 25 : 10);
+    room.fx.push(item.kind === "key" ? "key" : "shard");
+  }
 }
 
 function tick(room) {
@@ -277,6 +294,7 @@ function tick(room) {
         room.call.ttl -= DT;
         if (room.call.ttl <= 0) room.call = null;
       }
+      gather(room);
       stepSentinel(room, DT);
       const outcome = roundOutcome(room);
       if (outcome) finishRound(room, outcome);
@@ -343,6 +361,7 @@ async function createRoom(ws, role) {
     sentinel: null,
     fx: [],
     note: "",
+    points: 0,
   };
   const player = assign(ws, role);
   room[role] = player;
@@ -480,7 +499,12 @@ function onGuide(room, msg) {
   if (msg.t === "seal") {
     const i = Number(msg.i);
     const seal = room.maze.seals[i];
-    if (!seal || seal.open || room.sealCharges <= 0) return;
+    if (!seal || seal.open || room.sealCharges <= 0 || !room.explorer) return;
+    const dist = Math.hypot(room.explorer.x - seal.mx, room.explorer.y - seal.my);
+    if (dist > 1.2) {
+      send(room.guide && room.guide.ws, { t: "err", text: "Latarnik musi stanąć przy drzwiach." });
+      return;
+    }
     room.sealCharges -= 1;
     seal.open = true;
     applySeals(room.maze);
@@ -519,7 +543,12 @@ async function onMessage(ws, msg) {
     const name = cleanName(msg.name);
     if (!name || ws.player.scored === room.round) return;
     ws.player.scored = room.round;
-    scores.push({ name, time: Math.max(0, Math.round(room.roundT || 0)), chambers: room.round || 1 });
+    scores.push({
+      name,
+      time: Math.max(0, Math.round(room.roundT || 0)),
+      chambers: room.round || 1,
+      points: room.points || 0,
+    });
     if (scores.length > 24) scores = publicScores();
     saveScores();
     const board = { t: "scores", scores: publicScores() };

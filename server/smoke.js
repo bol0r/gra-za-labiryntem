@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { WebSocket } from "ws";
+import { gridPath } from "../shared/sim.js";
 
 const port = process.argv[2] || 8787;
 const url = `ws://127.0.0.1:${port}`;
@@ -46,7 +47,17 @@ assert.equal(snap.sealCharges, 2);
 assert.ok(snap.sn);
 guide.send({ t: "call", id: "stop" });
 guide.send({ t: "ping", x: round.maze.relic.x + 0.5, y: round.maze.relic.y + 0.5 });
-if (round.maze.seals.length) guide.send({ t: "seal", i: 0 });
+if (round.maze.seals.length) {
+  const seal = round.maze.seals[0];
+  const spot = seal.axis === "v" ? { x: seal.x - 1, y: seal.y } : { x: seal.x, y: seal.y - 1 };
+  const path = gridPath(round.maze, round.maze.start.x, round.maze.start.y, spot.x, spot.y) || [spot];
+  for (const cell of path) {
+    await new Promise((r) => setTimeout(r, 460));
+    runner.send({ t: "pose", x: cell.x + 0.5, y: cell.y + 0.5, a: round.spawn.a });
+    await runner.wait((m) => m.t === "snap" && m.ex && Math.hypot(m.ex.x - (cell.x + 0.5), m.ex.y - (cell.y + 0.5)) < 0.4, "krok");
+  }
+  guide.send({ t: "seal", i: 0 });
+}
 guide.send({ t: "veil" });
 const called = await runner.wait((m) => m.t === "snap" && m.call && m.call.id === "stop", "call");
 assert.equal(called.call.id, "stop");
