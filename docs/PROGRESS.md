@@ -4,6 +4,12 @@ Gałąź `polish-1`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zos
 
 ## Zrobione
 
+### Intro bez nazw
+
+W twórcach zostaje jedna linia „Dead Net Lab”. Zeszły imię, nazwisko, Claude i Grok. Testerzy zostają. Intro schodzi od klawisza (sam modyfikator nie), od kliknięcia w kadr i od A na padzie. A nie odpala „Graj”.
+
+Sprawdzone: `npm run check`. `node server/smoke.js` na porcie 8797, pokój Y85W. Dwie karty, pokój L8G2: Escape i spacja schodzą z intra, klik w płótno też, sztuczny pad A zostawia menu. Kartograf i latarnik doszli do „Można schodzić.” i weszli w korytarz. Serwer bez błędu, kadr latarnika się rysuje.
+
 ### 0. Układ płytek kartografa
 
 Pięć zawołań jest w jednym rzędzie od 360 px w górę. „W prawo” nie wychodzi poza ekran, napis się nie ucina. Zasłona kończy się w panelu (12 px od krawędzi przy 360 i 390). Sprawdzone w grze: 360×740, 390×844, 1280×800. Widok latarnika bez zmian.
