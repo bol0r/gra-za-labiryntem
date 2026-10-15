@@ -4,6 +4,14 @@ Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zosta
 
 ## Zrobione
 
+### Pakiet HD
+
+Korytarz bierze pliki z `public/tex/hd/`, gdy w opcjach są włączone tekstury HD (`zl-hd`, domyślnie tak). Zanim się wczytają, zostaje kamień rysowany w kodzie. W HD podłoga jest kafelkiem dwóch komórek, bez pomarańczowej kratki, a światło mnoży kolor tekstury. Niebo i planeta stoją w świecie: obrót je przesuwa. Bez HD kadr jest ten sam co wcześniej.
+
+Na dużym ekranie pełna retina nie wyrabiała (przy 1440×900 i gęstości 2 klatka schodziła do około 8 na sekundę). Rysowanie HD jest osobną pętlą, a bufor startuje od około 800 tysięcy pikseli i może zejść niżej, gdy średnia klatka nie mieści się w płynnej grze.
+
+Sprawdzone przy włączonym HD: komputer 1440×900, gęstość 2, bufor 1094×684, odstęp klatek 16,7 ms (60 na sekundę). Telefon 390×844, gęstość 2, bufor 562×1215, też 16,7 ms. Osobny kadr bez HD pokazuje dawną cegłę i gwiazdy. Konsola pusta, serwer bez błędu.
+
 ### Opcje
 
 W menu głównym jest „Opcje”. W trakcie rundy ten sam ekran otwiera przycisk Menu, bez opuszczania komory: „Wróć” wraca do gry, „Do menu” wychodzi jak dawny przycisk Menu. Tekstury HD, głośność 0–100 (domyślnie 80) i dźwięk są w `localStorage` (`zl-hd`, `zl-vol`, `zl-mute`) i czytane przy starcie. Suwak rusza jeden GainNode od razu; przy 80 poziom jest taki jak dotychczasowe 0,62. Wyciszenie trzyma suwak i do niego wraca. Przycisk „Wycisz” zszedł z rogu. Zostają klawisz M i X na padzie. Strzałki w lewo i w prawo na głośności zmieniają ją o 10. Pad i klawiatura chodzą jak w reszcie menu, B wraca.

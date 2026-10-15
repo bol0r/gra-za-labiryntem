@@ -1,6 +1,6 @@
 import { createAudio } from "/audio.js";
 import { INTRO_ENTER_MS, paintIntroFrame } from "/intro.js";
-import { drawBeacon, drawExplorer, drawGuide, drawLobby, drawVignette } from "/render.js";
+import { drawBeacon, drawExplorer, drawGuide, drawLobby, drawVignette, hdActive, setHdEnabled } from "/render.js";
 import { applySeals, clamp, lerpAngle, normalizeAngle, stepExplorer } from "/shared/sim.js";
 
 const STORAGE = "za-labiryntem";
@@ -72,6 +72,7 @@ function storePref(key, value) {
 }
 
 const audio = createAudio({ volume: prefNum("zl-vol", 80), muted: prefBool("zl-mute", false) });
+setHdEnabled(prefBool("zl-hd", true));
 let optionsOverPlay = false;
 const keys = new Set();
 const looks = new Map();
@@ -335,6 +336,8 @@ function toggleHd(btn) {
   const on = btn.getAttribute("aria-checked") !== "true";
   btn.setAttribute("aria-checked", on ? "true" : "false");
   storePref("zl-hd", on ? "1" : "0");
+  setHdEnabled(on);
+  resize();
 }
 
 function paintStory() {
@@ -932,16 +935,52 @@ function feelGuardian(dt, dist) {
 }
 
 const PIXEL_STEPS = [1, 0.8, 0.64, 0.5];
+const PIXEL_STEPS_HD = [1, 0.72, 0.5, 0.38, 0.28];
+const HD_MAX_PIXELS = 800000;
 let pixelStep = 0;
 const frameSamples = [];
 let scaleHold = 0;
+let slowStreak = 0;
+
+function pixelSteps() {
+  return hdActive() ? PIXEL_STEPS_HD : PIXEL_STEPS;
+}
+
+function hdPixelCap() {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const rect = map.getBoundingClientRect();
+  const full = Math.max(1, rect.width) * Math.max(1, rect.height) * dpr * dpr;
+  if (full <= HD_MAX_PIXELS) return 1;
+  return Math.sqrt(HD_MAX_PIXELS / full);
+}
+
+function clampHdStep() {
+  if (!hdActive()) return;
+  if (!(state.role === "runner" && (state.phase === "play" || state.phase === "result"))) return;
+  const cap = hdPixelCap();
+  const steps = PIXEL_STEPS_HD;
+  let need = steps.length - 1;
+  for (let i = 0; i < steps.length; i++) {
+    if (steps[i] <= cap + 0.001) {
+      need = i;
+      break;
+    }
+  }
+  if (pixelStep < need) pixelStep = need;
+}
 
 function pixelBudget() {
-  if (state.role === "runner" && (state.phase === "play" || state.phase === "result")) return PIXEL_STEPS[pixelStep];
+  if (state.role === "runner" && (state.phase === "play" || state.phase === "result")) {
+    const steps = pixelSteps();
+    let budget = steps[Math.min(pixelStep, steps.length - 1)];
+    if (hdActive()) budget = Math.min(budget, hdPixelCap());
+    return budget;
+  }
   return 1;
 }
 
 function resize() {
+  clampHdStep();
   const rect = map.getBoundingClientRect();
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const budget = pixelBudget();
@@ -973,18 +1012,36 @@ function watchFrames(dt) {
   if (state.phase !== "play" || document.hidden) return;
   if (dt < 0.0004) return;
   scaleHold = Math.max(0, scaleHold - 1 / 60);
+  if (hdActive() && dt > 0.02) slowStreak += 1;
+  else slowStreak = 0;
+  if (slowStreak >= 2 && scaleHold <= 0) {
+    const steps = pixelSteps();
+    if (pixelStep < steps.length - 1) {
+      pixelStep += dt > 0.04 ? 2 : 1;
+      if (pixelStep > steps.length - 1) pixelStep = steps.length - 1;
+      slowStreak = 0;
+      frameSamples.length = 0;
+      scaleHold = 0.5;
+      resize();
+      return;
+    }
+  }
   frameSamples.push(dt);
   if (frameSamples.length > 40) frameSamples.shift();
   if (frameSamples.length < 24 || scaleHold > 0) return;
   let sum = 0;
   for (const sample of frameSamples) sum += sample;
   const avg = sum / frameSamples.length;
-  if (avg > 0.012 && pixelStep < PIXEL_STEPS.length - 1) {
-    pixelStep += 1;
+  const steps = pixelSteps();
+  if (pixelStep > steps.length - 1) pixelStep = steps.length - 1;
+  if (avg > 0.012 && pixelStep < steps.length - 1) {
+    const hurry = hdActive() && avg > 0.02;
+    pixelStep += hurry ? 2 : 1;
+    if (pixelStep > steps.length - 1) pixelStep = steps.length - 1;
     frameSamples.length = 0;
-    scaleHold = 1.8;
+    scaleHold = hurry ? 0.4 : 1.8;
     resize();
-  } else if (avg < 0.006 && pixelStep > 0) {
+  } else if (avg < 0.006 && pixelStep > 0 && !(hdActive() && pixelSteps()[pixelStep - 1] > hdPixelCap() + 0.001)) {
     pixelStep -= 1;
     frameSamples.length = 0;
     scaleHold = 2.6;

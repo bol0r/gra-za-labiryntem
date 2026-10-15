@@ -10,7 +10,32 @@ import {
 } from "/shared/sim.js";
 
 const TEX = 128;
-let textures = null;
+const RAD = 180 / Math.PI;
+let proc = null;
+let hd = null;
+let wantHd = false;
+let hdLoading = false;
+let texR = 0;
+let texG = 0;
+let texB = 0;
+let skyX = new Int32Array(0);
+let skyY = new Int32Array(0);
+let planetU = new Int16Array(0);
+let planetV = new Int16Array(0);
+let rowCenter = new Float32Array(0);
+let rowLvl = new Uint8Array(0);
+let colTop = new Int16Array(0);
+let colBot = new Int16Array(0);
+let colRx = new Float32Array(0);
+let colRy = new Float32Array(0);
+let colOff = new Float32Array(0);
+let colWallX = new Float32Array(0);
+let colLine = new Float32Array(0);
+let colFall = new Float32Array(0);
+let colCone = new Float32Array(0);
+let colFog = new Float32Array(0);
+let colSide = new Float32Array(0);
+let colId = new Uint8Array(0);
 
 function hash01(x, y) {
   let n = Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263);
@@ -150,17 +175,335 @@ function sealTex() {
   return data;
 }
 
-function buildTextures() {
-  return [stoneTex(1), stoneTex(2), stoneTex(3), stoneTex(4), sealTex(), runeTex(), floorTex()];
+function buildProc() {
+  if (proc) return proc;
+  const made = [stoneTex(1), stoneTex(2), stoneTex(3), stoneTex(4), sealTex(), runeTex(), floorTex()];
+  proc = made.map((data) => ({ size: TEX, levels: [data] }));
+  return proc;
 }
 
-function texAt(id, u, v) {
-  if (!textures) textures = buildTextures();
-  const img = textures[id];
-  const x = Math.floor(u * TEX) & (TEX - 1);
-  const y = Math.floor(v * TEX) & (TEX - 1);
-  const i = (y * TEX + x) * 4;
-  return [img[i], img[i + 1], img[i + 2]];
+function sample(tex, u, v, lvl) {
+  const max = tex.levels.length - 1;
+  const level = lvl < 0 ? 0 : lvl > max ? max : lvl;
+  const size = tex.size >> level;
+  const img = tex.levels[level];
+  const x = Math.floor(u * size) & (size - 1);
+  const y = Math.floor(v * size) & (size - 1);
+  const i = (y * size + x) << 2;
+  texR = img[i];
+  texG = img[i + 1];
+  texB = img[i + 2];
+}
+
+function mipDown(src, size) {
+  const n = size >> 1;
+  const dst = new Uint8ClampedArray(n * n * 4);
+  for (let y = 0; y < n; y++) {
+    const row = y * 2 * size;
+    for (let x = 0; x < n; x++) {
+      const i00 = (row + x * 2) << 2;
+      const i10 = i00 + 4;
+      const i01 = i00 + (size << 2);
+      const i11 = i01 + 4;
+      const o = (y * n + x) << 2;
+      dst[o] = (src[i00] + src[i10] + src[i01] + src[i11] + 2) >> 2;
+      dst[o + 1] = (src[i00 + 1] + src[i10 + 1] + src[i01 + 1] + src[i11 + 1] + 2) >> 2;
+      dst[o + 2] = (src[i00 + 2] + src[i10 + 2] + src[i01 + 2] + src[i11 + 2] + 2) >> 2;
+      dst[o + 3] = (src[i00 + 3] + src[i10 + 3] + src[i01 + 3] + src[i11 + 3] + 2) >> 2;
+    }
+  }
+  return dst;
+}
+
+function withMips(data, size) {
+  const levels = [data];
+  let cur = data;
+  let s = size;
+  for (let i = 0; i < 3; i++) {
+    cur = mipDown(cur, s);
+    s >>= 1;
+    levels.push(cur);
+  }
+  return { size, levels };
+}
+
+function imagePixels(img) {
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+  return ctx.getImageData(0, 0, img.width, img.height).data;
+}
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(url));
+    img.src = url;
+  });
+}
+
+const HD_NAMES = ["wall_a.png", "wall_b.png", "wall_c.png", "wall_d.png", "seal.png", "rune.png", "floor.png", "sky.png", "planet.png"];
+
+function loadHd() {
+  hdLoading = true;
+  Promise.all(HD_NAMES.map((name) => loadImage(`/tex/hd/${name}`))).then((imgs) => {
+    const tex = imgs.slice(0, 7).map((img) => withMips(imagePixels(img), img.width));
+    const skyImg = imgs[7];
+    const planetImg = imgs[8];
+    hd = {
+      tex,
+      sky: imagePixels(skyImg),
+      skyW: skyImg.width,
+      skyH: skyImg.height,
+      planet: imagePixels(planetImg),
+      planetW: planetImg.width,
+      planetH: planetImg.height,
+    };
+    hdLoading = false;
+  }).catch(() => {
+    hd = null;
+    hdLoading = false;
+  });
+}
+
+export function setHdEnabled(on) {
+  wantHd = !!on;
+  if (wantHd && !hd && !hdLoading) loadHd();
+}
+
+export function hdActive() {
+  return !!(wantHd && hd);
+}
+
+function packOn() {
+  return hdActive();
+}
+
+function growRows(n) {
+  if (rowCenter.length >= n) return;
+  rowCenter = new Float32Array(n);
+  rowLvl = new Uint8Array(n);
+}
+
+function growCols(n) {
+  if (colTop.length >= n) return;
+  colTop = new Int16Array(n);
+  colBot = new Int16Array(n);
+  colRx = new Float32Array(n);
+  colRy = new Float32Array(n);
+  colOff = new Float32Array(n);
+  colWallX = new Float32Array(n);
+  colLine = new Float32Array(n);
+  colFall = new Float32Array(n);
+  colCone = new Float32Array(n);
+  colFog = new Float32Array(n);
+  colSide = new Float32Array(n);
+  colId = new Uint8Array(n);
+}
+
+function paintPacked(data, z, w, h, maze, body, aim, horizon, flick, focal) {
+  const skyRows = Math.min(h, Math.ceil(horizon));
+  skyX = growInt(skyX, w, false);
+  skyY = growInt(skyY, h, false);
+  planetU = growInt(planetU, w, true);
+  planetV = growInt(planetV, h, true);
+  growRows(h);
+  const skyData = hd.sky;
+  const skyW = hd.skyW;
+  const skyH = hd.skyH;
+  const planetData = hd.planet;
+  const planetW = hd.planetW;
+  const planetH = hd.planetH;
+  const floorTex = hd.tex[6];
+  const fLevels = floorTex.levels;
+  const fBase = floorTex.size;
+  const cosAim = Math.cos(aim);
+  const sinAim = Math.sin(aim);
+  const halfW = w * 0.5;
+  const fovCone = FOV * 0.48;
+  const hSoft = h * 0.55;
+  for (let x = 0; x < w; x++) {
+    const az = ((aim + Math.atan((x - halfW) / focal)) * RAD % 360 + 360) % 360;
+    let sx = (az / 360) * skyW;
+    if (sx >= skyW) sx = 0;
+    skyX[x] = sx | 0;
+    const du = wrap180(az - 40);
+    const pu = (du / 6.5) * 168 + 384;
+    planetU[x] = pu < 0 || pu >= planetW ? -1 : pu | 0;
+  }
+  for (let y = 0; y < h; y++) {
+    if (y < skyRows) {
+      const el = Math.atan((horizon - y) / focal) * RAD;
+      let sy = ((90 - el) / 90) * skyH;
+      if (sy < 0) sy = 0;
+      else if (sy >= skyH) sy = skyH - 1;
+      skyY[y] = sy | 0;
+      const pv = -(((el - 13) / 6.5) * 168) + 384;
+      planetV[y] = pv < 0 || pv >= planetH ? -1 : pv | 0;
+    }
+    if (y < horizon) {
+      rowCenter[y] = 0;
+      rowLvl[y] = 0;
+    } else {
+      const centerDist = (0.5 * focal) / Math.max(1, y - horizon);
+      rowCenter[y] = centerDist;
+      rowLvl[y] = floorLevel(centerDist, focal);
+    }
+  }
+  growCols(w);
+  for (let col = 0; col < w; col++) {
+    const off = Math.atan((col - halfW) / focal);
+    const ang = aim + off;
+    const rx = Math.cos(ang);
+    const ry = Math.sin(ang);
+    colOff[col] = off;
+    colRx[col] = rx;
+    colRy[col] = ry;
+    const hit = raycast(maze, body.x, body.y, ang);
+    z[col] = hit.dist;
+    const line = focal / hit.dist;
+    colLine[col] = line;
+    colTop[col] = Math.max(0, Math.min(h, Math.floor(horizon - line / 2)));
+    colBot[col] = Math.max(-1, Math.min(h - 1, Math.floor(horizon + line / 2)));
+    colWallX[col] = hit.wallX;
+    const absOff = off < 0 ? -off : off;
+    colCone[col] = Math.max(0.22, 1 - (absOff / fovCone) * (absOff / fovCone));
+    colFall[col] = 1 / (1 + hit.dist * hit.dist * 0.05);
+    colSide[col] = hit.side === 1 ? 0.85 : 1;
+    colFog[col] = clamp((hit.dist - 1.2) / 12, 0, 0.58);
+    const carved = hash01(hit.wx * 3 + 1, hit.wy * 5 + hit.side) > 0.78;
+    colId[col] = hit.seal >= 0 ? 4 : carved ? 5 : Math.abs(hit.mapX * 13 + hit.mapY * 7 + hit.side * 5) % 4;
+  }
+  const skyEnd = Math.min(h, Math.max(0, Math.ceil(horizon)));
+  for (let y = 0; y < skyEnd; y++) {
+    const pv = planetV[y];
+    const sy = skyY[y] * skyW;
+    let i = y * w * 4;
+    for (let x = 0; x < w; x++) {
+      if (y >= colTop[x]) {
+        i += 4;
+        continue;
+      }
+      const si = (sy + skyX[x]) << 2;
+      let r = skyData[si];
+      let g = skyData[si + 1];
+      let b = skyData[si + 2];
+      const pu = planetU[x];
+      if (pu >= 0 && pv >= 0) {
+        const pi = (pv * planetW + pu) << 2;
+        const alpha = planetData[pi + 3];
+        if (alpha > 0) {
+          const k = alpha * (1 / 255);
+          const inv = 1 - k;
+          r = r * inv + planetData[pi] * k;
+          g = g * inv + planetData[pi + 1] * k;
+          b = b * inv + planetData[pi + 2] * k;
+        }
+      }
+      data[i] = r;
+      data[i + 1] = g;
+      data[i + 2] = b;
+      data[i + 3] = 255;
+      i += 4;
+    }
+  }
+  for (let y = skyEnd; y < h; y++) {
+    const centerDist = rowCenter[y];
+    const fsize = fBase >> rowLvl[y];
+    const fimg = fLevels[rowLvl[y]];
+    let i = y * w * 4;
+    for (let x = 0; x < w; x++) {
+      if (y <= colBot[x]) {
+        i += 4;
+        continue;
+      }
+      const rx = colRx[x];
+      const ry = colRy[x];
+      const dist = centerDist / (rx * cosAim + ry * sinAim);
+      const absOff = colOff[x] < 0 ? -colOff[x] : colOff[x];
+      const cone = Math.max(0.2, 1 - (absOff / fovCone) * (absOff / fovCone));
+      const fall = 1 / (1 + dist * dist * 0.05);
+      const lamp = fall * cone * flick;
+      const wx = body.x + rx * dist;
+      const wy = body.y + ry * dist;
+      const tx = Math.floor(wx * 0.5 * fsize) & (fsize - 1);
+      const ty = Math.floor(wy * 0.5 * fsize) & (fsize - 1);
+      const ti = (ty * fsize + tx) << 2;
+      data[i] = fimg[ti] * (0.16 + 1.05 * lamp);
+      data[i + 1] = fimg[ti + 1] * (0.16 + 1.05 * lamp * 0.86);
+      data[i + 2] = fimg[ti + 2] * (0.16 + 1.05 * lamp * 0.68);
+      data[i + 3] = 255;
+      i += 4;
+    }
+  }
+  for (let col = 0; col < w; col++) {
+    const line = colLine[col];
+    const top = colTop[col];
+    const bot = colBot[col];
+    const wall = hd.tex[colId[col]];
+    const lvl = wallLevel(line);
+    const max = wall.levels.length - 1;
+    const level = lvl > max ? max : lvl;
+    const size = wall.size >> level;
+    const img = wall.levels[level];
+    const wallX = colWallX[col];
+    const fog = colFog[col];
+    const fogR = 70 * fog;
+    const fogG = 50 * fog;
+    const fogB = 34 * fog;
+    const invFog = 1 - fog;
+    const fall = colFall[col];
+    const cone = colCone[col];
+    const side = colSide[col];
+    const wallTop = horizon - line / 2;
+    for (let y = top; y <= bot; y++) {
+      const v = line <= 1 ? 0 : (y - wallTop) / line;
+      const tx = Math.floor(wallX * size) & (size - 1);
+      const ty = Math.floor(v * size) & (size - 1);
+      const ti = (ty * size + tx) << 2;
+      const vy = (y - horizon) / hSoft;
+      const vAbs = vy < 0 ? -vy : vy;
+      const vsoft = Math.max(0.2, 1 - vAbs * 1.25);
+      const lamp = fall * cone * vsoft * flick;
+      let r = img[ti] * (0.16 + 1.05 * lamp) * side;
+      let g = img[ti + 1] * (0.16 + 1.05 * lamp * 0.86) * side;
+      let b = img[ti + 2] * (0.16 + 1.05 * lamp * 0.68) * side;
+      r = r * invFog + fogR;
+      g = g * invFog + fogG;
+      b = b * invFog + fogB;
+      const i = (y * w + col) * 4;
+      data[i] = r;
+      data[i + 1] = g;
+      data[i + 2] = b;
+      data[i + 3] = 255;
+    }
+  }
+}
+
+function wallLevel(line) {
+  const lvl = Math.floor(Math.log2(512 / Math.max(line, 1)));
+  if (lvl < 0) return 0;
+  if (lvl > 3) return 3;
+  return lvl;
+}
+
+function floorLevel(dist, focal) {
+  const lvl = Math.floor(Math.log2(Math.max(1, (256 * dist) / focal)));
+  if (lvl < 0) return 0;
+  if (lvl > 3) return 3;
+  return lvl;
+}
+
+function wrap180(deg) {
+  return ((((deg + 180) % 360) + 360) % 360) - 180;
+}
+
+function growInt(buf, n, signed) {
+  if (buf.length >= n) return buf;
+  return signed ? new Int16Array(n) : new Int32Array(n);
 }
 
 function starAt(x, y) {
@@ -233,105 +576,117 @@ export function drawExplorer(canvas, view) {
   const aim = body.a + sway;
   const horizon = h * 0.5 + bob;
   const flick = calm ? 1 : 1 + 0.015 * Math.sin(time * 9.4) + 0.01 * Math.sin(time * 3.3 + 0.8) + 0.006 * Math.sin(time * 17.2);
-  const pcx = w * 0.7;
-  const pcy = h * 0.2;
-  const pr = Math.min(w, h) * 0.18;
+  const pack = packOn();
   const focal = (w * 0.5) / Math.tan(FOV * 0.5);
-  const rayX = new Float32Array(w);
-  const rayY = new Float32Array(w);
-  for (let x = 0; x < w; x++) {
-    const ang = aim + Math.atan((x - w * 0.5) / focal);
-    rayX[x] = Math.cos(ang);
-    rayY[x] = Math.sin(ang);
-  }
-  for (let y = 0; y < h; y++) {
-    const above = y < horizon;
+  if (pack) {
+    paintPacked(data, z, w, h, maze, body, aim, horizon, flick, focal);
+  } else {
+    const pcx = w * 0.7;
+    const pcy = h * 0.2;
+    const pr = Math.min(w, h) * 0.18;
+    const rayX = ctx._rayX && ctx._rayX.length === w ? ctx._rayX : (ctx._rayX = new Float32Array(w));
+    const rayY = ctx._rayY && ctx._rayY.length === w ? ctx._rayY : (ctx._rayY = new Float32Array(w));
+    const cam = ctx._cam && ctx._cam.length === w ? ctx._cam : (ctx._cam = new Float32Array(w));
+    const floorTex = buildProc()[6];
+    const cosAim = Math.cos(aim);
+    const sinAim = Math.sin(aim);
     for (let x = 0; x < w; x++) {
-      let r;
-      let g;
-      let b;
-      if (above) {
-        const t = horizon <= 1 ? 0 : y / horizon;
-        const grain = (hash01(x >> 1, y >> 1) - 0.5) * 16;
-        const mottling = (hash01(x >> 4, y >> 4) - 0.5) * 12;
-        r = 22 + t * 16 + grain + mottling;
-        g = 16 + t * 12 + grain * 0.55;
-        b = 12 + t * 8 + grain * 0.25;
-        const dx = x - pcx;
-        const dy = y - pcy;
-        const dist = Math.hypot(dx, dy);
-        if (dist < pr) {
-          const shade = 1 - dist / pr;
-          const band = 0.65 + 0.35 * Math.sin(dy * 0.09 + 1.2);
-          r = 48 + shade * 78 * band;
-          g = 32 + shade * 40 * band;
-          b = 22 + shade * 18;
-        } else if (starAt(x >> 1, y >> 1)) {
-          r = g = b = 210;
-        }
-      } else {
-        const row = Math.max(1, y - horizon);
-        const camera = Math.atan((x - w * 0.5) / focal);
-        const dist = ((0.5 * focal) / row) / Math.cos(camera);
-        const cone = Math.max(0.2, 1 - (Math.abs(camera) / (FOV * 0.48)) ** 2);
-        const fall = 1 / (1 + dist * dist * 0.05);
-        const lamp = fall * cone * flick;
-        const wx = body.x + rayX[x] * dist;
-        const wy = body.y + rayY[x] * dist;
-        const slab = texAt(6, wx * 0.55, wy * 0.55);
-        const grain = (hash01(Math.floor(wx * 24), Math.floor(wy * 24)) - 0.5) * 8;
-        const near = clamp(1 - dist / 9, 0, 1);
-        const glow = lamp * lamp;
-        r = slab[0] * (0.35 + near * 0.25) + glow * 150 + grain;
-        g = slab[1] * (0.35 + near * 0.2) + glow * 62 + grain * 0.45;
-        b = slab[2] * (0.35 + near * 0.15) + glow * 18;
-        const fx = Math.abs(wx - Math.floor(wx));
-        const fy = Math.abs(wy - Math.floor(wy));
-        if (fx < 0.04 || fy < 0.04) {
-          r *= 0.78;
-          g *= 0.78;
-          b *= 0.78;
-        }
-      }
-      const i = (y * w + x) * 4;
-      data[i] = byte(r);
-      data[i + 1] = byte(g);
-      data[i + 2] = byte(b);
-      data[i + 3] = 255;
+      const off = Math.atan((x - w * 0.5) / focal);
+      cam[x] = off;
+      const ang = aim + off;
+      rayX[x] = Math.cos(ang);
+      rayY[x] = Math.sin(ang);
     }
-  }
-
-  for (let col = 0; col < w; col++) {
-    const ang = aim + Math.atan((col - w * 0.5) / focal);
-    const hit = raycast(maze, body.x, body.y, ang);
-    z[col] = hit.dist;
-    const line = focal / hit.dist;
-    const top = Math.max(0, Math.floor(horizon - line / 2));
-    const bot = Math.min(h - 1, Math.floor(horizon + line / 2));
-    const camera = ang - aim;
-    const cone = Math.max(0.22, 1 - (Math.abs(camera) / (FOV * 0.48)) ** 2);
-    const fall = 1 / (1 + hit.dist * hit.dist * 0.05);
-    const side = hit.side === 1 ? 0.85 : 1;
-    const fog = clamp((hit.dist - 1.2) / 12, 0, 0.58);
-    const carved = hash01(hit.wx * 3 + 1, hit.wy * 5 + hit.side) > 0.78;
-    const id = hit.seal >= 0 ? 4 : carved ? 5 : Math.abs(hit.mapX * 13 + hit.mapY * 7 + hit.side * 5) % 4;
-    for (let y = top; y <= bot; y++) {
-      const v = line <= 1 ? 0 : (y - (horizon - line / 2)) / line;
-      const rgb = texAt(id, hit.wallX, v);
-      const vy = (y - horizon) / (h * 0.55);
-      const vsoft = Math.max(0.2, 1 - Math.abs(vy) * 1.25);
-      let light = (0.25 + 0.75 * fall * cone * vsoft * flick) * side;
-      if (light < 0.25) light = 0.25;
-      let r = rgb[0] * light;
-      let g = rgb[1] * light;
-      let b = rgb[2] * light;
-      r = r * (1 - fog) + 92 * fog;
-      g = g * (1 - fog) + 62 * fog;
-      b = b * (1 - fog) + 38 * fog;
-      const i = (y * w + col) * 4;
-      data[i] = r;
-      data[i + 1] = g;
-      data[i + 2] = b;
+    for (let y = 0; y < h; y++) {
+      const above = y < horizon;
+      const row = above ? 0 : Math.max(1, y - horizon);
+      const centerDist = above ? 0 : (0.5 * focal) / row;
+      for (let x = 0; x < w; x++) {
+        let r;
+        let g;
+        let b;
+        if (above) {
+          const t = horizon <= 1 ? 0 : y / horizon;
+          const grain = (hash01(x >> 1, y >> 1) - 0.5) * 16;
+          const mottling = (hash01(x >> 4, y >> 4) - 0.5) * 12;
+          r = 22 + t * 16 + grain + mottling;
+          g = 16 + t * 12 + grain * 0.55;
+          b = 12 + t * 8 + grain * 0.25;
+          const dx = x - pcx;
+          const dy = y - pcy;
+          const dist = Math.hypot(dx, dy);
+          if (dist < pr) {
+            const shade = 1 - dist / pr;
+            const band = 0.65 + 0.35 * Math.sin(dy * 0.09 + 1.2);
+            r = 48 + shade * 78 * band;
+            g = 32 + shade * 40 * band;
+            b = 22 + shade * 18;
+          } else if (starAt(x >> 1, y >> 1)) {
+            r = g = b = 210;
+          }
+        } else {
+          const camera = cam[x];
+          const dist = centerDist / (rayX[x] * cosAim + rayY[x] * sinAim);
+          const cone = Math.max(0.2, 1 - (Math.abs(camera) / (FOV * 0.48)) ** 2);
+          const fall = 1 / (1 + dist * dist * 0.05);
+          const lamp = fall * cone * flick;
+          const wx = body.x + rayX[x] * dist;
+          const wy = body.y + rayY[x] * dist;
+          sample(floorTex, wx * 0.55, wy * 0.55, 0);
+          const grain = (hash01(Math.floor(wx * 24), Math.floor(wy * 24)) - 0.5) * 8;
+          const near = clamp(1 - dist / 9, 0, 1);
+          const glow = lamp * lamp;
+          r = texR * (0.35 + near * 0.25) + glow * 150 + grain;
+          g = texG * (0.35 + near * 0.2) + glow * 62 + grain * 0.45;
+          b = texB * (0.35 + near * 0.15) + glow * 18;
+          const fx = Math.abs(wx - Math.floor(wx));
+          const fy = Math.abs(wy - Math.floor(wy));
+          if (fx < 0.04 || fy < 0.04) {
+            r *= 0.78;
+            g *= 0.78;
+            b *= 0.78;
+          }
+        }
+        const i = (y * w + x) * 4;
+        data[i] = r;
+        data[i + 1] = g;
+        data[i + 2] = b;
+        data[i + 3] = 255;
+      }
+    }
+    for (let col = 0; col < w; col++) {
+      const ang = aim + cam[col];
+      const hit = raycast(maze, body.x, body.y, ang);
+      z[col] = hit.dist;
+      const line = focal / hit.dist;
+      const top = Math.max(0, Math.floor(horizon - line / 2));
+      const bot = Math.min(h - 1, Math.floor(horizon + line / 2));
+      const camera = ang - aim;
+      const cone = Math.max(0.22, 1 - (Math.abs(camera) / (FOV * 0.48)) ** 2);
+      const fall = 1 / (1 + hit.dist * hit.dist * 0.05);
+      const side = hit.side === 1 ? 0.85 : 1;
+      const fog = clamp((hit.dist - 1.2) / 12, 0, 0.58);
+      const carved = hash01(hit.wx * 3 + 1, hit.wy * 5 + hit.side) > 0.78;
+      const id = hit.seal >= 0 ? 4 : carved ? 5 : Math.abs(hit.mapX * 13 + hit.mapY * 7 + hit.side * 5) % 4;
+      const wall = proc[id];
+      for (let y = top; y <= bot; y++) {
+        const v = line <= 1 ? 0 : (y - (horizon - line / 2)) / line;
+        sample(wall, hit.wallX, v, 0);
+        const vy = (y - horizon) / (h * 0.55);
+        const vsoft = Math.max(0.2, 1 - Math.abs(vy) * 1.25);
+        let light = (0.25 + 0.75 * fall * cone * vsoft * flick) * side;
+        if (light < 0.25) light = 0.25;
+        let r = texR * light;
+        let g = texG * light;
+        let b = texB * light;
+        r = r * (1 - fog) + 92 * fog;
+        g = g * (1 - fog) + 62 * fog;
+        b = b * (1 - fog) + 38 * fog;
+        const i = (y * w + col) * 4;
+        data[i] = r;
+        data[i + 1] = g;
+        data[i + 2] = b;
+      }
     }
   }
 
