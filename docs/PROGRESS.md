@@ -4,6 +4,14 @@ Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zosta
 
 ## Zrobione
 
+### Tekstury HD: wspólne krawędzie i lżejsze pliki
+
+Ściany źle się stykały: każda z sześciu tekstur miała inne wysokości rzędów kamieni, a na brzegu bloki były ucięte w połowie, więc dwa różne kafle obok siebie nie mogły się zgrać. Generator stawia teraz wszystkie ściany, fryz z glifami i ramę pieczęci na tych samych rzędach (0, 118, 254, 358, 512 px), z pionową spoiną dokładnie na brzegu kafla. Średnia różnica na styku dwóch różnych ścian spadła z 27–57 do 6–18 (na 255), a rzędy przechodzą przez styki i narożniki. U ściany rośnie zawsze w prawo, więc glify nie są w lustrze, gdy patrzy się z drugiej strony.
+
+Pliki są w WebP: 3,08 MB PNG → 0,32 MB. Adres ma wersję (`?v=2`), a serwer daje `/tex/` cache na rok; reszta zostaje `no-store`. Rozpakowanie idzie po jednym pliku na zadanie. Pętla HD trzyma ściany kolumnami i pisze piksel jednym zapisem 32-bitowym: 960×540 z ~19 do ~10 ms na klatkę, 390×220 z 3,8 do 2,0 ms. Obraz poza ścianami jest ten sam co przedtem (średnia różnica pikseli 0,002).
+
+Sprawdzone: `npm run check`. Chromium bez okna: `hdActive()` po 0,9 s, pierwsze wejście 323 KB tekstur, drugie 0 B (z cache), `drawExplorer` 960×540 rysuje bez błędu. Klatki przed i po z tych samych pozycji w labiryncie 15×15: rzędy ciągłe na stykach i w narożnikach, rząd drobnych znaków czyta się od lewej do prawej z obu stron ściany. Bez HD nic się nie zmienia.
+
 ### Panel kartografa
 
 Na telefonie tablica jest pod mapą, a nad mapą są okrągłe ikony: wycisz, pomoc, menu. Mapa jest kwadratem na środku wolnego miejsca, z narożnikami i napisem ruiny oraz czasem. Pod spodem oko strażnika w kolorze stanu (pulsuje przy Czuwa i Pościgu), nazwa Palatino, 14 segmentów przebudzenia, pieczęcie jako heksagony, klucz i punkty. Gdy latarnik stoi przy drzwiach, widać belkę z prośbą o dotknięcie klamry. Zawołania są 3×2: Lewo, Stój, Prawo, potem Cicho, Biegnij i okrągła Zasłona z pierścieniem odnowienia. Wysłanie daje napis „Wysłano · …” i krótką wibrację. Na szerokim ekranie ta sama tablica stoi obok mapy. Protokół bez zmian.

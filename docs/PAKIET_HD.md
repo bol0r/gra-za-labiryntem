@@ -1,15 +1,27 @@
 # Pakiet HD — Za labiryntem
 
-Pliki idą do `public/tex/hd/`. Wszystkie są PNG, potęga dwójki, ściany i podłoga kafelkują się bez szwów.
+Pliki idą do `public/tex/hd/`. Wszystkie są WebP (razem ~320 KB, wcześniej ~3 MB PNG), potęga dwójki, ściany i podłoga kafelkują się bez szwów. Robi je `docs/pakiet_hd_generator.py` (`python3 docs/pakiet_hd_generator.py public/tex/hd walls rune seal`; `--png` zapisuje PNG).
+
+## Wspólna krawędź ścian
+
+Każda ściana (`wall_a`…`wall_d`, `rune`, `seal`) ma te same rzędy kamieni: spoiny poziome na 0, 118, 254, 358 i 512 px (`COURSES` w generatorze). Brzeg kafla to zawsze pionowa spoina, a falowanie spoin znika 44 px przed brzegiem. Dowolne dwie ściany obok siebie, także w narożniku i oglądane z drugiej strony, stykają się więc spoiną, a rzędy przechodzą dalej. Fryz w `rune` to drugi rząd (118–254) z trzema równymi płytami, drobne znaki są w trzecim. Rama `seal` ma spoiny na tych samych wysokościach i w kolorze zaprawy ścian. Nowa ściana musi mieć `COURSES`, inaczej generator przerwie.
+
+W `render.js` u ściany rośnie zawsze od lewej do prawej, z której strony by nie patrzeć, więc glify nie są w lustrze.
+
+## Format, cache i wydajność
+
+- Adres ma wersję: `/tex/hd/<nazwa>.webp?v=HD_VER` (`render.js`). Serwer daje `/tex/` `Cache-Control: immutable` na rok, reszta zostaje `no-store`. **Po każdej zmianie plików w `tex/hd` podbij `HD_VER`**, inaczej przeglądarka zostanie przy starych.
+- Pobieranie idzie równolegle, a rozpakowanie do pikseli po jednym pliku na zadanie, więc menu nie staje na jednej długiej klatce.
+- Ściany są w pamięci kolumnami (transpozycja przy wczytaniu), bo słupek ściany idzie po v. Klatka pisze piksel jednym zapisem 32-bitowym. Pętla HD jest mniej więcej dwa razy szybsza (960×540: ~19 → ~10 ms; 390×220: 3,8 → 2,0 ms, Node na tym samym labiryncie).
 
 | Plik | Rozmiar | Zastępuje w `render.js` | Uwagi |
 |---|---|---|---|
-| `wall_a.png` … `wall_d.png` | 512×512 | `textures[0..3]` (stoneTex 1–4) | u = `hit.wallX`, v = 0 góra ściany → 1 styk z podłogą. Kafelkują się w poziomie. |
-| `seal.png` | 512×512 | `textures[4]` (sealTex) | Zapieczętowane przejście: płyta w ramie, miedziany pierścień, bursztynowe szewrony. |
-| `rune.png` | 512×512 | `textures[5]` (runeTex) | Fryz z trzema rytymi glifami z bursztynową inkrustacją i rząd drobnych znaków. |
-| `floor.png` | 512×512 | `textures[6]` (floorTex) | **Jeden kafel = 2×2 komórki labiryntu.** Kafelkuje się w obu osiach. |
-| `sky.png` | 4096×1024 | niebo, gwiazdy i krąg planety rysowane w pętli `above` | Panorama: x = azymut 0–360°, y = wysokość kątowa 90° (góra) → 0° (dół, horyzont). Kafelkuje się w poziomie. Jest na niej mały księżyc. |
-| `planet.png` | 768×768 RGBA | miedziany krąg (`pcx = w * 0.7`) | Gazowy olbrzym z pierścieniem. Środek obrazka = środek tarczy, promień tarczy = 168 px. |
+| `wall_a.webp` … `wall_d.webp` | 512×512 | `textures[0..3]` (stoneTex 1–4) | u = `hit.wallX` (odwrócone tak, żeby rosło w prawo), v = 0 góra ściany → 1 styk z podłogą. Kafelkują się w poziomie i między sobą (wspólne rzędy). |
+| `seal.webp` | 512×512 | `textures[4]` (sealTex) | Zapieczętowane przejście: płyta w ramie, miedziany pierścień, bursztynowe szewrony. |
+| `rune.webp` | 512×512 | `textures[5]` (runeTex) | Fryz z trzema rytymi glifami z bursztynową inkrustacją i rząd drobnych znaków. |
+| `floor.webp` | 512×512 | `textures[6]` (floorTex) | **Jeden kafel = 2×2 komórki labiryntu.** Kafelkuje się w obu osiach. |
+| `sky.webp` | 4096×1024 | niebo, gwiazdy i krąg planety rysowane w pętli `above` | Panorama: x = azymut 0–360°, y = wysokość kątowa 90° (góra) → 0° (dół, horyzont). Kafelkuje się w poziomie. Jest na niej mały księżyc. |
+| `planet.webp` | 768×768 RGBA | miedziany krąg (`pcx = w * 0.7`) | Gazowy olbrzym z pierścieniem. Środek obrazka = środek tarczy, promień tarczy = 168 px. |
 
 ## Jak podpiąć
 
@@ -30,7 +42,7 @@ Pliki idą do `public/tex/hd/`. Wszystkie są PNG, potęga dwójki, ściany i po
    Wtedy niebo i księżyc są przypięte do świata i przesuwają się przy obrocie.
 7. **Planeta.** Rysowana w tej samej pętli nieba, przed ścianami, żeby ściany ją zasłaniały. Azymut 40°, wysokość 13°, promień kątowy 6,5°:
    - `pu = (azDelta / 6.5) * 168 + 384`, `pv = -((el - 13) / 6.5) * 168 + 384`, gdzie `azDelta` to różnica azymutów zawinięta do −180…180,
-   - mieszanie przez alfę z `planet.png`.
+   - mieszanie przez alfę z `planet.webp`.
    To zamyka punkt 5 z planu: „planeta w świecie”.
 8. **Przełącznik.** W menu i w ustawieniach dodaj „Pakiet HD: wł./wył.”, zapisany w `localStorage` (`zl-hd`). Domyślnie włączony. Automatyczne obniżanie rozdzielczości płótna działa dalej w obu trybach. Na telefonie sprawdź FPS przy 390 px.
 
@@ -41,7 +53,7 @@ Planeta stoi w stałym azymucie świata, więc działa jak kompas. Kartograf mo�
 ## Prompt dla Cursora
 
 ```
-Pakiet HD: w public/tex/hd/ leżą tekstury PNG i opis docs/PAKIET_HD.md. Podepnij je dokładnie według sekcji „Jak podpiąć”: ładowanie z zapasem proceduralnym, mipmapy, próbkowanie bez alokacji, podłoga 2×2 komórki bez siatki, światło mnożone w HD, niebo z panoramy po azymucie i wysokości, planet.png w świecie (azymut 40°, wysokość 13°, promień 6,5°), przełącznik „Pakiet HD” w menu zapisany w localStorage. Tryb bez HD ma wyglądać jak dziś. Nie zmieniaj protokołu ani zasad. Sprawdź FPS na 390 px i na komputerze, konsola czysta, commit osobno, wpis w docs/PROGRESS.md.
+Pakiet HD: w public/tex/hd/ leżą tekstury PNG i opis docs/PAKIET_HD.md. Podepnij je dokładnie według sekcji „Jak podpiąć”: ładowanie z zapasem proceduralnym, mipmapy, próbkowanie bez alokacji, podłoga 2×2 komórki bez siatki, światło mnożone w HD, niebo z panoramy po azymucie i wysokości, planet.webp w świecie (azymut 40°, wysokość 13°, promień 6,5°), przełącznik „Pakiet HD” w menu zapisany w localStorage. Tryb bez HD ma wyglądać jak dziś. Nie zmieniaj protokołu ani zasad. Sprawdź FPS na 390 px i na komputerze, konsola czysta, commit osobno, wpis w docs/PROGRESS.md.
 ```
 
 ## Panel kartografa (osobny etap)
@@ -58,7 +70,7 @@ Wzór: `docs/makieta-menu/index.html` (otwórz w przeglądarce; zakładki Menu, 
 
 ```
 Etap D — menu i HUD latarnika według docs/makieta-menu/index.html. Protokół i zasady bez zmian, UI po polsku, pad i klawiatura jak dziś.
-1. Menu główne: tło z public/tex/hd/sky.png przesuwane powoli w poziomie, planet.png, sylweta ruiny na dole, drobny kurz. Tytuł „Za labiryntem” wypełnia się bursztynem raz po wejściu. Pozycje: Graj, Opcje, Fabuła, Tablica, Twórcy; fokus to bursztynowy romb i podpis pozycji. Płyta „Najgłębiej” z pierwszym miejscem z /tablica. Na dole podpowiedzi pada (A Wybierz, B Wróć) i adres drugiego ekranu. Gdy tekstury HD są wyłączone, tło jak dziś.
+1. Menu główne: tło z public/tex/hd/sky.webp przesuwane powoli w poziomie, planet.webp, sylweta ruiny na dole, drobny kurz. Tytuł „Za labiryntem” wypełnia się bursztynem raz po wejściu. Pozycje: Graj, Opcje, Fabuła, Tablica, Twórcy; fokus to bursztynowy romb i podpis pozycji. Płyta „Najgłębiej” z pierwszym miejscem z /tablica. Na dole podpowiedzi pada (A Wybierz, B Wróć) i adres drugiego ekranu. Gdy tekstury HD są wyłączone, tło jak dziś.
 2. Opcje (z etapu A) w stylu makiety: kamienna płyta, przełączniki z bursztynową gałką, suwak głośności.
 3. Graj: dwie karty ról z ilustracją i pole kodu z czterema komórkami.
 4. HUD latarnika: lewy górny róg ruina, czas, łup (klucz, odłamki, punkty). Zawołanie kartografa duże, na środku u góry, ze słowem i ikoną, ~1,8 s, zamiast toastu. Nasłuch pokazuje półokrąg z klinem w stronę strażnika i tekst „Blisko · Z lewej”. Nasłuch i Stuk jako okrągłe przyciski z pierścieniem odnowienia (4 s, 4,5 s), Bieg największy, z etykietami klawiszy. Zebranie łupu: „+10 · Odłamek” unoszące się nad środkiem. Strażnik bliżej niż 3,4: zielone pulsowanie krawędzi ekranu. Na telefonie te same elementy w rogach, Bieg pod prawym kciukiem, bez legendy klawiszy.
