@@ -35,4 +35,4 @@ Sprawdzenie labiryntu bez przeglądarki: `npm run check`. Dwa klienty WebSocket:
 3. UI po polsku. Napisy, które widzi gracz, są po polsku. Nie zostawiaj angielskich etykiet w lobby, na mapie ani u latarnika.
 4. Nie zmieniaj kodu gry przy samej aktualizacji `AGENTS.md` i `docs/`, chyba że o to wyraźnie poproszono.
 
-Stan koncepcji, dziur i decyzji jest w `docs/BRIEF.md`, `docs/DZIENNIK.md` i `docs/DECYZJE.md`.
+Stan koncepcji, dziur i decyzji jest w `docs/BRIEF.md`, `docs/DZIENNIK.md` i `docs/DECYZJE.md`. Co wchodzi dalej, jest w `docs/DALEJ.md`.
