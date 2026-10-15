@@ -1100,7 +1100,7 @@ function syncPadUi() {
   if (showHelp) {
     padHelp.textContent = state.phase === "result"
       ? "Lewa gałka: krok. Prawa: wzrok. RT lub A: bieg. X: wyciszenie. Y: pełny ekran. Menu: następna komora."
-      : "Lewa gałka: krok. Prawa: wzrok. RT lub A: bieg. X: wyciszenie. Y: pełny ekran.";
+      : "Lewa gałka: krok. Prawa: wzrok. RT lub A: bieg. LB: nasłuch. RB: stuk. X: wyciszenie. Y: pełny ekran.";
   }
   settleHint();
 }
@@ -1139,6 +1139,8 @@ function readPad(dt) {
     if (buttonEdge(pad, 0)) finishIntro();
     buttonEdge(pad, 2);
     buttonEdge(pad, 3);
+    buttonEdge(pad, 4);
+    buttonEdge(pad, 5);
     buttonEdge(pad, 9);
     return;
   }
@@ -1170,6 +1172,8 @@ function readPad(dt) {
   }
   if (buttonEdge(pad, 2)) toggleMute();
   if (buttonEdge(pad, 3)) toggleFull();
+  const listenEdge = buttonEdge(pad, 4);
+  const knockEdge = buttonEdge(pad, 5);
   if (buttonEdge(pad, 9) && state.phase === "result" && !inOptions) nextBtn.click();
   if (inOptions || !(state.role === "runner" && state.phase === "play")) {
     turnRate = 0;
@@ -1188,6 +1192,14 @@ function readPad(dt) {
   const sprint = buttonOn(pad, 7) || buttonOn(pad, 0);
   if (sprint) state.input.sprint = true;
   sprintBtn.classList.toggle("on", state.sprintLatch || sprint || keys.has("shift"));
+  if (listenEdge && actCd.listen <= 0) {
+    doListen();
+    flashAct(listenBtn);
+  }
+  if (knockEdge && actCd.knock <= 0) {
+    doKnock();
+    flashAct(knockBtn);
+  }
 }
 
 function feelGuardian(dt, dist) {
@@ -1993,6 +2005,13 @@ function showEar(rel, near, side) {
   showEar.timer = setTimeout(() => ear.classList.remove("live"), 2600);
 }
 
+function flashAct(btn) {
+  btn.classList.add("is-down");
+  clearTimeout(flashAct.timer && flashAct.timer.get(btn));
+  if (!flashAct.timer) flashAct.timer = new Map();
+  flashAct.timer.set(btn, setTimeout(() => btn.classList.remove("is-down"), 140));
+}
+
 function doListen() {
   if (actCd.listen > 0 || state.role !== "runner" || state.phase !== "play") return;
   audio.unlock();
@@ -2054,7 +2073,7 @@ function toggleHelp() {
   const body = runner
     ? `<p class="kicker">Latarnik</p><h2>W korytarzu</h2>
       <p>WASD: krok. Strzałki: wzrok. Shift: bieg. Na telefonie lewa strona to krok, prawa wzrok.</p>
-      <p>N: nasłuch, skąd strażnik. K: stuk, znak dla mapy.</p>
+      <p>N: nasłuch, skąd strażnik. K: stuk, znak dla mapy. Na padzie to samo robią LB i RB.</p>
       <p>Klucz i odłamki leżą w komorach. Podniesienie daje punkty. Nie są konieczne, żeby dojść do serca.</p>
       <p>Stań przy bursztynowych drzwiach. Wtedy osoba przy mapie może je otworzyć.</p>
       <p>Stanie w miejscu jest ciche. Bieg słychać przez ściany. Ucieczka z pościgu też daje punkty.</p>`

@@ -4,6 +4,14 @@ Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zosta
 
 ## Zrobione
 
+### Pad w korytarzu
+
+Nasłuch i Stuk na padzie idą z LB i RB. To krawędź, nie przytrzymanie, i tylko u latarnika w korytarzu. Odnowienie zostaje: 4 s i 4,5 s. W opcjach LB nie puszcza nasłuchu. Klawisze N i K, bieg (A albo RT), wyciszenie (X) i pełny ekran (Y) bez zmian. Ściąga pada wymienia LB i RB. Układ menu i HUD-u bez zmian.
+
+Sprawdzone sztucznym padem, pokój XJYZ, serwer na 8787. N dało „Daleko · Z lewej”, LB po odnowieniu też, drugie LB w trakcie odnowienia nie zresetowało pierścienia. RB zapaliło Stuk, K w trakcie odnowienia nie zresetowało pierścienia. A włączyło bieg i puściło go po zwolnieniu. Przy otwartych opcjach LB nie ruszyło nasłuchu. Konsola pusta.
+
+Dron gra: sinus 46 Hz przy wzmocnieniu 0,012. Przy głośności 80 master stoi na 0,62, a szczyt tej fali to około 0,008. W tej przeglądarce dźwięk był zapisany jako wyłączony, więc master startował od zera. Opcje w trakcie rundy oddają go z powrotem: wyłączenie gasi master do zera, włączenie wraca do 0,62 i sinus 46 Hz znowu jest w sygnale. Głośność zostaje 80. Dawnego buczenia z trzech oscylatorów ten etap nie przywraca.
+
 ### Intro w teksturach i zdjęcie w zaułku
 
 Intro ma teksturowany kosmos i salę: tło z mgławicą, planeta z powierzchnią, na której w środku nurkowania (5,9 s) wychodzi na środek tarczy labirynt wyryty w skale i rozpala się bursztynem. Sala ma ściany z pilastrami, fryzem i uchwytami pochodni, posadzkę z miedzianą inkrustacją w stronę serca, kasetonowy strop i bramę serca na końcu. Pochodnie świecą na kamień. Planeta i sala liczą się piksel po pikselu w buforze, który sam schodzi z rozdzielczością, gdy klatka trwa ponad 8 ms. Bez tekstur albo z wyłączonym HD zostaje dawne płaskie intro. Pliki w `public/tex/intro/` (~275 KB), generator `docs/intro_generator.py`, plan i mapowanie w `docs/INTRO_TEKSTURY.md`.
