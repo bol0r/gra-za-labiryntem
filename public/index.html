@@ -24,6 +24,13 @@
       <aside id="panel"></aside>
     </div>
     <div class="frame" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <div id="menu-bg" hidden>
+      <div class="sky"></div>
+      <div class="planet"></div>
+      <div class="ruin"></div>
+      <div class="haze"></div>
+      <canvas id="menu-dust"></canvas>
+    </div>
     <div id="lobby" class="is-off">
       <div class="plate" id="plate">
         <p class="kicker">Planeta bez nazwy</p>
@@ -46,10 +53,45 @@
       <div id="look-zone"></div>
     </div>
     <div id="stick" hidden><i></i></div>
+    <div id="runner-hud" hidden>
+      <div class="tl">
+        <div><span class="k">Ruina</span><span class="v" id="hud-round">1</span></div>
+        <i class="sep"></i>
+        <div><span class="k">Czas</span><time class="v" id="hud-clock">0:00</time></div>
+        <i class="sep"></i>
+        <div>
+          <span class="k">Łup</span>
+          <span class="gems">
+            <svg id="hud-key" class="not" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><circle cx="8" cy="12" r="3.6"/><path d="M11.6 12H20M17 12v3M20 12v2"/></svg>
+            <svg class="shard not" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l4 7-4 11-4-11z"/></svg>
+            <svg class="shard not" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l4 7-4 11-4-11z"/></svg>
+            <svg class="shard not" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l4 7-4 11-4-11z"/></svg>
+            <b class="v" id="hud-pts">0</b>
+          </span>
+        </div>
+      </div>
+      <div id="call-banner" class="call">
+        <small>Kartograf</small>
+        <div class="word" id="call-word"></div>
+      </div>
+      <p id="loot-float"></p>
+      <div id="ear">
+        <svg viewBox="0 0 200 110" aria-hidden="true">
+          <path d="M10 100 A90 90 0 0 1 190 100" fill="none" stroke="rgba(196,164,138,.35)" stroke-width="2"/>
+          <path d="M40 100 A60 60 0 0 1 160 100" fill="none" stroke="rgba(196,164,138,.2)" stroke-width="1.5" stroke-dasharray="3 5"/>
+          <g id="ear-wedge"><path d="M100 100 L62 18 A90 90 0 0 1 138 18 Z" fill="rgba(163,181,106,.32)" stroke="#a3b56a" stroke-width="1.5"/></g>
+          <circle cx="100" cy="100" r="5" fill="#e7e1d6"/>
+          <text x="6" y="108" fill="#8e877c" font-size="9" font-family="sans-serif">L</text>
+          <text x="188" y="108" fill="#8e877c" font-size="9" font-family="sans-serif">P</text>
+        </svg>
+        <p id="ear-text">Nasłuch</p>
+      </div>
+      <p id="legend"><kbd>WASD</kbd> krok · <kbd>← →</kbd> wzrok · <kbd>P</kbd> pomoc</p>
+    </div>
     <div id="deck" hidden>
-      <button id="sprint" type="button">Bieg</button>
-      <button id="listen" type="button">Nasłuch</button>
-      <button id="knock" type="button">Stuk</button>
+      <button id="listen" type="button" style="--p:1"><i class="cd"></i><kbd>N</kbd><span><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 18c0-3 4-3 4-7a4 4 0 0 0-8 0"/><path d="M15 6a6 6 0 0 1 0 8M18 3.5a9.5 9.5 0 0 1 0 13"/></svg><b>Nasłuch</b></span></button>
+      <button id="knock" type="button" style="--p:1"><i class="cd"></i><kbd>K</kbd><span><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 13V8a2 2 0 0 1 4 0v4M11 11V6a2 2 0 0 1 4 0v6M15 11a2 2 0 0 1 4 0v3a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-3l-2-3"/><path d="M3 5l2 1M2 9h2"/></svg><b>Stuk</b></span></button>
+      <button id="sprint" type="button"><kbd>Shift</kbd><span><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h10M10 7l5 5-5 5M17 7l5 5-5 5"/></svg><b>Bieg</b></span></button>
     </div>
     <p id="hint" hidden></p>
     <div id="toast"></div>
@@ -76,8 +118,8 @@
         </div>
       </div>
     </div>
-    <button id="quit" type="button" hidden>Menu</button>
-    <button id="help-open" type="button">Pomoc</button>
+    <button id="quit" type="button" hidden aria-label="Menu"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg><span class="lbl">Menu</span></button>
+    <button id="help-open" type="button" aria-label="Pomoc"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M9.5 9a2.6 2.6 0 1 1 3.6 2.4c-.8.4-1.1.9-1.1 1.8v.6"/><circle cx="12" cy="17" r=".7" fill="currentColor"/></svg><span class="lbl">Pomoc</span></button>
     <div id="help" class="is-off" hidden>
       <div class="help-card" id="help-card"></div>
     </div>

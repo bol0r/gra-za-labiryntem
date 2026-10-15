@@ -107,7 +107,6 @@ const state = {
 
 const SHELL = new Set(["boot", "intro", "menu", "options", "story", "credits", "scores", "home", "lobby"]);
 
-const narrow = window.matchMedia("(max-width: 800px)").matches;
 const queryCode = (new URLSearchParams(location.search).get("pokoj") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
 let hostLine = "";
 
@@ -144,7 +143,13 @@ function setPhase(phase) {
   const playing = phase === "play" && state.role === "runner";
   touch.hidden = !playing;
   deck.hidden = !playing;
+  const runnerHud = document.getElementById("runner-hud");
+  if (runnerHud) runnerHud.hidden = !playing;
+  if (!playing) screen.classList.remove("is-near");
   quitBtn.hidden = phase !== "play" || state.role === "guide";
+  const shellChrome = phase === "boot" || phase === "intro" || phase === "menu" || phase === "home" || phase === "options" || phase === "story" || phase === "credits" || phase === "scores";
+  fullBtn.hidden = shellChrome || playing;
+  syncMenuBg();
   if (mapChrome) mapChrome.hidden = !(state.role === "guide" && !menu);
   if (!playing) {
     stick.hidden = true;
@@ -185,21 +190,84 @@ function setErr(text) {
   }
 }
 
+const MENU_ITEMS = [
+  ["play", "Graj", "Dwie osoby, jedna ruina"],
+  ["options", "Opcje", "Obraz i dźwięk"],
+  ["story", "Fabuła", "Kto zbudował ruinę"],
+  ["scores", "Tablica", "12 najlepszych zejść"],
+  ["credits", "Twórcy", "Dead Net Lab"],
+];
+
+function esc(text) {
+  return String(text ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+function hostFoot() {
+  const host = hostLine ? `Drugi ekran: <b>${esc(hostLine)}</b>` : "Zostańcie na tym komputerze.";
+  return `
+    <div class="menu-foot">
+      <div class="pad-hints"><span><i class="pad-a">A</i>Wybierz</span><span><i class="pad-b">B</i>Wróć</span></div>
+      <p class="host">${host}</p>
+    </div>`;
+}
+
+function recordHtml() {
+  const row = state.scores && state.scores[0];
+  const body = !state.scores
+    ? `<h3>Ładuję</h3>`
+    : !row
+      ? `<h3>Pusto</h3>`
+      : `<h3>${esc(row.name)}</h3>
+        <dl>
+          <div><dt>Komora</dt><dd>${esc(row.chambers)}</dd></div>
+          <div><dt>Czas</dt><dd>${esc(clock(row.time))}</dd></div>
+          <div><dt>Punkty</dt><dd>${esc(row.points || 0)}</dd></div>
+        </dl>`;
+  return `<aside class="record" id="best-record"><p class="kicker">Najgłębiej</p>${body}</aside>`;
+}
+
+function paintRecord() {
+  const box = plate.querySelector("#best-record");
+  if (!box) return;
+  const wrap = document.createElement("div");
+  wrap.innerHTML = recordHtml();
+  box.replaceWith(wrap.firstElementChild);
+}
+
+function syncMenuBg() {
+  screen.classList.toggle("is-hd", hdActive());
+  const bg = document.getElementById("menu-bg");
+  if (!bg) return;
+  const show = hdActive() && SHELL.has(state.phase) && state.phase !== "intro" && state.phase !== "boot";
+  bg.hidden = !show;
+}
+
 function paintMenu() {
+  if (plate.dataset.paint === "menu" && plate.querySelector(".menu-title")) {
+    paintRecord();
+    const host = plate.querySelector(".menu-foot .host");
+    if (host) host.innerHTML = hostLine ? `Drugi ekran: <b>${esc(hostLine)}</b>` : "Zostańcie na tym komputerze.";
+    paintPadFocus();
+    if (!state.scores) loadScores();
+    return;
+  }
+  focusI = 0;
+  const items = MENU_ITEMS.map(([act, name, sub]) => `
+    <button type="button" class="menu-item" data-act="${act}"><i></i><span>${name}</span><small>${sub}</small></button>
+  `).join("");
   fillPlate("menu", `
-    <p class="kicker">Planeta bez nazwy</p>
-    <h1>Za labiryntem</h1>
-    <div class="menu-list">
-      <button type="button" data-act="play">Graj</button>
-      <button type="button" data-act="options">Opcje</button>
-      <button type="button" data-act="story">Fabuła</button>
-      <button type="button" data-act="scores">Tablica</button>
-      <button type="button" data-act="credits">Twórcy</button>
+    <div class="main-menu">
+      <div class="menu-col">
+        <p class="kicker">Planeta bez nazwy</p>
+        <h1 class="menu-title">Za labiryntem</h1>
+        <div class="menu-items">${items}</div>
+      </div>
+      ${recordHtml()}
+      ${hostFoot()}
     </div>
-    <p class="host">${hostLine ? `Drugi ekran: ${hostLine}` : "Zostańcie na tym komputerze."}</p>
-    <p class="fine">Mapa na telefonie. Latarnia na komputerze.</p>
   `);
   paintPadFocus();
+  if (!state.scores) loadScores();
 }
 
 function optionsMarkup(leave) {
@@ -416,27 +484,79 @@ async function loadScores() {
     state.scores = [];
   }
   if (state.phase === "scores") paintScores();
+  if (state.phase === "menu") paintRecord();
+}
+
+function paintCodeCells(input) {
+  if (!input) return;
+  const cells = input.parentElement.querySelectorAll("span");
+  const value = input.value || "";
+  cells.forEach((cell, i) => {
+    cell.textContent = value[i] || "";
+    cell.classList.toggle("caret", i === value.length && value.length < 4);
+  });
 }
 
 function paintHome() {
-  const where = narrow ? "Ten ekran jest do mapy." : "Ten ekran jest do latarni.";
+  focusI = 0;
+  const preset = queryCode && !state.code ? queryCode : "";
   fillPlate("home", `
-    <p class="kicker">Graj</p>
-    <h1>Komora</h1>
-    <p class="lead">Mapa na telefonie. Latarnia na komputerze.</p>
-    <div class="roles">
-      <button type="button" data-act="create" data-role="guide">Przy mapie<small>Telefon. Widzi całość.</small></button>
-      <button type="button" data-act="create" data-role="runner">Z latarnią<small>Komputer. Ma tylko światło.</small></button>
+    <div class="play-screen">
+      <header class="play-head">
+        <p class="kicker">Graj</p>
+        <h1>Kto schodzi?</h1>
+      </header>
+      <div class="play-roles">
+        <button type="button" class="role-card" data-act="create" data-role="guide">
+          <svg class="art" viewBox="0 0 300 180" aria-hidden="true">
+            <defs><radialGradient id="role-map" cx=".5" cy=".55" r=".6"><stop offset="0" stop-color="#d39340" stop-opacity=".35"/><stop offset="1" stop-color="#d39340" stop-opacity="0"/></radialGradient></defs>
+            <rect width="300" height="180" fill="url(#role-map)"/>
+            <g fill="none" stroke="#c4a48a" stroke-width="3" stroke-linecap="square" opacity=".8">
+              <path d="M90 40h120v100H90zM90 70h40v30M170 40v40h-20M130 100h50v40M210 110h-30"/>
+            </g>
+            <path d="M110 125 L130 100 L150 100 L150 70 L190 70" fill="none" stroke="#d39340" stroke-width="3" stroke-dasharray="7 6"/>
+            <circle cx="190" cy="70" r="6" fill="#d39340"/>
+            <circle cx="110" cy="125" r="5" fill="#e7e1d6"/>
+          </svg>
+          <small>Telefon · widzi całość</small>
+          <h3>Przy mapie</h3>
+          <p>Kartograf. Widzi strażnika, prowadzi znakami i otwiera drzwi pieczęcią.</p>
+        </button>
+        <button type="button" class="role-card" data-act="create" data-role="runner">
+          <svg class="art" viewBox="0 0 300 180" aria-hidden="true">
+            <defs><radialGradient id="role-lamp" cx=".5" cy=".9" r=".75"><stop offset="0" stop-color="#ffe2aa" stop-opacity=".45"/><stop offset="1" stop-color="#ffe2aa" stop-opacity="0"/></radialGradient></defs>
+            <path d="M150 170 L60 20 L240 20 Z" fill="url(#role-lamp)"/>
+            <g fill="none" stroke="#c4a48a" stroke-width="2.4" opacity=".75">
+              <path d="M40 160 L110 70 L110 30 M260 160 L190 70 L190 30 M110 70 H190"/>
+            </g>
+            <circle cx="150" cy="58" r="3" fill="#a3b56a"/><circle cx="160" cy="58" r="3" fill="#a3b56a"/>
+          </svg>
+          <small>Komputer · ma tylko światło</small>
+          <h3>Z latarnią</h3>
+          <p>Latarnik. Idzie w ciemności, słucha i dotyka serca ruiny.</p>
+        </button>
+        <form class="join-card" data-act="join">
+          <p class="kicker">Masz kod?</p>
+          <h3>Wejdź do komory</h3>
+          <label class="code-cells">
+            <input name="code" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" inputmode="text" aria-label="Kod komory" value="${esc(preset)}">
+            <span></span><span></span><span></span><span></span>
+          </label>
+          <button class="stone-btn" type="submit">Wejdź</button>
+          <p class="err" id="err">${esc(state.err || "")}</p>
+        </form>
+      </div>
+      <div class="menu-foot">
+        <div class="pad-hints">
+          <span><i class="pad-a">A</i>Wybierz</span>
+          <span><i class="pad-b">B</i>Wróć</span>
+          <button type="button" class="text-back" data-act="back">Wróć</button>
+        </div>
+        <p class="host">${hostLine ? `Drugi ekran: <b>${esc(hostLine)}</b>` : "Zostańcie na tym komputerze."}</p>
+      </div>
     </div>
-    <form class="join" data-act="join">
-      <input name="code" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="KOD" value="${queryCode && !state.code ? queryCode : ""}" aria-label="Kod komory">
-      <button class="solid" type="submit">Wejdź</button>
-    </form>
-    <p class="err" id="err">${state.err || ""}</p>
-    <p class="host">${hostLine ? `Drugi ekran: ${hostLine}` : "Zostańcie na tym komputerze."}</p>
-    <p class="fine">${where} Ten sam Wi-Fi.</p>
-    <div class="menu-list"><button type="button" data-act="back">Menu</button></div>
   `);
+  paintCodeCells(plate.querySelector("input[name=code]"));
   paintPadFocus();
 }
 
@@ -606,13 +726,68 @@ function updatePanel(snap) {
   if (roundClock) roundClock.textContent = clock(snap.roundT);
 }
 
+const CALL_WORD = { stop: "Stój", quiet: "Cicho", run: "Biegnij", left: "W lewo", right: "W prawo", knock: "Stuk" };
+const CALL_ICON = {
+  stop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6.5" y="6.5" width="11" height="11" rx="1"/></svg>',
+  left: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 6l-6 6 6 6"/></svg>',
+  quiet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10h3l4-3v10l-4-3H5z"/><path d="M16 10l4 4M20 10l-4 4"/></svg>',
+  run: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h10M10 7l5 5-5 5M17 7l5 5-5 5"/></svg>',
+  right: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 6l6 6-6 6"/></svg>',
+};
+
+function showRunnerCall(id) {
+  const banner = document.getElementById("call-banner");
+  const word = document.getElementById("call-word");
+  if (!banner || !word) return;
+  word.innerHTML = `${CALL_ICON[id] || ""}${esc(CALL_WORD[id] || "")}`;
+  banner.classList.add("show");
+  clearTimeout(showRunnerCall.timer);
+  showRunnerCall.timer = setTimeout(() => banner.classList.remove("show"), 1800);
+  if (navigator.vibrate) navigator.vibrate(18);
+}
+
+function updateRunnerHud(snap) {
+  if (state.role !== "runner" || !snap) return;
+  const round = document.getElementById("hud-round");
+  if (round) round.textContent = String(state.round || 1);
+  const clockEl = document.getElementById("hud-clock");
+  if (clockEl) clockEl.textContent = clock(snap.roundT);
+  const pts = document.getElementById("hud-pts");
+  if (pts) pts.textContent = String(snap.points || 0);
+  const key = document.getElementById("hud-key");
+  const loot = (state.maze && state.maze.loot) || [];
+  if (key) {
+    const hasKey = loot.some((item) => item.kind === "key" && item.taken);
+    key.classList.toggle("has", hasKey);
+    key.classList.toggle("not", !hasKey);
+  }
+  const taken = loot.filter((item) => item.kind === "shard" && item.taken).length;
+  document.querySelectorAll("#runner-hud .shard").forEach((el, i) => {
+    el.classList.toggle("has", i < taken);
+    el.classList.toggle("not", i >= taken);
+  });
+}
+
+function showLoot(text) {
+  const el = document.getElementById("loot-float");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove("show");
+  void el.offsetWidth;
+  el.classList.add("show");
+  clearTimeout(showLoot.timer);
+  showLoot.timer = setTimeout(() => el.classList.remove("show"), 1400);
+}
+
 function showCall(id) {
-  const words = { stop: "Stój", quiet: "Cicho", run: "Biegnij", left: "Lewo", right: "Prawo", knock: "Stuk" };
-  toast.textContent = words[id] || "";
+  if (state.role === "runner" && id !== "knock") {
+    showRunnerCall(id);
+    return;
+  }
+  toast.textContent = CALL_WORD[id] || "";
   toast.classList.add("show");
   clearTimeout(showCall.timer);
   showCall.timer = setTimeout(() => toast.classList.remove("show"), 1500);
-  if (state.role === "runner" && navigator.vibrate) navigator.vibrate(18);
 }
 
 function showResult(snap) {
@@ -649,12 +824,15 @@ function onRound(msg) {
   panel.dataset.round = "";
   setPhase("play");
   if (state.role === "runner") {
-    hint.hidden = false;
-    hint.textContent = controlHint();
+    const text = controlHint();
+    hint.hidden = !text;
+    hint.textContent = text;
     clearTimeout(onRound.hint);
-    onRound.hint = setTimeout(() => {
-      if (hint.textContent.startsWith("Lewa strona")) hint.hidden = true;
-    }, 14000);
+    if (text) {
+      onRound.hint = setTimeout(() => {
+        if (hint.textContent.startsWith("Lewa strona")) hint.hidden = true;
+      }, 14000);
+    }
     settleHint();
   }
 }
@@ -670,6 +848,8 @@ function onSnap(msg) {
     for (const name of msg.fx) {
       audio.play(name);
       if (name === "knock" && state.role === "guide") showCall("knock");
+      if (state.role === "runner" && name === "shard") showLoot("+10 · Odłamek");
+      if (state.role === "runner" && name === "key") showLoot("+25 · Klucz");
     }
   }
   if (msg.call && (!state.lastCall || msg.call.id !== state.lastCall.id || msg.call.ttl > state.lastCall.ttl + 0.2)) {
@@ -699,10 +879,15 @@ function onSnap(msg) {
     if (msg.immunity > 0.2) {
       hint.hidden = false;
       hint.textContent = "Cisza.";
-    } else if (hint.textContent.startsWith("Strażnik")) hint.textContent = controlHint();
+    } else if (hint.textContent === "Cisza." || hint.textContent.startsWith("Strażnik")) {
+      const text = controlHint();
+      hint.hidden = !text;
+      hint.textContent = text;
+    }
     settleHint();
   }
   updatePanel(msg);
+  updateRunnerHud(msg);
   if (msg.phase === "result") showResult(msg);
 }
 
@@ -748,7 +933,8 @@ function lerpEnt(a, b, u) {
 
 function controlHint() {
   const fine = window.matchMedia("(pointer:fine)").matches;
-  return fine ? "WASD, strzałki, Shift. N: nasłuch. K: stuk. P: pomoc." : "Lewa strona: krok. Prawa: wzrok. Pomoc w rogu.";
+  if (fine) return "";
+  return "Lewa strona: krok. Prawa: wzrok. Pomoc w rogu.";
 }
 
 function readKeys(dt) {
@@ -865,11 +1051,14 @@ function focusedEl() {
 
 function paintPadFocus() {
   document.querySelectorAll(".is-pad").forEach((el) => el.classList.remove("is-pad"));
-  document.querySelectorAll(".opt-row.on").forEach((el) => el.classList.remove("on"));
+  document.querySelectorAll(".opt-row.on, .menu-item.on, .role-card.on, .join-card.on").forEach((el) => el.classList.remove("on"));
   const el = focusedEl();
   if (!el) return;
   const row = el.closest(".opt-row");
   if (row) row.classList.add("on");
+  if (el.classList.contains("menu-item") || el.classList.contains("role-card")) el.classList.add("on");
+  const join = el.closest(".join-card");
+  if (join) join.classList.add("on");
   if (padOn) el.classList.add("is-pad");
 }
 
@@ -965,8 +1154,13 @@ function readPad(dt) {
       if (down || right) moveFocus(1);
     }
     if (buttonEdge(pad, 0)) activateFocus();
-    if (inOptions && buttonEdge(pad, 1)) closeOptions();
-    else buttonEdge(pad, 1);
+    if (buttonEdge(pad, 1)) {
+      if (inOptions) closeOptions();
+      else if (state.phase === "home" || state.phase === "story" || state.phase === "credits" || state.phase === "scores") {
+        setPhase("menu");
+        paintMenu();
+      }
+    }
   } else {
     for (const name of Object.keys(dirHold)) dirHold[name] = 0;
     buttonEdge(pad, 0);
@@ -995,8 +1189,9 @@ function readPad(dt) {
 }
 
 function feelGuardian(dt, dist) {
-  if (!(state.role === "runner" && state.phase === "play")) return;
-  if (dist >= 3.4) {
+  const near = state.role === "runner" && state.phase === "play" && dist < 3.4;
+  screen.classList.toggle("is-near", near);
+  if (!near) {
     rumbleAt = 0;
     return;
   }
@@ -1265,6 +1460,29 @@ lobby.addEventListener("click", (event) => {
 
 lobby.addEventListener("input", (event) => {
   if (event.target.dataset && event.target.dataset.act === "opt-vol") onVolumeInput(event.target);
+  if (event.target.name === "code") {
+    const input = event.target;
+    const next = input.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+    if (input.value !== next) input.value = next;
+    paintCodeCells(input);
+  }
+});
+function aimFocus(el) {
+  const list = focusables();
+  const index = list.indexOf(el);
+  if (index < 0) return;
+  focusI = index;
+  paintPadFocus();
+}
+lobby.addEventListener("pointerover", (event) => {
+  const btn = event.target.closest("button.menu-item, button.role-card");
+  if (!btn || !lobby.contains(btn)) return;
+  aimFocus(btn);
+});
+lobby.addEventListener("focusin", (event) => {
+  const el = event.target.closest("button, input");
+  if (!el || !lobby.contains(el)) return;
+  aimFocus(el);
 });
 
 lobby.addEventListener("submit", (event) => {
@@ -1393,6 +1611,23 @@ window.addEventListener("keydown", (event) => {
     }
     return;
   }
+  if (SHELL.has(state.phase) && state.phase !== "boot" && state.phase !== "intro" && state.phase !== "lobby") {
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+      event.preventDefault();
+      moveFocus(1);
+      return;
+    }
+    if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      moveFocus(-1);
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      activateFocus();
+      return;
+    }
+  }
   if (event.key === "F1" || event.key.toLowerCase() === "p") {
     event.preventDefault();
     toggleHelp();
@@ -1499,7 +1734,17 @@ sprintBtn.addEventListener("pointerdown", (event) => {
   state.sprintLatch = !state.sprintLatch;
   state.input.sprint = state.sprintLatch || keys.has("shift");
   sprintBtn.classList.toggle("on", state.sprintLatch);
+  sprintBtn.classList.add("is-down");
 });
+sprintBtn.addEventListener("pointerup", () => sprintBtn.classList.remove("is-down"));
+sprintBtn.addEventListener("pointercancel", () => sprintBtn.classList.remove("is-down"));
+sprintBtn.addEventListener("pointerleave", () => sprintBtn.classList.remove("is-down"));
+for (const btn of [listenBtn, knockBtn]) {
+  btn.addEventListener("pointerdown", () => btn.classList.add("is-down"));
+  btn.addEventListener("pointerup", () => btn.classList.remove("is-down"));
+  btn.addEventListener("pointercancel", () => btn.classList.remove("is-down"));
+  btn.addEventListener("pointerleave", () => btn.classList.remove("is-down"));
+}
 
 nextBtn.addEventListener("click", () => send({ t: "skip" }));
 optLayer.addEventListener("click", (event) => {
@@ -1593,6 +1838,13 @@ function frame(now) {
     if (state.role === "runner" && state.phase === "play") feelGuardian(dt, Math.hypot(sn.x - body.x, sn.y - body.y));
   }
   watchFrames((performance.now() - t0) / 1000);
+  try {
+    syncMenuBg();
+    paintDust(now / 1000);
+    tickActs(dt);
+  } catch (error) {
+    console.error(error);
+  }
   requestAnimationFrame(frame);
 }
 
@@ -1684,8 +1936,63 @@ function flash(text) {
   flash.timer = setTimeout(() => toast.classList.remove("show"), 1200);
 }
 
+const actCd = { listen: 0, knock: 0 };
+const dustMotes = Array.from({ length: 70 }, () => ({
+  x: Math.random(),
+  y: Math.random(),
+  z: 0.3 + Math.random() * 0.7,
+  s: 0.004 + Math.random() * 0.01,
+}));
+
+function tickActs(dt) {
+  actCd.listen = Math.max(0, actCd.listen - dt);
+  actCd.knock = Math.max(0, actCd.knock - dt);
+  listenBtn.style.setProperty("--p", (1 - actCd.listen / 4).toFixed(3));
+  listenBtn.classList.toggle("busy", actCd.listen > 0);
+  knockBtn.style.setProperty("--p", (1 - actCd.knock / 4.5).toFixed(3));
+  knockBtn.classList.toggle("busy", actCd.knock > 0);
+}
+
+function paintDust(t) {
+  const cv = document.getElementById("menu-dust");
+  const bg = document.getElementById("menu-bg");
+  if (!cv || !bg || bg.hidden) return;
+  const ctx = cv.getContext("2d");
+  if (!ctx) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.max(1, Math.round(cv.clientWidth * dpr));
+  const h = Math.max(1, Math.round(cv.clientHeight * dpr));
+  if (cv.width !== w || cv.height !== h) {
+    cv.width = w;
+    cv.height = h;
+  }
+  ctx.clearRect(0, 0, w, h);
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  for (const mote of dustMotes) {
+    const x = ((mote.x + t * mote.s * 0.3) % 1) * w;
+    const y = ((mote.y - t * mote.s * 0.15 + 1) % 1) * h;
+    ctx.globalAlpha = 0.15 + mote.z * 0.35;
+    ctx.fillStyle = "#e7d6ba";
+    const size = 1.2 * mote.z * dpr;
+    ctx.fillRect(x, y, size, size);
+  }
+}
+
+function showEar(rel, near, side) {
+  const ear = document.getElementById("ear");
+  const wedge = document.getElementById("ear-wedge");
+  const text = document.getElementById("ear-text");
+  if (!ear) return;
+  const deg = Math.max(-80, Math.min(80, (rel * 180) / Math.PI));
+  if (wedge) wedge.style.transform = `rotate(${deg}deg)`;
+  if (text) text.textContent = `${near} · ${side}`;
+  ear.classList.add("live");
+  clearTimeout(showEar.timer);
+  showEar.timer = setTimeout(() => ear.classList.remove("live"), 2600);
+}
+
 function doListen() {
-  if (listenBtn.disabled || state.role !== "runner" || state.phase !== "play") return;
+  if (actCd.listen > 0 || state.role !== "runner" || state.phase !== "play") return;
   audio.unlock();
   const snap = state.snaps[state.snaps.length - 1];
   const sn = snap && snap.sn;
@@ -1699,22 +2006,16 @@ function doListen() {
   const rel = normalizeAngle(Math.atan2(dy, dx) - state.body.a);
   const side = Math.abs(rel) < 0.45 ? "Przed wami" : Math.abs(rel) > 2.3 ? "Za wami" : rel > 0 ? "Z prawej" : "Z lewej";
   const near = dist < 2.4 ? "Tuż obok" : dist < 5.5 ? "Blisko" : "Daleko";
-  flash(`${near}. ${side}`);
+  showEar(rel, near, side);
   audio.hear(Math.max(-1, Math.min(1, rel / 1.4)), dist);
-  listenBtn.disabled = true;
-  setTimeout(() => {
-    listenBtn.disabled = false;
-  }, 4000);
+  actCd.listen = 4;
 }
 
 function doKnock() {
-  if (knockBtn.disabled || state.role !== "runner" || state.phase !== "play") return;
+  if (actCd.knock > 0 || state.role !== "runner" || state.phase !== "play") return;
   audio.unlock();
   send({ t: "knock" });
-  knockBtn.disabled = true;
-  setTimeout(() => {
-    knockBtn.disabled = false;
-  }, 4500);
+  actCd.knock = 4.5;
 }
 
 function noteTap() {

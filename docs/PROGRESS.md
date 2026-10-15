@@ -4,6 +4,14 @@ Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zosta
 
 ## Zrobione
 
+### Menu i HUD latarnika
+
+Menu główne bierze niebo i planetę z `public/tex/hd/` (`sky.webp`, `planet.webp`, ta sama wersja co korytarz), gdy tekstury HD są włączone. Niebo sunie w bok, na dole stoi sylweta ruiny, w kadrze jest drobny kurz. Tytuł „Za labiryntem” wypełnia się bursztynem raz po wejściu. Fokus to bursztynowy romb i podpis pozycji. Płyta „Najgłębiej” pokazuje pierwsze miejsce z `/tablica`. Na dole są podpowiedzi pada i adres drugiego ekranu. Bez HD zostaje dotychczasowe tło. Opcje to kamienna płyta, przełącznik z bursztynową gałką i suwak głośności. Graj to dwie karty ról i kod w czterech komórkach.
+
+HUD latarnika: lewy górny róg ma ruinę, czas i łup. Zawołanie kartografa jest duże u góry na środku, ze słowem i ikoną, przez około 1,8 s. Nasłuch rysuje półokrąg z klinem w stronę strażnika i tekst w rodzaju „Blisko · Z lewej”. Nasłuch i Stuk mają pierścienie odnowienia (4 s i 4,5 s), Bieg jest największy. Zebrany łup unosi się nad środkiem. Strażnik bliżej niż 3,4 daje zielone pulsowanie krawędzi. Na telefonie te same rzeczy są w rogach, Bieg pod prawym kciukiem, bez legendy klawiszy. Protokół bez zmian.
+
+Sprawdzone: 1280×720, 390×844 i 844×390, bez przewijania strony. Pad przesuwa fokus i B wraca z Graj do menu. Strzałka na głośności zmienia ją o 10. Nasłuch pokazał „Daleko · Z lewej” i pierścień, zawołanie „Cicho” stanęło u góry. Niebo z dysku ma 4096×1024. Przy wyłączonych teksturach HD tło menu chowa się i zostaje dawne. Konsola pusta.
+
 ### Tekstury HD: wspólne krawędzie i lżejsze pliki
 
 Ściany źle się stykały: każda z sześciu tekstur miała inne wysokości rzędów kamieni, a na brzegu bloki były ucięte w połowie, więc dwa różne kafle obok siebie nie mogły się zgrać. Generator stawia teraz wszystkie ściany, fryz z glifami i ramę pieczęci na tych samych rzędach (0, 118, 254, 358, 512 px), z pionową spoiną dokładnie na brzegu kafla. Średnia różnica na styku dwóch różnych ścian spadła z 27–57 do 6–18 (na 255), a rzędy przechodzą przez styki i narożniki. U ściany rośnie zawsze w prawo, więc glify nie są w lustrze, gdy patrzy się z drugiej strony.
