@@ -4,6 +4,12 @@ Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zosta
 
 ## Zrobione
 
+### Panel kartografa
+
+Na telefonie tablica jest pod mapą, a nad mapą są okrągłe ikony: wycisz, pomoc, menu. Mapa jest kwadratem na środku wolnego miejsca, z narożnikami i napisem ruiny oraz czasem. Pod spodem oko strażnika w kolorze stanu (pulsuje przy Czuwa i Pościgu), nazwa Palatino, 14 segmentów przebudzenia, pieczęcie jako heksagony, klucz i punkty. Gdy latarnik stoi przy drzwiach, widać belkę z prośbą o dotknięcie klamry. Zawołania są 3×2: Lewo, Stój, Prawo, potem Cicho, Biegnij i okrągła Zasłona z pierścieniem odnowienia. Wysłanie daje napis „Wysłano · …” i krótką wibrację. Na szerokim ekranie ta sama tablica stoi obok mapy. Protokół bez zmian.
+
+Sprawdzone: 390×844 i 360×740, drugi rząd mieści się w kadrze, strona się nie przewija. Klik „Lewo” pokazał „Wysłano · W lewo”. Przy 1280×800 tablica jest po prawej. Konsola pusta.
+
 ### Pakiet HD
 
 Korytarz bierze pliki z `public/tex/hd/`, gdy w opcjach są włączone tekstury HD (`zl-hd`, domyślnie tak). Zanim się wczytają, zostaje kamień rysowany w kodzie. W HD podłoga jest kafelkiem dwóch komórek, bez pomarańczowej kratki, a światło mnoży kolor tekstury. Niebo i planeta stoją w świecie: obrót je przesuwa. Bez HD kadr jest ten sam co wcześniej.

@@ -9,6 +9,7 @@ const screen = document.getElementById("screen");
 const lobby = document.getElementById("lobby");
 const plate = document.getElementById("plate");
 const panel = document.getElementById("panel");
+const mapChrome = document.getElementById("map-chrome");
 const stage = document.getElementById("stage");
 const map = document.getElementById("map");
 const touch = document.getElementById("touch");
@@ -143,7 +144,8 @@ function setPhase(phase) {
   const playing = phase === "play" && state.role === "runner";
   touch.hidden = !playing;
   deck.hidden = !playing;
-  quitBtn.hidden = phase !== "play";
+  quitBtn.hidden = phase !== "play" || state.role === "guide";
+  if (mapChrome) mapChrome.hidden = !(state.role === "guide" && !menu);
   if (!playing) {
     stick.hidden = true;
     state.input.forward = 0;
@@ -330,6 +332,7 @@ function toggleMute() {
   audio.toggle();
   storePref("zl-mute", audio.muted ? "1" : "0");
   syncSoundSwitch();
+  syncGuideMute();
 }
 
 function toggleHd(btn) {
@@ -459,34 +462,83 @@ function paintLobby() {
   paintPadFocus();
 }
 
-const callIcon = {
-  stop: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10H7z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`,
-  quiet: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 10h2.2L13 8v8l-2.8-2H8z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M16 10l3 4M19 10l-3 4" stroke="currentColor" stroke-width="1.4"/></svg>`,
-  run: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h9M11 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`,
-  left: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 7L9 12l5 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`,
-  right: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`,
-};
+const soundIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 10h3l4-3v10l-4-3H5z"/><path d="M16 9c1.3 1.6 1.3 4.4 0 6M18.5 7c2.4 2.8 2.4 7.2 0 10"/></svg>`;
+const mutedIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 10h3l4-3v10l-4-3H5z"/><path d="M16 10l4 4M20 10l-4 4"/></svg>`;
+const sealMark = `<svg viewBox="0 0 22 25" aria-hidden="true"><path d="M11 1.5l8.7 5v10.5L11 23.5 2.3 17V6.5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path class="core" d="M7 10l4 3.5 4-3.5M7 14l4 3.5 4-3.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`;
+const callWords = { stop: "Stój", quiet: "Cicho", run: "Biegnij", left: "W lewo", right: "W prawo" };
+
+function stonePlate() {
+  if (document.documentElement.style.getPropertyValue("--stone-tex")) return;
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+  const g = canvas.getContext("2d");
+  const im = g.createImageData(256, 256);
+  let s = 7;
+  const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < im.data.length; i += 4) {
+    const v = 128 + (rnd() - 0.5) * 70;
+    im.data[i] = v;
+    im.data[i + 1] = v;
+    im.data[i + 2] = v;
+    im.data[i + 3] = 22;
+  }
+  g.putImageData(im, 0, 0);
+  document.documentElement.style.setProperty("--stone-tex", `url(${canvas.toDataURL()})`);
+}
+
+function syncGuideMute() {
+  const btn = panel.querySelector("[data-act=mute]");
+  if (!btn) return;
+  btn.setAttribute("aria-label", audio.muted ? "Dźwięk" : "Wycisz");
+  btn.innerHTML = audio.muted ? mutedIcon : soundIcon;
+}
 
 function renderPanel() {
-  const plate = (id, label, key) => `<button type="button" data-act="call" data-id="${id}">${callIcon[id]}<span>${label}</span><small>${key}</small></button>`;
+  stonePlate();
+  const letters = (state.code || "").split("").join(" ");
+  const wakes = Array.from({ length: 14 }, () => "<i></i>").join("");
+  const seals = [0, 1].map(() => `<span class="seal">${sealMark}</span>`).join("");
+  const key = (id, label, hotkey, cls, icon) => `<button class="key ${cls}" type="button" data-act="call" data-id="${id}"><small>${hotkey}</small>${icon}<span>${label}</span></button>`;
   panel.innerHTML = `
-    <div class="unit">
-      <p class="kicker">Ruina ${state.round}</p>
-      <h2 id="sent-state" data-state="patrol">Obchód</h2>
-      <p id="wake-state" class="fine">Cisza</p>
-      <p id="seal-count">Pieczęcie 2</p>
-      <p id="score-now" class="fine">Punkty 0</p>
+    <div class="guide-top">
+      <button class="ico" type="button" data-act="mute" aria-label="Wycisz">${soundIcon}</button>
+      <div class="room">KOMORA <b>${letters}</b></div>
+      <button class="ico" type="button" data-act="help" aria-label="Pomoc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9.5 9a2.6 2.6 0 1 1 3.6 2.4c-.8.4-1.1.9-1.1 1.8v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button>
+      <button class="ico" type="button" data-act="menu" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg></button>
     </div>
-    <div class="call-row">
-      ${plate("stop", "Stój", "1")}
-      ${plate("quiet", "Cicho", "2")}
-      ${plate("run", "Biegnij", "3")}
-      ${plate("left", "Lewo", "4")}
-      ${plate("right", "Prawo", "5")}
-      <button id="veil-btn" type="button" data-act="veil" style="--veil-p: 1"><span id="veil-fill"></span><span id="veil-label">Zasłona</span></button>
-    </div>
-    <p class="code" id="side-code">${(state.code || "").split("").join(" ")}</p>
+    <section class="board" data-sn="patrol" aria-label="Tablica kartografa">
+      <div class="threat">
+        <div class="eye" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20c4.5-7 9.5-10 16-10s11.5 3 16 10c-4.5 7-9.5 10-16 10S8.5 27 4 20z"/><circle cx="20" cy="20" r="5.5" fill="currentColor" stroke="none"/><path d="M20 4v3M8 8l2 2M32 8l-2 2"/></svg></div>
+        <div class="sn">
+          <p class="sn-sub">Strażnik</p>
+          <h2 class="sn-name" id="sent-state">Obchód</h2>
+          <div class="wake" id="wake-bars" aria-label="Przebudzenie ruiny">${wakes}</div>
+          <div class="wake-l"><span>Cisza</span><span>Niepokój</span><span>Budzi się</span></div>
+        </div>
+        <div class="loot">
+          <div class="seals" id="seal-count" aria-label="Pieczęcie">${seals}</div>
+          <div class="pts"><svg class="keyic" id="keyic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="8" cy="12" r="3.5"/><path d="M11.5 12H20M17 12v3M20 12v2"/></svg><span id="score-now">0</span><small>PKT</small></div>
+        </div>
+      </div>
+      <div class="door" id="door" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 21V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v16"/><circle cx="12" cy="12" r="3"/><path d="M4 21h16"/></svg>
+        <span>Latarnik stoi przy drzwiach. Dotknij klamry na mapie.</span>
+      </div>
+      <div class="keys">
+        <p class="echo" id="echo">Wysłano</p>
+        ${key("left", "Lewo", "4", "dir", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>`)}
+        ${key("stop", "Stój", "1", "stop", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="1"/></svg>`)}
+        ${key("right", "Prawo", "5", "dir", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>`)}
+        ${key("quiet", "Cicho", "2", "", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 10h3l4-3v10l-4-3H5z"/><path d="M16 10l4 4M20 10l-4 4"/></svg>`)}
+        ${key("run", "Biegnij", "3", "", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h10M10 7l5 5-5 5M17 7l5 5-5 5"/></svg>`)}
+        <button class="veil" id="veil-btn" type="button" data-act="veil" aria-label="Zasłona" style="--p: 1"><i class="ring"></i><b id="veil-label">Zasłona</b><em id="veil-num"></em></button>
+      </div>
+    </section>
   `;
+  const ruin = document.getElementById("ruin-label");
+  if (ruin) ruin.textContent = `RUINA ${state.round}`;
+  syncGuideMute();
 }
 
 function updatePanel(snap) {
@@ -496,30 +548,42 @@ function updatePanel(snap) {
     renderPanel();
   }
   const names = { patrol: "Obchód", alert: "Czuwa", hunt: "Pościg", search: "Szuka" };
+  const board = panel.querySelector(".board");
+  const snState = (snap.sn && snap.sn.state) || "patrol";
+  if (board) board.dataset.sn = snState;
   const sent = panel.querySelector("#sent-state");
-  if (sent && snap.sn) {
-    sent.textContent = names[snap.sn.state] || "Obchód";
-    sent.dataset.state = snap.sn.state || "patrol";
-  }
-  const wake = panel.querySelector("#wake-state");
-  if (wake) {
-    wake.textContent = snap.wake > 0.55 ? "Ruina się budzi" : snap.wake > 0.12 ? "Niepokój" : "Cisza";
+  if (sent) sent.textContent = names[snState] || "Obchód";
+  const bars = panel.querySelector("#wake-bars");
+  if (bars) {
+    const wake = snap.wake || 0;
+    const n = Math.round(wake * 14);
+    [...bars.children].forEach((el, i) => {
+      if (i >= n) el.className = "";
+      else if (i / 14 >= 0.55) el.className = "on wild";
+      else if (i / 14 >= 0.12) el.className = "on hot";
+      else el.className = "on";
+    });
   }
   const veil = panel.querySelector("#veil-btn");
   if (veil) {
     const label = veil.querySelector("#veil-label");
+    const num = veil.querySelector("#veil-num");
     const cooling = snap.veilCd > 0 && !(snap.veil > 0);
     const p = snap.veil > 0 || !cooling ? 1 : 1 - snap.veilCd / 26;
-    veil.style.setProperty("--veil-p", p.toFixed(3));
-    if (label) {
-      if (snap.veil > 0) label.textContent = "Zasłona trwa";
-      else if (cooling) label.textContent = `Zasłona ${Math.ceil(snap.veilCd)}`;
-      else label.textContent = "Zasłona";
-    }
+    veil.style.setProperty("--p", p.toFixed(3));
+    veil.classList.toggle("on", snap.veil > 0);
+    veil.classList.toggle("cool", cooling);
+    if (label) label.textContent = snap.veil > 0 ? "Trwa" : cooling ? "Odnowa" : "Zasłona";
+    if (num) num.textContent = snap.veil > 0 ? String(Math.ceil(snap.veil)) : cooling ? String(Math.ceil(snap.veilCd)) : "";
     veil.disabled = snap.veilCd > 0;
   }
   const seals = panel.querySelector("#seal-count");
   if (seals) {
+    const charges = snap.sealCharges ?? 0;
+    [...seals.children].forEach((el, i) => el.classList.toggle("spent", i >= charges));
+  }
+  const door = panel.querySelector("#door");
+  if (door) {
     const ex = snap.ex;
     const ready = ex && state.maze && (state.maze.seals || []).some((seal) => {
       if (seal.open) return false;
@@ -527,10 +591,19 @@ function updatePanel(snap) {
       const my = seal.axis === "v" ? seal.y + 0.5 : seal.y;
       return Math.hypot(ex.x - mx, ex.y - my) < 1.2;
     });
-    seals.textContent = ready ? `Drzwi gotowe · ${snap.sealCharges}` : `Pieczęcie ${snap.sealCharges}`;
+    door.hidden = !ready;
   }
   const scoreNow = panel.querySelector("#score-now");
-  if (scoreNow) scoreNow.textContent = `Punkty ${snap.points || 0}`;
+  if (scoreNow) scoreNow.textContent = String(snap.points || 0);
+  const keyic = panel.querySelector("#keyic");
+  if (keyic) {
+    const hasKey = !!(state.maze && (state.maze.loot || []).some((item) => item.kind === "key" && item.taken));
+    keyic.classList.toggle("has", hasKey);
+  }
+  const ruin = document.getElementById("ruin-label");
+  if (ruin) ruin.textContent = `RUINA ${state.round}`;
+  const roundClock = document.getElementById("round-clock");
+  if (roundClock) roundClock.textContent = clock(snap.roundT);
 }
 
 function showCall(id) {
@@ -981,7 +1054,8 @@ function pixelBudget() {
 
 function resize() {
   clampHdStep();
-  const rect = map.getBoundingClientRect();
+  let rect = stage.getBoundingClientRect();
+  if (rect.width < 2 || rect.height < 2) rect = map.getBoundingClientRect();
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const budget = pixelBudget();
   const cssW = Math.max(1, rect.width);
@@ -1204,12 +1278,21 @@ lobby.addEventListener("submit", (event) => {
 
 function glowCall(id) {
   const btn = panel.querySelector(`[data-act="call"][data-id="${id}"]`);
-  if (!btn) return;
-  panel.querySelectorAll(".is-hot").forEach((node) => node.classList.remove("is-hot"));
-  void btn.offsetWidth;
-  btn.classList.add("is-hot");
-  clearTimeout(glowCall.timer);
-  glowCall.timer = setTimeout(() => btn.classList.remove("is-hot"), 1500);
+  const echo = panel.querySelector("#echo");
+  if (btn) {
+    btn.classList.remove("sent");
+    void btn.offsetWidth;
+    btn.classList.add("sent");
+    clearTimeout(glowCall.timer);
+    glowCall.timer = setTimeout(() => btn.classList.remove("sent"), 700);
+  }
+  if (echo) {
+    echo.textContent = `Wysłano · ${callWords[id] || ""}`;
+    echo.classList.add("show");
+    clearTimeout(glowCall.echo);
+    glowCall.echo = setTimeout(() => echo.classList.remove("show"), 1300);
+  }
+  if (state.role === "guide" && navigator.vibrate) navigator.vibrate(18);
 }
 
 panel.addEventListener("pointerdown", (event) => {
@@ -1229,6 +1312,9 @@ panel.addEventListener("click", (event) => {
   const btn = event.target.closest("[data-act]");
   if (!btn || state.role !== "guide") return;
   audio.unlock();
+  if (btn.dataset.act === "mute") toggleMute();
+  if (btn.dataset.act === "help") toggleHelp();
+  if (btn.dataset.act === "menu") openOptions();
   if (btn.dataset.act === "veil") send({ t: "veil" });
   if (btn.dataset.act === "call") {
     send({ t: "call", id: btn.dataset.id });

@@ -12,7 +12,15 @@
 <body>
   <div id="screen" class="is-menu" data-phase="boot" data-role="">
     <div id="world">
-      <div id="map"><canvas id="stage"></canvas></div>
+      <div id="map">
+        <div id="map-frame">
+          <canvas id="stage"></canvas>
+          <div id="map-chrome" hidden>
+            <i class="bracket tl"></i><i class="bracket tr"></i><i class="bracket bl"></i><i class="bracket br"></i>
+            <div class="chip"><span id="ruin-label">RUINA</span><time id="round-clock">0:00</time></div>
+          </div>
+        </div>
+      </div>
       <aside id="panel"></aside>
     </div>
     <div class="frame" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
