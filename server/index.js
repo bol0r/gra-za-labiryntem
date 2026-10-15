@@ -617,7 +617,10 @@ function onClose(ws) {
 
 const app = express();
 app.use((req, res, next) => {
-  res.setHeader("Cache-Control", "no-store");
+  // Tekstury HD mają wersję w adresie (?v= w render.js), więc mogą leżeć w cache przeglądarki.
+  // Reszta zostaje bez cache, żeby zmiany w kodzie było widać od razu.
+  if (req.path.startsWith("/tex/")) res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  else res.setHeader("Cache-Control", "no-store");
   next();
 });
 app.get("/siec", (_req, res) => {

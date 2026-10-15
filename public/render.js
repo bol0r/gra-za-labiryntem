@@ -36,6 +36,11 @@ let colCone = new Float32Array(0);
 let colFog = new Float32Array(0);
 let colSide = new Float32Array(0);
 let colId = new Uint8Array(0);
+let rowVsoft = new Float32Array(0);
+let colConeF = new Float32Array(0);
+let colInv = new Float32Array(0);
+let frame32 = null;
+let frame32Src = null;
 
 function hash01(x, y) {
   let n = Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263);
@@ -227,6 +232,26 @@ function withMips(data, size) {
   return { size, levels };
 }
 
+// Ściany są próbkowane pionowo (cały słupek ma to samo u), więc trzymamy je w pamięci
+// kolumnami: kolejne v leżą obok siebie i pętla ściany nie skacze po pamięci co 2 KB.
+function transposed(src, size) {
+  const dst = new Uint8ClampedArray(src.length);
+  const s32 = new Uint32Array(src.buffer, src.byteOffset, size * size);
+  const d32 = new Uint32Array(dst.buffer);
+  for (let y = 0; y < size; y++) {
+    const row = y * size;
+    for (let x = 0; x < size; x++) d32[x * size + y] = s32[row + x];
+  }
+  return dst;
+}
+
+function wallMips(data, size) {
+  const tex = withMips(data, size);
+  tex.levels = tex.levels.map((lvl, i) => transposed(lvl, size >> i));
+  tex.levels32 = tex.levels.map((lvl) => new Uint32Array(lvl.buffer, lvl.byteOffset, lvl.length >> 2));
+  return tex;
+}
+
 function imagePixels(img) {
   const canvas = document.createElement("canvas");
   canvas.width = img.width;
@@ -239,34 +264,54 @@ function imagePixels(img) {
 function loadImage(url) {
   return new Promise((resolve, reject) => {
     const img = new Image();
+    img.decoding = "async";
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error(url));
     img.src = url;
   });
 }
 
-const HD_NAMES = ["wall_a.png", "wall_b.png", "wall_c.png", "wall_d.png", "seal.png", "rune.png", "floor.png", "sky.png", "planet.png"];
+// WebP, ~320 KB razem zamiast ~3 MB PNG. Zmień HD_VER przy każdej zmianie plików w tex/hd:
+// serwer trzyma je w cache przeglądarki na stałe, a nowa wersja w adresie wymusza pobranie.
+const HD_VER = "2";
+const HD_NAMES = ["wall_a", "wall_b", "wall_c", "wall_d", "seal", "rune", "floor", "sky", "planet"];
 
-function loadHd() {
+function nextTask() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+async function loadHd() {
   hdLoading = true;
-  Promise.all(HD_NAMES.map((name) => loadImage(`/tex/hd/${name}`))).then((imgs) => {
-    const tex = imgs.slice(0, 7).map((img) => withMips(imagePixels(img), img.width));
-    const skyImg = imgs[7];
-    const planetImg = imgs[8];
+  try {
+    // Pobieranie idzie równolegle, a rozpakowanie do pikseli po jednym pliku na zadanie,
+    // żeby menu i intro nie stawały na jednej długiej klatce.
+    const pending = HD_NAMES.map((name) => loadImage(`/tex/hd/${name}.webp?v=${HD_VER}`));
+    pending.forEach((p) => p.catch(() => {}));
+    const tex = [];
+    for (let i = 0; i < 7; i++) {
+      const img = await pending[i];
+      // 0–5 to ściany (kolumnami), 6 to podłoga (wierszami).
+      tex.push(i < 6 ? wallMips(imagePixels(img), img.width) : withMips(imagePixels(img), img.width));
+      await nextTask();
+    }
+    const skyImg = await pending[7];
+    const sky = imagePixels(skyImg);
+    await nextTask();
+    const planetImg = await pending[8];
     hd = {
       tex,
-      sky: imagePixels(skyImg),
+      sky,
+      sky32: new Uint32Array(sky.buffer, sky.byteOffset, sky.length >> 2),
       skyW: skyImg.width,
       skyH: skyImg.height,
       planet: imagePixels(planetImg),
       planetW: planetImg.width,
       planetH: planetImg.height,
     };
-    hdLoading = false;
-  }).catch(() => {
+  } catch {
     hd = null;
-    hdLoading = false;
-  });
+  }
+  hdLoading = false;
 }
 
 export function setHdEnabled(on) {
@@ -286,6 +331,7 @@ function growRows(n) {
   if (rowCenter.length >= n) return;
   rowCenter = new Float32Array(n);
   rowLvl = new Uint8Array(n);
+  rowVsoft = new Float32Array(n);
 }
 
 function growCols(n) {
@@ -302,16 +348,28 @@ function growCols(n) {
   colFog = new Float32Array(n);
   colSide = new Float32Array(n);
   colId = new Uint8Array(n);
+  colConeF = new Float32Array(n);
+  colInv = new Float32Array(n);
+}
+
+// Widok 32-bitowy na bufor klatki: jeden zapis na piksel zamiast czterech.
+function frameView(data) {
+  if (frame32Src !== data) {
+    frame32 = new Uint32Array(data.buffer, data.byteOffset, data.length >> 2);
+    frame32Src = data;
+  }
+  return frame32;
 }
 
 function paintPacked(data, z, w, h, maze, body, aim, horizon, flick, focal) {
+  const out = frameView(data);
   const skyRows = Math.min(h, Math.ceil(horizon));
   skyX = growInt(skyX, w, false);
   skyY = growInt(skyY, h, false);
   planetU = growInt(planetU, w, true);
   planetV = growInt(planetV, h, true);
   growRows(h);
-  const skyData = hd.sky;
+  const sky32 = hd.sky32;
   const skyW = hd.skyW;
   const skyH = hd.skyH;
   const planetData = hd.planet;
@@ -324,7 +382,7 @@ function paintPacked(data, z, w, h, maze, body, aim, horizon, flick, focal) {
   const sinAim = Math.sin(aim);
   const halfW = w * 0.5;
   const fovCone = FOV * 0.48;
-  const hSoft = h * 0.55;
+  const invHSoft = 1.25 / (h * 0.55);
   for (let x = 0; x < w; x++) {
     const az = ((aim + Math.atan((x - halfW) / focal)) * RAD % 360 + 360) % 360;
     let sx = (az / 360) * skyW;
@@ -334,6 +392,7 @@ function paintPacked(data, z, w, h, maze, body, aim, horizon, flick, focal) {
     const pu = (du / 6.5) * 168 + 384;
     planetU[x] = pu < 0 || pu >= planetW ? -1 : pu | 0;
   }
+  let planetRows = false;
   for (let y = 0; y < h; y++) {
     if (y < skyRows) {
       const el = Math.atan((horizon - y) / focal) * RAD;
@@ -343,6 +402,7 @@ function paintPacked(data, z, w, h, maze, body, aim, horizon, flick, focal) {
       skyY[y] = sy | 0;
       const pv = -(((el - 13) / 6.5) * 168) + 384;
       planetV[y] = pv < 0 || pv >= planetH ? -1 : pv | 0;
+      if (planetV[y] >= 0) planetRows = true;
     }
     if (y < horizon) {
       rowCenter[y] = 0;
@@ -352,6 +412,9 @@ function paintPacked(data, z, w, h, maze, body, aim, horizon, flick, focal) {
       rowCenter[y] = centerDist;
       rowLvl[y] = floorLevel(centerDist, focal);
     }
+    const vy = (y - horizon) * invHSoft;
+    const vs = 1 - (vy < 0 ? -vy : vy);
+    rowVsoft[y] = vs < 0.2 ? 0.2 : vs;
   }
   growCols(w);
   for (let col = 0; col < w; col++) {
@@ -362,15 +425,21 @@ function paintPacked(data, z, w, h, maze, body, aim, horizon, flick, focal) {
     colOff[col] = off;
     colRx[col] = rx;
     colRy[col] = ry;
+    colInv[col] = 1 / (rx * cosAim + ry * sinAim);
     const hit = raycast(maze, body.x, body.y, ang);
     z[col] = hit.dist;
     const line = focal / hit.dist;
     colLine[col] = line;
     colTop[col] = Math.max(0, Math.min(h, Math.floor(horizon - line / 2)));
     colBot[col] = Math.max(-1, Math.min(h - 1, Math.floor(horizon + line / 2)));
-    colWallX[col] = hit.wallX;
+    // u rośnie zawsze od lewej do prawej, z której strony by nie patrzeć: glify nie są w lustrze,
+    // a sąsiednie odcinki tej samej ściany leżą w tym samym kierunku.
+    const flip = hit.side === 0 ? rx < 0 : ry > 0;
+    colWallX[col] = flip ? 1 - hit.wallX : hit.wallX;
     const absOff = off < 0 ? -off : off;
-    colCone[col] = Math.max(0.22, 1 - (absOff / fovCone) * (absOff / fovCone));
+    const k = 1 - (absOff / fovCone) * (absOff / fovCone);
+    colCone[col] = k < 0.22 ? 0.22 : k;
+    colConeF[col] = k < 0.2 ? 0.2 : k;
     colFall[col] = 1 / (1 + hit.dist * hit.dist * 0.05);
     colSide[col] = hit.side === 1 ? 0.85 : 1;
     colFog[col] = clamp((hit.dist - 1.2) / 12, 0, 0.58);
@@ -379,106 +448,99 @@ function paintPacked(data, z, w, h, maze, body, aim, horizon, flick, focal) {
   }
   const skyEnd = Math.min(h, Math.max(0, Math.ceil(horizon)));
   for (let y = 0; y < skyEnd; y++) {
-    const pv = planetV[y];
+    const pv = planetRows ? planetV[y] : -1;
     const sy = skyY[y] * skyW;
-    let i = y * w * 4;
-    for (let x = 0; x < w; x++) {
-      if (y >= colTop[x]) {
-        i += 4;
+    let i = y * w;
+    if (pv < 0) {
+      for (let x = 0; x < w; x++, i++) {
+        if (y < colTop[x]) out[i] = sky32[sy + skyX[x]];
+      }
+      continue;
+    }
+    const prow = pv * planetW;
+    for (let x = 0; x < w; x++, i++) {
+      if (y >= colTop[x]) continue;
+      const pu = planetU[x];
+      const s = sky32[sy + skyX[x]];
+      if (pu < 0) {
+        out[i] = s;
         continue;
       }
-      const si = (sy + skyX[x]) << 2;
-      let r = skyData[si];
-      let g = skyData[si + 1];
-      let b = skyData[si + 2];
-      const pu = planetU[x];
-      if (pu >= 0 && pv >= 0) {
-        const pi = (pv * planetW + pu) << 2;
-        const alpha = planetData[pi + 3];
-        if (alpha > 0) {
-          const k = alpha * (1 / 255);
-          const inv = 1 - k;
-          r = r * inv + planetData[pi] * k;
-          g = g * inv + planetData[pi + 1] * k;
-          b = b * inv + planetData[pi + 2] * k;
-        }
+      const pi = (prow + pu) << 2;
+      const alpha = planetData[pi + 3];
+      if (alpha === 0) {
+        out[i] = s;
+        continue;
       }
-      data[i] = r;
-      data[i + 1] = g;
-      data[i + 2] = b;
-      data[i + 3] = 255;
-      i += 4;
+      const k = alpha * (1 / 255);
+      const inv = 1 - k;
+      const r = ((s & 255) * inv + planetData[pi] * k + 0.5) | 0;
+      const g = (((s >>> 8) & 255) * inv + planetData[pi + 1] * k + 0.5) | 0;
+      const b = (((s >>> 16) & 255) * inv + planetData[pi + 2] * k + 0.5) | 0;
+      out[i] = 0xff000000 | (b << 16) | (g << 8) | r;
     }
   }
+  const bx = body.x;
+  const by = body.y;
   for (let y = skyEnd; y < h; y++) {
     const centerDist = rowCenter[y];
     const fsize = fBase >> rowLvl[y];
+    const fmask = fsize - 1;
+    const fscale = 0.5 * fsize;
     const fimg = fLevels[rowLvl[y]];
-    let i = y * w * 4;
-    for (let x = 0; x < w; x++) {
-      if (y <= colBot[x]) {
-        i += 4;
-        continue;
-      }
-      const rx = colRx[x];
-      const ry = colRy[x];
-      const dist = centerDist / (rx * cosAim + ry * sinAim);
-      const absOff = colOff[x] < 0 ? -colOff[x] : colOff[x];
-      const cone = Math.max(0.2, 1 - (absOff / fovCone) * (absOff / fovCone));
-      const fall = 1 / (1 + dist * dist * 0.05);
-      const lamp = fall * cone * flick;
-      const wx = body.x + rx * dist;
-      const wy = body.y + ry * dist;
-      const tx = Math.floor(wx * 0.5 * fsize) & (fsize - 1);
-      const ty = Math.floor(wy * 0.5 * fsize) & (fsize - 1);
+    let i = y * w;
+    for (let x = 0; x < w; x++, i++) {
+      if (y <= colBot[x]) continue;
+      const dist = centerDist * colInv[x];
+      const lamp = (colConeF[x] * flick) / (1 + dist * dist * 0.05);
+      const tx = Math.floor((bx + colRx[x] * dist) * fscale) & fmask;
+      const ty = Math.floor((by + colRy[x] * dist) * fscale) & fmask;
       const ti = (ty * fsize + tx) << 2;
-      data[i] = fimg[ti] * (0.16 + 1.05 * lamp);
-      data[i + 1] = fimg[ti + 1] * (0.16 + 1.05 * lamp * 0.86);
-      data[i + 2] = fimg[ti + 2] * (0.16 + 1.05 * lamp * 0.68);
-      data[i + 3] = 255;
-      i += 4;
+      let r = fimg[ti] * (0.16 + 1.05 * lamp) + 0.5;
+      let g = fimg[ti + 1] * (0.16 + 0.903 * lamp) + 0.5;
+      let b = fimg[ti + 2] * (0.16 + 0.714 * lamp) + 0.5;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      out[i] = 0xff000000 | (b << 16) | (g << 8) | r;
     }
   }
   for (let col = 0; col < w; col++) {
     const line = colLine[col];
     const top = colTop[col];
     const bot = colBot[col];
+    if (bot < top) continue;
     const wall = hd.tex[colId[col]];
     const lvl = wallLevel(line);
     const max = wall.levels.length - 1;
     const level = lvl > max ? max : lvl;
     const size = wall.size >> level;
-    const img = wall.levels[level];
-    const wallX = colWallX[col];
+    const mask = size - 1;
+    const img = wall.levels32[level];
     const fog = colFog[col];
-    const fogR = 70 * fog;
-    const fogG = 50 * fog;
-    const fogB = 34 * fog;
-    const invFog = 1 - fog;
-    const fall = colFall[col];
-    const cone = colCone[col];
-    const side = colSide[col];
-    const wallTop = horizon - line / 2;
-    for (let y = top; y <= bot; y++) {
-      const v = line <= 1 ? 0 : (y - wallTop) / line;
-      const tx = Math.floor(wallX * size) & (size - 1);
-      const ty = Math.floor(v * size) & (size - 1);
-      const ti = (ty * size + tx) << 2;
-      const vy = (y - horizon) / hSoft;
-      const vAbs = vy < 0 ? -vy : vy;
-      const vsoft = Math.max(0.2, 1 - vAbs * 1.25);
-      const lamp = fall * cone * vsoft * flick;
-      let r = img[ti] * (0.16 + 1.05 * lamp) * side;
-      let g = img[ti + 1] * (0.16 + 1.05 * lamp * 0.86) * side;
-      let b = img[ti + 2] * (0.16 + 1.05 * lamp * 0.68) * side;
-      r = r * invFog + fogR;
-      g = g * invFog + fogG;
-      b = b * invFog + fogB;
-      const i = (y * w + col) * 4;
-      data[i] = r;
-      data[i + 1] = g;
-      data[i + 2] = b;
-      data[i + 3] = 255;
+    const fogR = 70 * fog + 0.5;
+    const fogG = 50 * fog + 0.5;
+    const fogB = 34 * fog + 0.5;
+    const sideFog = colSide[col] * (1 - fog);
+    // kolor = tex * (0.16 + 1.05 * lamp * ciepło) * bok, potem mgła; lamp = fall * cone * vsoft * flick
+    const amb = 0.16 * sideFog;
+    const kR = 1.05 * colFall[col] * colCone[col] * flick * sideFog;
+    const kG = kR * 0.86;
+    const kB = kR * 0.68;
+    const colBase = (Math.floor(colWallX[col] * size) & mask) * size;
+    const step = line <= 1 ? 0 : size / line;
+    let tv = line <= 1 ? 0 : (top - (horizon - line / 2)) * step;
+    let i = top * w + col;
+    for (let y = top; y <= bot; y++, i += w, tv += step) {
+      const t = img[colBase + (Math.floor(tv) & mask)];
+      const vs = rowVsoft[y];
+      let r = (t & 255) * (amb + kR * vs) + fogR;
+      let g = ((t >>> 8) & 255) * (amb + kG * vs) + fogG;
+      let b = ((t >>> 16) & 255) * (amb + kB * vs) + fogB;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      out[i] = 0xff000000 | (b << 16) | (g << 8) | r;
     }
   }
 }

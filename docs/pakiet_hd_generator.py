@@ -1,6 +1,11 @@
 """Generator pakietu HD dla "Za labiryntem".
 Wszystkie tekstury kafelkują się w poziomie (ściany) albo w obu osiach (podłoga, niebo w poziomie).
 Paleta: popiół, kość, przygaszona miedź, bursztyn tylko przy pieczęciach i runach.
+
+Wspólna krawędź ścian: każda ściana (wall_a…d, rune, seal) ma te same rzędy kamieni (COURSES)
+i pionową spoinę dokładnie na brzegu kafla. Dowolne dwie tekstury postawione obok siebie,
+także w lustrze i w narożniku, stykają się spoiną, a poziome spoiny przechodzą dalej.
+Zapis: WebP (mniejszy transfer); PNG tylko z flagą --png.
 """
 import numpy as np
 from PIL import Image, ImageDraw
@@ -10,6 +15,15 @@ import os, sys
 OUT = sys.argv[1] if len(sys.argv) > 1 else "out"
 os.makedirs(OUT, exist_ok=True)
 S = 512
+# Wspólne rzędy kamieni dla wszystkich ścian. Granice: 0, 118, 254, 358, 512.
+COURSES = [118, 136, 104, 154]
+COURSE_EDGES = np.cumsum([0] + COURSES)
+# Szerokość pasa przy brzegu, w którym znika falowanie spoin (krawędź ma być prosta).
+EDGE_CALM = 44
+WEBP_Q = int(os.environ.get("WEBP_Q", "86"))
+USE_PNG = "--png" in sys.argv
+if USE_PNG:
+    sys.argv.remove("--png")
 
 
 def fbm(h, w, beta=2.0, seed=0, lo=1.0):
@@ -56,10 +70,28 @@ def ao(height, sigma=6, k=2.2, wrap_y=False):
     return np.clip(1 + (height - blur) * k, 0.35, 1.15)
 
 
-def save(name, rgb):
-    img = Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8), "RGB")
-    img.save(os.path.join(OUT, name), optimize=True)
+def out_name(name):
+    return name if USE_PNG else os.path.splitext(name)[0] + ".webp"
+
+
+def write_img(img, name):
+    path = os.path.join(OUT, out_name(name))
+    if USE_PNG:
+        img.save(path, optimize=True)
+    else:
+        img.save(path, "WEBP", quality=WEBP_Q, method=6, alpha_quality=100)
     return img
+
+
+def save(name, rgb):
+    img = Image.fromarray(np.clip(np.round(rgb), 0, 255).astype(np.uint8), "RGB")
+    return write_img(img, name)
+
+
+def edge_calm(xs):
+    """0 na lewym i prawym brzegu kafla, 1 w środku. Wycisza falowanie przy styku."""
+    e = np.minimum(xs, S - 1 - xs)
+    return smooth(0, EDGE_CALM, e)
 
 
 def crack_mask(h, w, n, rng, length=(60, 180), width=1.6, wrap=True):
@@ -111,11 +143,14 @@ STONES = np.array([
 ], float)
 
 
-def wall_layout(rng, rows_h, mortar=5.0):
-    """Zwraca id bloku, odległość do krawędzi, ton bloku. Kafelkuje się w poziomie."""
+def wall_layout(rng, rows_h, mortar=5.0, fixed=None):
+    """Zwraca id bloku, odległość do krawędzi, ton bloku. Kafelkuje się w poziomie.
+    Każdy rząd zaczyna się blokiem od x = 0, więc brzeg kafla jest zawsze spoiną.
+    fixed = {indeks rzędu: [szerokości]} ustawia bloki ręcznie (np. fryz z glifami)."""
     ys, xs = np.mgrid[0:S, 0:S].astype(float)
-    warp_x = (fbm(S, S, 2.2, rng.integers(1e6)) - 0.5) * 7
-    warp_y = (fbm(S, S, 2.2, rng.integers(1e6)) - 0.5) * 7
+    calm = edge_calm(xs)
+    warp_x = (fbm(S, S, 2.2, rng.integers(1e6)) - 0.5) * 7 * calm
+    warp_y = (fbm(S, S, 2.2, rng.integers(1e6)) - 0.5) * 7 * calm
     wx = (xs + warp_x) % S
     wy = np.clip(ys + warp_y, 0, S - 1)
     bid = np.zeros((S, S), int)
@@ -134,15 +169,17 @@ def wall_layout(rng, rows_h, mortar=5.0):
                 wv = rem
             widths.append(wv)
             rem -= wv
-        off = rng.uniform(0, S)
-        xe = np.cumsum([0] + widths) + off
+        rng.uniform(0, S)  # dawny losowy offset rzędu; zostaje, żeby nie przesuwać reszty losowania
+        if fixed and r in fixed:
+            widths = list(fixed[r])
+        xe = np.cumsum([0] + widths).astype(float)
         rowmask = (wy >= y0) & (wy < y1)
         for i in range(len(widths)):
             a, b = xe[i], xe[i + 1]
             # pozycja względem bloku z zawinięciem
             rel = (wx - a) % S
             inb = rowmask & (rel < (b - a))
-            dx = np.minimum(rel, (b - a) - rel)
+            dx = np.minimum(rel + 0.5, (b - a) - rel - 0.5)
             dy = np.minimum(wy - y0, y1 - wy)
             rc = rng.uniform(5, 22)
             corner = (dx < rc) & (dy < rc)
@@ -156,11 +193,12 @@ def wall_layout(rng, rows_h, mortar=5.0):
     return bid, dist, tilt, nid, edges_y
 
 
-def stone_wall(seed, rust=0.0, cracks=4, dust=0.5, rows=None, extra=None):
+def stone_wall(seed, rust=0.0, cracks=4, dust=0.5, rows=None, extra=None, fixed=None):
     rng = np.random.default_rng(seed)
     if rows is None:
-        rows = [118, 136, 104, 154]
-    bid, dist, tilt, nb, edges_y = wall_layout(rng, rows)
+        rows = COURSES
+    assert list(rows) == list(COURSES), "ściany muszą mieć wspólne rzędy, inaczej brzegi się nie zgrają"
+    bid, dist, tilt, nb, edges_y = wall_layout(rng, rows, fixed=fixed)
     ys, xs = np.mgrid[0:S, 0:S].astype(float)
     mortar = 3.5
     fine = fbm(S, S, 1.15, seed + 1)
@@ -280,16 +318,18 @@ def glyph_mask(w, h, glyphs, rng, stroke=10, big=4):
 
 def rune_wall():
     rng = np.random.default_rng(77)
-    # środkowy, wysoki rząd to fryz z glifami
-    rows = [80, 74, 186, 92, 80]
-    y0 = 154
-    band_cy = y0 + 93
+    # fryz z glifami to drugi wspólny rząd (118–254): trzy równe płyty, glif na środku każdej
+    rows = COURSES
+    band_cy = (COURSE_EDGES[1] + COURSE_EDGES[2]) / 2
+    frieze = [171, 170, 171]
+    centers = np.cumsum([0] + frieze)[:-1] + np.array(frieze) / 2
     kinds = [0, 1, 2, 3, 4, 5]
     rng.shuffle(kinds)
-    glyphs = [(85 + i * 171, band_cy, 62, kinds[i]) for i in range(3)]
+    glyphs = [(centers[i], band_cy - 2, 54, kinds[i]) for i in range(3)]
     gm = glyph_mask(S, S, glyphs, rng, stroke=11)
-    # drugi, płytszy zestaw drobnych znaków w rzędzie niżej
-    small = [(40 + i * 64, 400, 15, kinds[(i + 3) % 6]) for i in range(8)]
+    # drugi, płytszy zestaw drobnych znaków w rzędzie niżej (254–358)
+    small_cy = (COURSE_EDGES[2] + COURSE_EDGES[3]) / 2
+    small = [(40 + i * 64, small_cy, 15, kinds[(i + 3) % 6]) for i in range(8)]
     sm = glyph_mask(S, S, small, rng, stroke=4)
 
     def extra(h, dist, rng_):
@@ -298,7 +338,7 @@ def rune_wall():
         return h
 
     rng2 = np.random.default_rng(78)
-    rgb, h = stone_wall(78, rust=0.25, cracks=3, dust=0.45, rows=rows, extra=extra)
+    rgb, h = stone_wall(78, rust=0.25, cracks=3, dust=0.45, rows=rows, extra=extra, fixed={1: frieze})
     # bursztynowa inkrustacja w głębi rowków, zwietrzała
     wear = fbm(S, S, 1.6, 81)
     inlay = np.clip(ndi.gaussian_filter(gm, 0.8) * 1.3, 0, 1) * smooth(0.32, 0.7, wear) * (0.6 + 0.4 * fbm(S, S, 1.1, 82))
@@ -325,8 +365,14 @@ def seal_door():
     h = np.where(frame, 0.85, 0.55)
     edge = np.minimum(np.where(in_slab, np.minimum(np.abs(xs - 62), np.abs(xs - (S - 62))), 99), np.where(in_slab, ys - 56, 99))
     h = h - np.where(in_slab, (1 - smooth(0, 12, edge)) * 0.15, 0)
-    # spoiny w ramie
-    jamb_rows = (frame & ((ys % 128) < 4) & (ys > 56)) | (frame & (ys < 56) & (((xs + 40) % 170) < 4)) | (frame & (np.abs(ys - 54) < 3))
+    # spoiny w ramie: te same poziome spoiny co w ścianach i pionowa spoina na brzegu kafla
+    course_line = np.zeros((S, S), bool)
+    for e in COURSE_EDGES:
+        course_line |= np.abs(ys + 0.5 - e) < 3.5
+    pillar = frame & ((xs < 62) | (xs > S - 62))
+    outer = (xs < 3.5) | (xs > S - 4.5)
+    lintel_joints = (ys < 56) & (xs >= 62) & (xs <= S - 62) & ((((xs + 40) % 170) < 4) | (np.abs(ys - 54) < 3))
+    jamb_rows = frame & (outer | (pillar & course_line) | lintel_joints | (ys < 3.5))
     h = np.where(jamb_rows, 0.4, h)
     # pionowe żłobienia na płycie
     groove = in_slab & (np.abs(((ys + (fine - 0.5) * 14) % 58) - 29) < 1.2) & (ys > 70) & (np.hypot(xs - S / 2, ys - S * 0.56) > 164)
@@ -366,7 +412,9 @@ def seal_door():
     stone = np.array([158, 146, 126.0]) * (0.82 + 0.3 * mid[..., None]) * (0.9 + 0.2 * fine[..., None])
     basalt = np.array([74, 66, 58.0]) * (0.8 + 0.35 * mid[..., None]) * (0.9 + 0.2 * fine[..., None])
     base = np.where(frame[..., None], stone, basalt)
-    base = np.where(jamb_rows[..., None], np.array([66, 58, 48.0]), base)
+    # spoiny ramy w kolorze zaprawy ścian, żeby styk z sąsiednią ścianą był tą samą spoiną
+    mortar_col = np.array([86, 74, 60.0]) * (0.75 + 0.5 * fine[..., None]) * 0.86
+    base = np.where(jamb_rows[..., None], mortar_col, base)
     copper = np.array([150, 92, 52.0]) * (0.75 + 0.45 * mid[..., None])
     patina = np.array([96, 98, 80.0])
     pm = smooth(0.55, 0.8, big)[..., None] * 0.6
@@ -382,6 +430,10 @@ def seal_door():
     rgb += amber * ndi.gaussian_filter(amb, 6)[..., None] * 0.45
     # ciepły odblask na pierścieniu od rdzenia
     rgb += np.array([60, 30, 8.0]) * (rm * smooth(150, 100, r)[..., None]) * 0.6
+    # spoiny ramy dostają jasność spoin ścian (po świetle), inaczej styk z sąsiadem jest za ciemny
+    joint = ndi.gaussian_filter(jamb_rows.astype(float), 0.8, mode=["nearest", "wrap"])[..., None]
+    mortar_lit = np.array([86, 74, 60.0]) * (0.75 + 0.5 * fine[..., None]) * 0.74
+    rgb = rgb * (1 - joint) + mortar_lit * joint
     return rgb
 
 
@@ -556,16 +608,16 @@ def planet_tex():
     rgb = rgb * (1 - ra[..., None]) + rcol * ra[..., None]
     alpha = np.clip(alpha + ra * (1 - alpha), 0, 1)
     out = np.dstack([np.clip(rgb / np.maximum(alpha, 1e-3)[..., None], 0, 255), alpha * 255])
-    Image.fromarray(out.astype(np.uint8), "RGBA").save(os.path.join(OUT, "planet.png"), optimize=True)
+    write_img(Image.fromarray(out.astype(np.uint8), "RGBA"), "planet.png")
 
 
 if __name__ == "__main__":
     which = sys.argv[2:] or ["walls", "rune", "seal", "floor", "sky", "planet"]
-    if "walls" in which:
+    if "walls" in which:  # wszystkie na wspólnych COURSES
         save("wall_a.png", stone_wall(11, rust=0.15, cracks=5, dust=0.5)[0])
         save("wall_b.png", stone_wall(23, rust=0.55, cracks=4, dust=0.35)[0])
-        save("wall_c.png", stone_wall(37, rust=0.05, cracks=10, dust=0.6, rows=[96, 142, 124, 150])[0])
-        save("wall_d.png", stone_wall(41, rust=0.3, cracks=6, dust=0.85, rows=[160, 120, 132, 100])[0])
+        save("wall_c.png", stone_wall(37, rust=0.05, cracks=10, dust=0.6)[0])
+        save("wall_d.png", stone_wall(41, rust=0.3, cracks=6, dust=0.85)[0])
     if "rune" in which:
         save("rune.png", rune_wall())
     if "seal" in which:
