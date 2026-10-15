@@ -448,8 +448,10 @@ function paintCredits() {
     <p class="kicker">Testerzy</p>
     <ul class="credits">
       <li>Mariusz B.</li>
+      <li>Pawełek</li>
       <li>Bartek M.</li>
     </ul>
+    <p class="fine">Mariuszowi za drugi test.</p>
     <div class="menu-list"><button type="button" data-act="back">Wróć</button></div>
   `);
   paintPadFocus();
