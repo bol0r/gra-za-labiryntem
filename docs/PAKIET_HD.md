@@ -22,6 +22,7 @@ W `render.js` u ściany rośnie zawsze od lewej do prawej, z której strony by n
 | `floor.webp` | 512×512 | `textures[6]` (floorTex) | **Jeden kafel = 2×2 komórki labiryntu.** Kafelkuje się w obu osiach. |
 | `sky.webp` | 4096×1024 | niebo, gwiazdy i krąg planety rysowane w pętli `above` | Panorama: x = azymut 0–360°, y = wysokość kątowa 90° (góra) → 0° (dół, horyzont). Kafelkuje się w poziomie. Jest na niej mały księżyc. |
 | `planet.webp` | 768×768 RGBA | miedziany krąg (`pcx = w * 0.7`) | Gazowy olbrzym z pierścieniem. Środek obrazka = środek tarczy, promień tarczy = 168 px. |
+| `egg_photo.webp` | 512×512 RGBA | posadzka jednego ślepego zaułka (`eggCell`) | Easter egg: zdjęcie Wery, jedna komórka. Robi je `docs/intro_generator.py`, opis w `docs/INTRO_TEKSTURY.md`. |
 
 ## Jak podpiąć
 

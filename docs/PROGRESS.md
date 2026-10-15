@@ -4,6 +4,16 @@ Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zosta
 
 ## Zrobione
 
+### Intro w teksturach i zdjęcie w zaułku
+
+Intro ma teksturowany kosmos i salę: tło z mgławicą, planeta z powierzchnią, na której w środku nurkowania (5,9 s) wychodzi na środek tarczy labirynt wyryty w skale i rozpala się bursztynem. Sala ma ściany z pilastrami, fryzem i uchwytami pochodni, posadzkę z miedzianą inkrustacją w stronę serca, kasetonowy strop i bramę serca na końcu. Pochodnie świecą na kamień. Planeta i sala liczą się piksel po pikselu w buforze, który sam schodzi z rozdzielczością, gdy klatka trwa ponad 8 ms. Bez tekstur albo z wyłączonym HD zostaje dawne płaskie intro. Pliki w `public/tex/intro/` (~275 KB), generator `docs/intro_generator.py`, plan i mapowanie w `docs/INTRO_TEKSTURY.md`.
+
+Easter egg: w jednym ślepym zaułku każdego labiryntu na posadzce leży wyblakłe zdjęcie Wery, latarniczki sprzed was, z podpisem „Wera, ruina siódma / jeśli to czytasz — idź za światłem”. Podpis jest zawsze od strony wejścia. Tylko w HD, tylko u latarnika.
+
+Sprawdzone: Chromium bez okna 1280×720, przebieg intra 0–21 s średnio 5,1 ms na klatkę, bez błędów; klatki z 0,6, 3,5, 5,9, 7, 8, 12, 16,8 s i tryb bez ruchu. Labirynt 15×15 z nasionem 12345: zaułek (0, 14), zdjęcie widać z sąsiedniej komórki, prosto i z podpisem przy patrzącym. `HD_VER` bez zmian (nowy plik ma nowy adres, a menu bierze niebo z `?v=2`).
+
+Do poprawy poza tą zmianą: w trybie bez ruchu (`prefers-reduced-motion`) trzy linie tytułu nachodzą na siebie przy 1280×720, bo odstęp jest stały, a litery rosną z szerokością.
+
 ### Menu i HUD latarnika
 
 Menu główne bierze niebo i planetę z `public/tex/hd/` (`sky.webp`, `planet.webp`, ta sama wersja co korytarz), gdy tekstury HD są włączone. Niebo sunie w bok, na dole stoi sylweta ruiny, w kadrze jest drobny kurz. Tytuł „Za labiryntem” wypełnia się bursztynem raz po wejściu. Fokus to bursztynowy romb i podpis pozycji. Płyta „Najgłębiej” pokazuje pierwsze miejsce z `/tablica`. Na dole są podpowiedzi pada i adres drugiego ekranu. Bez HD zostaje dotychczasowe tło. Opcje to kamienna płyta, przełącznik z bursztynową gałką i suwak głośności. Graj to dwie karty ról i kod w czterech komórkach.
