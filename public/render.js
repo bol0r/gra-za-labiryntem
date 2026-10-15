@@ -4,6 +4,7 @@ import {
   clamp,
   gridPath,
   hasLos,
+  neighbors,
   normalizeAngle,
   raycast,
   senses,
@@ -298,7 +299,16 @@ async function loadHd() {
     const sky = imagePixels(skyImg);
     await nextTask();
     const planetImg = await pending[8];
+    // Zdjęcie Wery na posadzce jednego ślepego zaułka (easter egg). Brak pliku nie psuje reszty HD.
+    let egg = null;
+    try {
+      const eggImg = await loadImage(`/tex/hd/egg_photo.webp?v=${HD_VER}`);
+      egg = withMips(imagePixels(eggImg), eggImg.width);
+    } catch {
+      egg = null;
+    }
     hd = {
+      egg,
       tex,
       sky,
       sky32: new Uint32Array(sky.buffer, sky.byteOffset, sky.length >> 2),
@@ -359,6 +369,38 @@ function frameView(data) {
     frame32Src = data;
   }
   return frame32;
+}
+
+// Ślepy zaułek ze zdjęciem: stały dla danego labiryntu, inny w każdej rundzie. Bez startu i serca.
+let eggMaze = null;
+let eggX = -1;
+let eggY = -1;
+let eggDx = 0;
+let eggDy = 0;
+
+function eggCell(maze) {
+  if (eggMaze === maze) return;
+  eggMaze = maze;
+  eggX = -1;
+  eggY = -1;
+  const ends = [];
+  for (let y = 0; y < maze.h; y++) {
+    for (let x = 0; x < maze.w; x++) {
+      if (maze.start && maze.start.x === x && maze.start.y === y) continue;
+      if (maze.relic && maze.relic.x === x && maze.relic.y === y) continue;
+      if (neighbors(maze, x, y).length === 1) ends.push(x, y);
+    }
+  }
+  if (!ends.length) return;
+  const seed = hash01(maze.w * 131 + (maze.start ? maze.start.x * 7 + maze.start.y : 0), (maze.relic ? maze.relic.x * 17 + maze.relic.y : 0) + (maze.pathLength || 0));
+  const k = Math.floor(seed * (ends.length / 2)) * 2;
+  // środek komórki: z wejścia do zaułka zdjęcie leży 1,4–2 jednostki przed latarnikiem, w dole kadru.
+  // D to kierunek patrzenia z wejścia w głąb zaułka; podpis odbitki leży od strony wejścia.
+  const [nx, ny] = neighbors(maze, ends[k], ends[k + 1])[0];
+  eggX = ends[k] + 0.5;
+  eggY = ends[k + 1] + 0.5;
+  eggDx = ends[k] - nx;
+  eggDy = ends[k + 1] - ny;
 }
 
 function paintPacked(data, z, w, h, maze, body, aim, horizon, flick, focal) {
@@ -482,23 +524,49 @@ function paintPacked(data, z, w, h, maze, body, aim, horizon, flick, focal) {
   }
   const bx = body.x;
   const by = body.y;
+  const egg = hd.egg;
+  if (egg) eggCell(maze);
+  const eggOn = !!egg && eggX >= 0;
   for (let y = skyEnd; y < h; y++) {
     const centerDist = rowCenter[y];
     const fsize = fBase >> rowLvl[y];
     const fmask = fsize - 1;
     const fscale = 0.5 * fsize;
     const fimg = fLevels[rowLvl[y]];
+    // zdjęcie ma 512 px na komórkę, posadzka 256, więc jeden poziom mip dalej
+    const eLvl = eggOn ? Math.min(egg.levels.length - 1, rowLvl[y] + 1) : 0;
+    const eSize = eggOn ? egg.size >> eLvl : 0;
+    const eImg = eggOn ? egg.levels[eLvl] : null;
     let i = y * w;
     for (let x = 0; x < w; x++, i++) {
       if (y <= colBot[x]) continue;
       const dist = centerDist * colInv[x];
       const lamp = (colConeF[x] * flick) / (1 + dist * dist * 0.05);
-      const tx = Math.floor((bx + colRx[x] * dist) * fscale) & fmask;
-      const ty = Math.floor((by + colRy[x] * dist) * fscale) & fmask;
+      const wx = bx + colRx[x] * dist;
+      const wy = by + colRy[x] * dist;
+      const tx = Math.floor(wx * fscale) & fmask;
+      const ty = Math.floor(wy * fscale) & fmask;
       const ti = (ty * fsize + tx) << 2;
-      let r = fimg[ti] * (0.16 + 1.05 * lamp) + 0.5;
-      let g = fimg[ti + 1] * (0.16 + 0.903 * lamp) + 0.5;
-      let b = fimg[ti + 2] * (0.16 + 0.714 * lamp) + 0.5;
+      let cr = fimg[ti];
+      let cg = fimg[ti + 1];
+      let cb = fimg[ti + 2];
+      const ex = wx - eggX;
+      const ey = wy - eggY;
+      if (eggOn && ex > -0.5 && ex < 0.5 && ey > -0.5 && ey < 0.5) {
+        // obraz: w prawo = prawa ręka patrzącego (-Dy, Dx), w dół = w stronę wejścia (-D)
+        const eu = 0.5 - ex * eggDy + ey * eggDx;
+        const ev = 0.5 - ex * eggDx - ey * eggDy;
+        const ei = (((ev * eSize) | 0) * eSize + ((eu * eSize) | 0)) << 2;
+        const a = eImg[ei + 3] * (1 / 255);
+        if (a > 0) {
+          cr += (eImg[ei] - cr) * a;
+          cg += (eImg[ei + 1] - cg) * a;
+          cb += (eImg[ei + 2] - cb) * a;
+        }
+      }
+      let r = cr * (0.16 + 1.05 * lamp) + 0.5;
+      let g = cg * (0.16 + 0.903 * lamp) + 0.5;
+      let b = cb * (0.16 + 0.714 * lamp) + 0.5;
       if (r > 255) r = 255;
       if (g > 255) g = 255;
       if (b > 255) b = 255;
