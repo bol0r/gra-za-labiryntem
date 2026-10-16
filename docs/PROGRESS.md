@@ -4,6 +4,12 @@ Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zosta
 
 ## Zrobione
 
+### Zawołania Wstecz i Do serca
+
+Kartograf ma dwa znaki więcej, w tej samej siatce: Wstecz i Do serca, z ikoną i skrótem 6 i 7. Idą tym samym protokołem co Stój i Lewo. Reszta tablicy zostaje. Napis „Do serca” ma ciaśniejszy odstęp liter, żeby mieścił się w komórce.
+
+Sprawdzone: pokój JCE3. Przy 390×844 mapa ma 401 px, siatka kończy się w kadrze, strona się nie przewija. Przy 360×740 mapa ma 287 px, osiem przycisków widać w całości, „Do serca” nie wylewa się z komórki. Klik Wstecz i Do serca doszedł do latarnika jako `back` i `heart`. Konsola pusta.
+
 ### Czytelne pieczęcie i łup
 
 Na mapie pieczęć jest bursztynowym heksagonem z ciemnym środkiem od początku rundy, a przy drzwiach tylko jaśnieje. Klucz ma jasny trzonek na ciemnym krążku, odłamek to bursztynowy romb. U latarnika pieczęć jest medalionem na drzwiach i widać ją z korytarza, zanim stanie się przy nich. Klucz i odłamek mają ciemną obwódkę, więc odcinają się od posadzki. Bez drugich drzwi, skrzynek i bossa.

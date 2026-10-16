@@ -22,7 +22,7 @@ const PORT = Number(process.env.PORT) || 8787;
 const DT = 1 / 20;
 const REJOIN_MS = 120000;
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const CALLS = new Set(["stop", "quiet", "run", "left", "right"]);
+const CALLS = new Set(["stop", "quiet", "run", "left", "right", "back", "heart"]);
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 let QRCode = null;

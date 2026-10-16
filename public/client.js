@@ -587,7 +587,7 @@ function paintLobby() {
 const soundIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 10h3l4-3v10l-4-3H5z"/><path d="M16 9c1.3 1.6 1.3 4.4 0 6M18.5 7c2.4 2.8 2.4 7.2 0 10"/></svg>`;
 const mutedIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 10h3l4-3v10l-4-3H5z"/><path d="M16 10l4 4M20 10l-4 4"/></svg>`;
 const sealMark = `<svg viewBox="0 0 22 25" aria-hidden="true"><path d="M11 1.5l8.7 5v10.5L11 23.5 2.3 17V6.5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path class="core" d="M7 10l4 3.5 4-3.5M7 14l4 3.5 4-3.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`;
-const callWords = { stop: "Stój", quiet: "Cicho", run: "Biegnij", left: "W lewo", right: "W prawo" };
+const callWords = { stop: "Stój", quiet: "Cicho", run: "Biegnij", left: "W lewo", right: "W prawo", back: "Wstecz", heart: "Do serca" };
 
 function stonePlate() {
   if (document.documentElement.style.getPropertyValue("--stone-tex")) return;
@@ -655,6 +655,8 @@ function renderPanel() {
         ${key("quiet", "Cicho", "2", "", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 10h3l4-3v10l-4-3H5z"/><path d="M16 10l4 4M20 10l-4 4"/></svg>`)}
         ${key("run", "Biegnij", "3", "", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h10M10 7l5 5-5 5M17 7l5 5-5 5"/></svg>`)}
         <button class="veil" id="veil-btn" type="button" data-act="veil" aria-label="Zasłona" style="--p: 1"><i class="ring"></i><b id="veil-label">Zasłona</b><em id="veil-num"></em></button>
+        ${key("back", "Wstecz", "6", "", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 14H5v-4"/><path d="M5 14c2.5-5 7-8 13-8"/></svg>`)}
+        ${key("heart", "Do serca", "7", "long", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 19s-6.2-3.7-6.2-8.1A3.5 3.5 0 0 1 12 8.2a3.5 3.5 0 0 1 6.2 2.7C18.2 15.3 12 19 12 19z"/></svg>`)}
       </div>
     </section>
   `;
@@ -728,13 +730,15 @@ function updatePanel(snap) {
   if (roundClock) roundClock.textContent = clock(snap.roundT);
 }
 
-const CALL_WORD = { stop: "Stój", quiet: "Cicho", run: "Biegnij", left: "W lewo", right: "W prawo", knock: "Stuk" };
+const CALL_WORD = { stop: "Stój", quiet: "Cicho", run: "Biegnij", left: "W lewo", right: "W prawo", back: "Wstecz", heart: "Do serca", knock: "Stuk" };
 const CALL_ICON = {
   stop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6.5" y="6.5" width="11" height="11" rx="1"/></svg>',
   left: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 6l-6 6 6 6"/></svg>',
   quiet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10h3l4-3v10l-4-3H5z"/><path d="M16 10l4 4M20 10l-4 4"/></svg>',
   run: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h10M10 7l5 5-5 5M17 7l5 5-5 5"/></svg>',
   right: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 6l6 6-6 6"/></svg>',
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 14H5v-4"/><path d="M5 14c2.5-5 7-8 13-8"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 19s-6.2-3.7-6.2-8.1A3.5 3.5 0 0 1 12 8.2a3.5 3.5 0 0 1 6.2 2.7C18.2 15.3 12 19 12 19z"/></svg>',
 };
 
 function showRunnerCall(id) {
@@ -1668,7 +1672,7 @@ window.addEventListener("keydown", (event) => {
     if (event.key.toLowerCase() === "k") doKnock();
   }
   if (state.role !== "guide" || state.phase !== "play") return;
-  const calls = { "1": "stop", "2": "quiet", "3": "run", "4": "left", "5": "right" };
+  const calls = { "1": "stop", "2": "quiet", "3": "run", "4": "left", "5": "right", "6": "back", "7": "heart" };
   if (calls[event.key]) {
     send({ t: "call", id: calls[event.key] });
     glowCall(calls[event.key]);
@@ -2081,7 +2085,7 @@ function toggleHelp() {
       ? `<p class="kicker">Kartograf</p><h2>Przy mapie</h2>
       <p>Mapa jest na telefonie. Latarnik na komputerze.</p>
       <p>Klik w korytarz stawia znak. Klik w drzwi otwiera je tylko wtedy, gdy latarnik przy nich stoi.</p>
-      <p>Zawołania: Stój, Cicho, Biegnij, Lewo, Prawo. Zasłona na chwilę myli strażnika.</p>
+      <p>Zawołania: Stój, Cicho, Biegnij, Lewo, Prawo, Wstecz, Do serca. Zasłona na chwilę myli strażnika.</p>
       <p>Punkty: odłamki, klucz, ucieczka z pościgu i przejście komory.</p>`
       : `<p class="kicker">Pomoc</p><h2>Dwie role</h2>
       <p>Mapa na telefonie, latarnia na komputerze. Ten sam Wi-Fi.</p>

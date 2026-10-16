@@ -402,6 +402,7 @@ section.board {
 }
 #panel .key svg { width: 24px; height: 24px; color: var(--copper-bright); }
 #panel .key span { font-weight: 700; font-size: 12px; line-height: 1; letter-spacing: 0.2em; text-transform: uppercase; }
+#panel .key.long span { letter-spacing: 0.06em; font-size: 11px; }
 #panel .key small { position: absolute; top: 6px; right: 8px; font-weight: 600; font-size: 9px; line-height: 1; color: rgba(196, 164, 138, 0.55); }
 #panel .key.dir {
   background:
