@@ -1,0 +1,30 @@
+---
+description: Zasady pracy nad Za labiryntem do wydania 1.0
+alwaysApply: true
+---
+
+Przeczytaj `AGENTS.md` i `docs/WYDANIE_1.0.md`, zanim cokolwiek zmienisz.
+
+## Zakres
+
+- Do wydania 1.0 robimy tylko niezaznaczone punkty z `docs/WYDANIE_1.0.md`. Jeden punkt na raz.
+- Pomysł spoza listy dopisz jednym zdaniem do sekcji „Po 1.0” i wróć do zadania. Nie ruszaj przez niego kodu.
+- Nie refaktoruj `public/client.js` ani `public/render.js`. Zmiany punktowe, przy istniejących funkcjach.
+- Nie zmieniaj protokołu WebSocket, jeśli punkt tego wprost nie wymaga.
+
+## Każde zadanie
+
+1. Krótki plan: co ruszasz, w których plikach, jak sprawdzisz. Czekaj na „ok”, jeśli zmiana dotyka zasad rundy.
+2. Kod.
+3. `npm run check` i `node server/smoke.js <port>` przy działającym serwerze. Oba muszą przejść.
+4. Sprawdzenie w przeglądarce, jeśli zmiana jest widoczna: 1280×720 i 390×844, konsola pusta.
+5. Odhacz punkt (`[x]`) w `docs/WYDANIE_1.0.md` w tym samym commicie co zmiana.
+6. Commit po polsku, jedno zdanie o tym, co gracz zobaczy albo co się zmieniło.
+
+## Uwaga na deploy
+
+`git push` na `master` od razu wdraża grę na Render (`render.yaml`, autoDeploy). Nie pushuj bez wyraźnej prośby.
+
+## Nie dotykaj
+
+`data/` (tablica i `runs.jsonl` są prawdziwe), `docs/FABULA.md`, `docs/OPOWIADANIE.md`, `render.yaml` bez prośby.
