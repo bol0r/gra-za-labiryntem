@@ -145,7 +145,7 @@ function setPhase(phase) {
   deck.hidden = !playing;
   const runnerHud = document.getElementById("runner-hud");
   if (runnerHud) runnerHud.hidden = !playing;
-  if (!playing) screen.classList.remove("is-near");
+  if (!playing) screen.classList.remove("is-near", "is-warn");
   quitBtn.hidden = phase !== "play" || state.role === "guide";
   const shellChrome = phase === "boot" || phase === "intro" || phase === "menu" || phase === "home" || phase === "options" || phase === "story" || phase === "credits" || phase === "scores";
   fullBtn.hidden = shellChrome || playing;
@@ -1241,9 +1241,22 @@ function readPad(dt) {
   }
 }
 
-function feelGuardian(dt, dist) {
-  const near = state.role === "runner" && state.phase === "play" && dist < 3.4;
+let warnHeld = false;
+
+function feelGuardian(dt, dist, snState) {
+  const playing = state.role === "runner" && state.phase === "play";
+  const coming = snState === "hunt" || snState === "alert" || snState === "search";
+  if (!playing) {
+    warnHeld = false;
+    screen.classList.remove("is-near", "is-warn");
+    rumbleAt = 0;
+    return;
+  }
+  const near = dist < 3.4;
+  if (coming && dist < 7.2) warnHeld = true;
+  else if (!coming || dist > 8) warnHeld = false;
   screen.classList.toggle("is-near", near);
+  screen.classList.toggle("is-warn", warnHeld && !near);
   if (!near) {
     rumbleAt = 0;
     return;
@@ -1890,7 +1903,9 @@ function frame(now) {
       sprint: state.role === "runner" ? !!state.body.sprint : false,
       role: state.role,
     });
-    if (state.role === "runner" && state.phase === "play") feelGuardian(dt, Math.hypot(sn.x - body.x, sn.y - body.y));
+    if (state.role === "runner" && state.phase === "play") {
+      feelGuardian(dt, Math.hypot(sn.x - body.x, sn.y - body.y), sn.state);
+    }
   }
   watchFrames((performance.now() - t0) / 1000);
   try {

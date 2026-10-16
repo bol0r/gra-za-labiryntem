@@ -1316,6 +1316,11 @@ section.board {
   background: rgba(14, 12, 10, 0.6);
   color: var(--bone);
 }
+#screen.is-warn::after {
+  content: "";
+  position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  box-shadow: inset 0 0 70px 6px rgba(163, 181, 106, 0.28);
+}
 #screen.is-near::after {
   content: "";
   position: absolute; inset: 0; z-index: 4; pointer-events: none;
