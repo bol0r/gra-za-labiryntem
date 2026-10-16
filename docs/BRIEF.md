@@ -36,6 +36,8 @@ Mechaniki rundy przy tym kierunku się nie zmieniają.
 
 Twórca pokoju wybiera rolę. Druga osoba dostaje tę, która została.
 
+W lobby każdy ekran mówi wprost, czym jest: „Ten ekran: Mapa” albo „Ten ekran: Latarnia”, i jednym zdaniem, co się tu robi. To jest ważniejsze niż kod pokoju, gdy drugie z was już weszło. Klient poznaje telefon po dotyku i krótszym boku poniżej 800 px, resztę bierze za komputer, i podaje to przy wejściu, dołączeniu i powrocie. Gdy latarnia stoi na telefonie, a mapa na komputerze, oba lobby piszą „Latarnia jest na telefonie. Lepiej się gra odwrotnie.” i dają wyróżniony przycisk „Zamieńcie się”. Przy tym samym typie urządzeń przycisk zostaje, bez ostrzeżenia. Jedna osoba w lobby przycisku nie dostaje. Zamiana działa tylko w lobby, gdy oboje są online: role, tokeny i zapis w przeglądarce idą za nowym miejscem, więc odświeżenie strony wraca już do nowej roli.
+
 ## Mechaniki
 
 - Labirynt jest doskonały (recursive backtracker) plus do trzech zamkniętych skrótów. Skrót nie jest obowiązkowy. Da się wygrać bez kartografa, ale bez niego jest ślepo.

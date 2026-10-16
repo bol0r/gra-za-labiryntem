@@ -101,6 +101,7 @@ const state = {
   joinUrl: "",
   qr: "",
   both: false,
+  players: [],
   err: "",
   scores: null,
   veilHintRound: -1,
@@ -117,6 +118,12 @@ let netPublic = false;
 
 function send(obj) {
   if (state.ws && state.ws.readyState === 1) state.ws.send(JSON.stringify(obj));
+}
+
+function deviceKind() {
+  const coarse = window.matchMedia("(pointer: coarse)").matches;
+  const short = Math.min(window.innerWidth, window.innerHeight) < 800;
+  return coarse && short ? "phone" : "computer";
 }
 
 function readSession() {
@@ -514,7 +521,7 @@ function paintHome() {
       <header class="play-head">
         <p class="kicker">Graj</p>
         <h1>Kto patrzy, kto idzie?</h1>
-        <p class="role-hint">Tu weź latarnię, mapę otwórz na telefonie.</p>
+        <p class="role-hint">${deviceKind() === "phone" ? "Tu weź mapę. Latarnię otwórz na komputerze." : "Tu weź latarnię, mapę otwórz na telefonie."}</p>
       </header>
       <div class="play-roles">
         <button type="button" class="role-card" data-act="create" data-role="guide">
@@ -570,25 +577,52 @@ function paintHome() {
   paintPadFocus();
 }
 
+function seatOf(role) {
+  return (state.players || []).find((row) => row.role === role) || null;
+}
+
+function seatsCrossed() {
+  const guide = seatOf("guide");
+  const runner = seatOf("runner");
+  return !!(state.both && guide && runner && guide.device === "computer" && runner.device === "phone");
+}
+
 function paintLobby() {
-  const roleName = state.role === "runner" ? "Latarnik" : "Kartograf";
+  const lamp = state.role === "runner";
+  const roleName = lamp ? "Latarnik" : "Kartograf";
+  const title = lamp ? "Ten ekran: Latarnia" : "Ten ekran: Mapa";
+  const job = lamp
+    ? "Schodzisz z latarnią i widzisz tyle, ile oświetlisz."
+    : "Zostajesz przy mapie i dyktujesz drogę.";
   const code = (state.code || "").split("").join(" ");
-  const urls = (state.urls || []).map((url) => `<div class="urls">${url}</div>`).join("");
+  const urls = (state.urls || []).map((url) => `<div class="urls">${esc(url)}</div>`).join("");
   const waiting = !state.both;
+  const crossed = seatsCrossed();
   const waitLine = waiting ? "Czekam na drugie z was. Nić leży na stole." : "Można schodzić.";
-  fillPlate(waiting ? "lobby-wait" : "lobby-ready", `
-    <p class="kicker">${roleName}</p>
-    <h1 class="code" aria-label="Kod ${state.code || ""}">${code}</h1>
-    <p class="dictate">Czytaj po jednej literze.</p>
-    ${state.qr ? `<img class="qr" alt="Kod QR komory ${state.code}" src="${state.qr}">` : ""}
-    <p class="wait ${waiting ? "is-waiting" : "is-ready"}">${waitLine}</p>
-    ${urls}
-    <p class="fine">${netPublic ? "Drugie z was może być w innym mieście." : "Ten sam Wi-Fi, ta sama piwnica."}</p>
-    <div class="roles">
-      <button class="solid" type="button" data-act="start" ${state.both ? "" : "disabled"}>Zejdźcie</button>
-      <button class="ghost" type="button" data-act="leave">Zostaw sprawę</button>
+  const swap = waiting
+    ? ""
+    : `<button class="${crossed ? "solid swap-loud" : "ghost swap-quiet"}" type="button" data-act="swap">Zamieńcie się</button>`;
+  const qr = waiting && state.qr ? `<img class="qr" alt="Kod QR komory ${esc(state.code)}" src="${state.qr}">` : "";
+  fillPlate(waiting ? "lobby-wait" : crossed ? "lobby-cross" : "lobby-ready", `
+    <div class="lobby-plate${waiting ? "" : " is-full"}">
+      <p class="kicker">${roleName}</p>
+      <h1 class="screen-name">${title}</h1>
+      <p class="screen-job">${job}</p>
+      ${crossed ? `<p class="seat-warn">Latarnia jest na telefonie. Lepiej się gra odwrotnie.</p>` : ""}
+      <p class="code lobby-code" aria-label="Kod ${esc(state.code || "")}">${esc(code)}</p>
+      <p class="dictate">Czytaj po jednej literze.</p>
+      ${qr}
+      <p class="wait ${waiting ? "is-waiting" : "is-ready"}">${waitLine}</p>
+      ${urls}
+      <p class="fine">${netPublic ? "Drugie z was może być w innym mieście." : "Ten sam Wi-Fi, ta sama piwnica."}</p>
+      <div class="roles lobby-actions">
+        ${crossed ? swap : ""}
+        <button class="solid" type="button" data-act="start" ${state.both ? "" : "disabled"}>Zejdźcie</button>
+        ${crossed ? "" : swap}
+        <button class="ghost" type="button" data-act="leave">Zostaw sprawę</button>
+      </div>
+      <p class="err" id="err">${esc(state.err || "")}</p>
     </div>
-    <p class="err" id="err">${state.err || ""}</p>
   `);
   paintPadFocus();
 }
@@ -1477,8 +1511,8 @@ function connect() {
   state.ws = ws;
   ws.onopen = () => {
     const saved = readSession();
-    if (queryCode && (!saved || saved.code !== queryCode)) send({ t: "join", code: queryCode });
-    else if (saved) send({ t: "resume", code: saved.code, token: saved.token });
+    if (queryCode && (!saved || saved.code !== queryCode)) send({ t: "join", code: queryCode, device: deviceKind() });
+    else if (saved) send({ t: "resume", code: saved.code, token: saved.token, device: deviceKind() });
     else if (state.phase === "boot") startIntro();
   };
   ws.onmessage = (ev) => {
@@ -1488,8 +1522,10 @@ function connect() {
       state.both = !!msg.both;
       state.qr = msg.qr || state.qr;
       state.urls = msg.urls || state.urls;
+      if (Array.isArray(msg.players)) state.players = msg.players;
       if ("public" in msg) netPublic = !!msg.public;
       if (msg.role) state.role = msg.role;
+      if (state.code && state.token && state.role) saveSession();
       if (state.phase === "menu" || state.phase === "intro" || state.phase === "options" || state.phase === "story" || state.phase === "credits" || state.phase === "scores") return;
       setPhase("lobby");
       paintLobby();
@@ -1554,8 +1590,9 @@ lobby.addEventListener("click", (event) => {
     setPhase("menu");
     paintMenu();
   }
-  if (btn.dataset.act === "create") send({ t: "create", role: btn.dataset.role });
+  if (btn.dataset.act === "create") send({ t: "create", role: btn.dataset.role, device: deviceKind() });
   if (btn.dataset.act === "start") send({ t: "start" });
+  if (btn.dataset.act === "swap") send({ t: "swap" });
   if (btn.dataset.act === "leave") goMenu();
 });
 
@@ -1592,7 +1629,7 @@ lobby.addEventListener("submit", (event) => {
   event.preventDefault();
   audio.unlock();
   const code = new FormData(form).get("code");
-  send({ t: "join", code });
+  send({ t: "join", code, device: deviceKind() });
 });
 
 function glowCall(id) {
@@ -2027,6 +2064,7 @@ function goMenu() {
   state.token = "";
   state.maze = null;
   state.both = false;
+  state.players = [];
   state.err = "";
   screen.dataset.role = "";
   setPhase("menu");

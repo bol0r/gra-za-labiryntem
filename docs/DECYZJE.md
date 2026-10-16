@@ -61,3 +61,7 @@ Na żarze 0 jest osobne `silence`, 10 s: łowca nie widzi i nie słyszy, dotyk z
 | dziś | 5/40 | 35 |
 | 10 s, słuch ×0,6 | 16/40 | 20 |
 | 18 s, słuch ×0,6 | 21/40 | 13 |
+
+## Zamiana ról tylko w lobby
+
+„Zamieńcie się” działa wyłącznie przed zejściem, gdy oboje są w lobby. W komorze zamiana nic nie robi, bo latarnik już stoi w korytarzu, a kartograf ma mapę tej komory.

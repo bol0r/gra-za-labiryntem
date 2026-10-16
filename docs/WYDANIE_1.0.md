@@ -31,8 +31,8 @@ Do wydania robimy tylko to, co jest na tej liście. Nowy pomysł dopisujemy do �
 
 Na pierwszym teście w internecie latarnia trafiła na telefon, a mapa na komputer, i ikonka „nie ruszała się”. Obcy gracz pomyli się tym bardziej.
 
-- [ ] W lobby wielki napis, czym jest ten ekran: „Ten ekran: Mapa” albo „Ten ekran: Latarnia”, z jednym zdaniem, co tu się robi.
-- [ ] Gdy latarnię dostał telefon (dotyk, wąski ekran), a mapę komputer, lobby to mówi i daje przycisk „Zamieńcie się”. Zamiana tylko w lobby, przed zejściem; w rundzie dalej nie wchodzi.
+- [x] W lobby wielki napis, czym jest ten ekran: „Ten ekran: Mapa” albo „Ten ekran: Latarnia”, z jednym zdaniem, co tu się robi.
+- [x] Gdy latarnię dostał telefon (dotyk, wąski ekran), a mapę komputer, lobby to mówi i daje przycisk „Zamieńcie się”. Zamiana tylko w lobby, przed zejściem; w rundzie dalej nie wchodzi.
 
 ## 4. Testy z obcymi
 

@@ -158,7 +158,20 @@ function otherRole(role) {
 function publicPlayers(room) {
   return ["guide", "runner"]
     .filter((role) => room[role])
-    .map((role) => ({ role, here: online(room[role]) }));
+    .map((role) => ({
+      role,
+      here: online(room[role]),
+      device: room[role].device || "",
+    }));
+}
+
+function readDevice(value) {
+  return value === "phone" || value === "computer" ? value : "";
+}
+
+function rememberDevice(player, value) {
+  const device = readDevice(value);
+  if (device) player.device = device;
 }
 
 async function ensureQr(room) {
@@ -413,7 +426,7 @@ function leaveRoom(ws) {
   }
 }
 
-async function createRoom(ws, role) {
+async function createRoom(ws, role, device) {
   if (role !== "guide" && role !== "runner") role = "guide";
   leaveRoom(ws);
   if (rooms.size >= MAX_ROOMS) {
@@ -441,6 +454,7 @@ async function createRoom(ws, role) {
     points: 0,
   };
   const player = assign(ws, role);
+  rememberDevice(player, device);
   room[role] = player;
   tokens.set(player.token, { code, role });
   rooms.set(code, room);
@@ -471,7 +485,7 @@ function takeSeat(room, ws, role, token) {
   return player;
 }
 
-async function joinRoom(ws, code) {
+async function joinRoom(ws, code, device) {
   code = String(code || "")
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "")
@@ -490,6 +504,7 @@ async function joinRoom(ws, code) {
     return;
   }
   const player = takeSeat(room, ws, role);
+  rememberDevice(player, device);
   await ensureQr(room);
   send(ws, {
     t: "joined",
@@ -506,7 +521,7 @@ async function joinRoom(ws, code) {
   } else sendLobby(room);
 }
 
-function resume(ws, code, token) {
+function resume(ws, code, token, device) {
   const known = tokens.get(token);
   const room = rooms.get(code) || (known && rooms.get(known.code));
   if (!room || !known || known.code !== room.code) {
@@ -515,6 +530,7 @@ function resume(ws, code, token) {
   }
   const role = known.role;
   const player = takeSeat(room, ws, role, token);
+  rememberDevice(player, device);
   send(ws, {
     t: "joined",
     code: room.code,
@@ -604,13 +620,40 @@ function onGuide(room, msg) {
   }
 }
 
+function swapSeats(room) {
+  const guide = room.guide;
+  const runner = room.runner;
+  room.guide = runner;
+  room.runner = guide;
+  room.guide.role = "guide";
+  room.runner.role = "runner";
+  tokens.set(room.guide.token, { code: room.code, role: "guide" });
+  tokens.set(room.runner.token, { code: room.code, role: "runner" });
+  for (const player of [room.guide, room.runner]) {
+    send(player.ws, {
+      t: "joined",
+      code: room.code,
+      token: player.token,
+      role: player.role,
+      urls: room.urls,
+      joinUrl: room.joinUrl,
+      qr: room.qr,
+    });
+  }
+  sendLobby(room);
+}
+
 async function onMessage(ws, msg) {
   if (!msg || typeof msg !== "object") return;
-  if (msg.t === "create") return createRoom(ws, msg.role);
-  if (msg.t === "join") return joinRoom(ws, msg.code);
-  if (msg.t === "resume") return resume(ws, String(msg.code || "").toUpperCase(), String(msg.token || ""));
+  if (msg.t === "create") return createRoom(ws, msg.role, msg.device);
+  if (msg.t === "join") return joinRoom(ws, msg.code, msg.device);
+  if (msg.t === "resume") return resume(ws, String(msg.code || "").toUpperCase(), String(msg.token || ""), msg.device);
   const room = rooms.get(ws.roomCode);
   if (!room || !ws.player) return;
+  if (msg.t === "swap") {
+    if (room.phase === "lobby" && bothOnline(room)) swapSeats(room);
+    return;
+  }
   if (msg.t === "start") {
     if (room.phase === "lobby" && bothOnline(room)) beginRound(room);
     else if (!bothOnline(room)) send(ws, { t: "err", text: "Czekam na drugą osobę." });
