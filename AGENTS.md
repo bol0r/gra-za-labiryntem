@@ -34,5 +34,6 @@ Sprawdzenie labiryntu bez przeglądarki: `npm run check`. Dwa klienty WebSocket:
 2. Commit po każdym etapie. Nie mieszaj w jednym commicie nowej mechaniki z porządkiem w dokumentacji, jeśli da się je rozdzielić.
 3. UI po polsku. Napisy, które widzi gracz, są po polsku. Nie zostawiaj angielskich etykiet w lobby, na mapie ani u latarnika.
 4. Nie zmieniaj kodu gry przy samej aktualizacji `AGENTS.md` i `docs/`, chyba że o to wyraźnie poproszono.
+5. Do wydania 1.0 robimy tylko punkty z `docs/WYDANIE_1.0.md`. Nowy pomysł dopisz do sekcji „Po 1.0” w tym pliku i nie ruszaj przez niego kodu. Odhaczony punkt to `[x]` w tym samym commicie co zmiana.
 
-Stan koncepcji, dziur i decyzji jest w `docs/BRIEF.md`, `docs/DZIENNIK.md` i `docs/DECYZJE.md`. Co wchodzi dalej, jest w `docs/DALEJ.md`.
+Stan koncepcji, dziur i decyzji jest w `docs/BRIEF.md`, `docs/DZIENNIK.md` i `docs/DECYZJE.md`. Co wchodzi do wydania 1.0, jest w `docs/WYDANIE_1.0.md`; starsza kolejka po testach jest w `docs/DALEJ.md`.
