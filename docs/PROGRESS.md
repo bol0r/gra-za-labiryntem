@@ -150,9 +150,9 @@ Latarnik mierzy czas własnej klatki, nie odstęp między odświeżeniami. Gdy r
 
 Pokój WBHW na lokalnym serwerze: kartograf „Przy mapie”, latarnik wchodzi kodem. Pełna runda do wygranej i osobna do przegranej, bez zmian zasad ani protokołu.
 
-Wygrana, runda 5: oba ekrany dostały ten sam wynik. Kicker „Komora”, tytuł „Serce ruiny odpowiada.”, czas „1:07 w ruinie”. Potem oba przeszły do rundy 6.
+Wygrana, runda 5: oba ekrany dostały ten sam wynik. Kicker „Komora”, tytuł „Serce odpowiedziało. Schodzicie głębiej.”, czas „1:07 · 35 pkt”. Potem oba przeszły do rundy 6.
 
-Przegrana, runda 6: znowu ten sam tekst. Kicker „Strażnik”, tytuł „Strażnik zamyka przejście.”, czas „1:23 w ruinie”. Potem oba są w rundzie 7. Mapa i korytarz zostają w tej samej komorze. Konsola obu kart czysta.
+Przegrana, runda 6: znowu ten sam tekst. Kicker „Strażnik”, tytuł „Strażnik was dogonił. Ruina liczy kroki od nowa.”, czas „1:23 · 35 pkt”. Potem oba są w rundzie 7. Mapa i korytarz zostają w tej samej komorze. Konsola obu kart czysta.
 
 Płyta wyniku żyje około pięciu sekund i następna komora startuje sama. Zrzut ekranu złapał już kolejną rundę, ale napis zostawiony w obu dokumentach był identyczny.
 
