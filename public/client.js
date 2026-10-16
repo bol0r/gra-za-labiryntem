@@ -800,6 +800,24 @@ function showCall(id) {
   showCall.timer = setTimeout(() => toast.classList.remove("show"), 1500);
 }
 
+const WIN_NOTES = [
+  "Serce odpowiedziało na trzeci krok. Nie na pierwszy.",
+  "Pył na butach jest czerwony. Na dole nie ma nic czerwonego.",
+  "Latarnia zgasła na sekundę i wtedy było najjaśniej.",
+  "Komora niżej ma te same znaki na ścianach. Inaczej ustawione.",
+  "Zegar na górze stanął na 1:10. Na dole szedł dalej.",
+  "Nikt z nas nie pamięta, kto rysował serwetkę.",
+];
+const LOSE_NOTES = [
+  "Strażnik zatrzymał się, kiedy my. Jakby czekał na to samo.",
+  "Ktoś na dole liczył kroki na głos. Mylił się zawsze o jeden.",
+  "Na mapie było dwoje. W głośniku trzy pary kroków.",
+  "Pan Walenty pytał, czy biegliśmy. Nie powiedzieliśmy mu.",
+  "Zielone światło nie jest z naszej latarni.",
+  "Ta sama komora. Te same korytarze. Inne echo.",
+];
+let resultNoteKey = "";
+
 function showResult(snap) {
   const on = snap.phase === "result";
   result.classList.toggle("is-off", !on);
@@ -809,8 +827,15 @@ function showResult(snap) {
   }
   const win = snap.result === "win";
   resultKicker.textContent = win ? "Serce" : "Strażnik";
-  resultTitle.textContent = win ? "Ruina was puszcza." : "Strażnik was ma.";
+  resultTitle.textContent = win ? "Serce odpowiedziało. Schodzicie głębiej." : "Strażnik was dogonił. Ruina liczy kroki od nowa.";
   resultTime.textContent = `${clock(snap.roundT)} · ${snap.points || 0} pkt`;
+  const note = document.getElementById("result-note");
+  const key = `${state.round}:${snap.result}`;
+  if (note && resultNoteKey !== key) {
+    const list = win ? WIN_NOTES : LOSE_NOTES;
+    note.textContent = list[Math.floor(Math.random() * list.length)];
+    resultNoteKey = key;
+  }
   scoreForm.hidden = !win;
   nextBtn.textContent = snap.nextIn > 0.2 ? `Dalej · ${Math.ceil(snap.nextIn)}` : "Dalej";
   screen.classList.toggle("flash-win", win);
@@ -1425,7 +1450,7 @@ function connect() {
     } else if (msg.t === "scores") {
       state.scores = msg.scores || [];
       const submit = scoreForm.querySelector("button");
-      if (submit) submit.textContent = "Jest";
+      if (submit) submit.textContent = "Zapisane";
       if (state.phase === "scores") paintScores();
     } else if (msg.t === "round") onRound(msg);
     else if (msg.t === "snap") onSnap(msg);
