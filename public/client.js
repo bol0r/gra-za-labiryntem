@@ -296,7 +296,7 @@ function optionsMarkup(leave) {
       <div class="opt-back">
         <div class="opt-pad"><span><i class="pad-a">A</i>Zmień</span><span><i class="pad-b">B</i>Wróć</span></div>
         <div class="opt-actions">
-          ${leave ? `<button class="opt-leave" type="button" data-act="opt-leave">Do menu</button>` : ""}
+          ${leave ? `<button class="opt-leave" type="button" data-act="opt-leave">Na górę</button>` : ""}
           <button class="stone-btn" type="button" data-act="opt-back">Wróć</button>
         </div>
       </div>
