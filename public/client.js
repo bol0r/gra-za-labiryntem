@@ -191,10 +191,10 @@ function setErr(text) {
 }
 
 const MENU_ITEMS = [
-  ["play", "Graj", "Dwie osoby, jedna ruina"],
+  ["play", "Graj", "Dwoje agentów, jedno zejście"],
   ["options", "Opcje", "Obraz i dźwięk"],
-  ["story", "Fabuła", "Kto zbudował ruinę"],
-  ["scores", "Tablica", "12 najlepszych zejść"],
+  ["story", "Teczka", "Co wiemy o ruinie"],
+  ["scores", "Zejścia", "Dwanaście najgłębszych"],
   ["credits", "Twórcy", "Dead Net Lab"],
 ];
 
@@ -203,7 +203,7 @@ function esc(text) {
 }
 
 function hostFoot() {
-  const host = hostLine ? `Drugi ekran: <b>${esc(hostLine)}</b>` : "Zostańcie na tym komputerze.";
+  const host = hostLine ? `Drugi ekran: <b>${esc(hostLine)}</b>` : "Zostańcie przy tym komputerze.";
   return `
     <div class="menu-foot">
       <div class="pad-hints"><span><i class="pad-a">A</i>Wybierz</span><span><i class="pad-b">B</i>Wróć</span></div>
@@ -214,9 +214,9 @@ function hostFoot() {
 function recordHtml() {
   const row = state.scores && state.scores[0];
   const body = !state.scores
-    ? `<h3>Ładuję</h3>`
+    ? `<h3>Czytam teczkę.</h3>`
     : !row
-      ? `<h3>Pusto</h3>`
+      ? `<h3>Nikt jeszcze nie zszedł.</h3>`
       : `<h3>${esc(row.name)}</h3>
         <dl>
           <div><dt>Komora</dt><dd>${esc(row.chambers)}</dd></div>
@@ -246,7 +246,7 @@ function paintMenu() {
   if (plate.dataset.paint === "menu" && plate.querySelector(".menu-title")) {
     paintRecord();
     const host = plate.querySelector(".menu-foot .host");
-    if (host) host.innerHTML = hostLine ? `Drugi ekran: <b>${esc(hostLine)}</b>` : "Zostańcie na tym komputerze.";
+    if (host) host.innerHTML = hostLine ? `Drugi ekran: <b>${esc(hostLine)}</b>` : "Zostańcie przy tym komputerze.";
     paintPadFocus();
     if (!state.scores) loadScores();
     return;
@@ -258,7 +258,7 @@ function paintMenu() {
   fillPlate("menu", `
     <div class="main-menu">
       <div class="menu-col">
-        <p class="kicker">Planeta bez nazwy</p>
+        <p class="kicker">Sprawa 110 · Planeta bez nazwy</p>
         <h1 class="menu-title">Za labiryntem</h1>
         <div class="menu-items">${items}</div>
       </div>
