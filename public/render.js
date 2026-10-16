@@ -820,6 +820,8 @@ export function drawExplorer(canvas, view) {
     }
   }
 
+  shadeNose(data, z, w, h, horizon, focal);
+
   const sprites = [];
   if (view.sentinel) sprites.push({ ...view.sentinel, kind: "sentinel" });
   for (const beast of view.beasts || []) sprites.push({ ...beast, kind: "beast" });
@@ -850,6 +852,51 @@ export function drawExplorer(canvas, view) {
 
   ctx.putImageData(image, 0, 0);
   paintAir(ctx, w, h, time);
+}
+
+// Przy nosie ściana zasłania skręt. Raycast i tekstura zostają; ciemnieje tylko styk z podłogą
+// i pionowa krawędź, gdy promień jest krótszy niż około jednej komórki.
+function shadeNose(data, z, w, h, horizon, focal) {
+  const reach = 1;
+  for (let col = 0; col < w; col++) {
+    const dist = z[col];
+    if (!(dist < reach) || dist < 0.04) continue;
+    let close = (reach - dist) / (reach - 0.22);
+    if (close > 1) close = 1;
+    const line = focal / dist;
+    const floorY = horizon + line * 0.5;
+    const top = Math.max(0, Math.floor(horizon - line * 0.5));
+    const bot = Math.min(h - 1, Math.floor(floorY));
+    if (bot < top) continue;
+    const prev = col > 0 ? z[col - 1] : dist;
+    const next = col + 1 < w ? z[col + 1] : dist;
+    const jump = Math.max(Math.abs(dist - prev), Math.abs(dist - next));
+    const edge = jump > 0.2 ? Math.min(1, (jump - 0.2) / 0.4) : 0;
+    const edgeMul = 1 - close * edge * 0.58;
+    const band = Math.min(h * 0.16, Math.max(8, line * 0.045));
+    const base = Math.min(bot, floorY);
+    const y0 = edge > 0.02 ? top : Math.max(top, Math.floor(base - band));
+    for (let y = y0; y <= bot; y++) {
+      let seam = (base - y) / band;
+      if (seam < 0) seam = 0;
+      else if (seam > 1) seam = 1;
+      const mul = (1 - close * (1 - seam) * (1 - seam) * 0.62) * edgeMul;
+      if (mul > 0.985) continue;
+      const i = (y * w + col) * 4;
+      data[i] *= mul;
+      data[i + 1] *= mul;
+      data[i + 2] *= mul;
+    }
+    if (bot >= h - 1 || close < 0.08) continue;
+    const floorBand = Math.min(5, h - 1 - bot);
+    for (let k = 1; k <= floorBand; k++) {
+      const mul = 1 - close * (1 - k / (floorBand + 1)) * 0.28;
+      const i = ((bot + k) * w + col) * 4;
+      data[i] *= mul;
+      data[i + 1] *= mul;
+      data[i + 2] *= mul;
+    }
+  }
 }
 
 const motes = Array.from({ length: 40 }, (_, i) => ({
