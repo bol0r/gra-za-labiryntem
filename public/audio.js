@@ -8,6 +8,7 @@ export function createAudio(initial = {}) {
   let ctx = null;
   let master = null;
   let droneA = null;
+  let droneB = null;
   let sentinel = null;
   let sentGain = null;
   let noise = null;
@@ -32,6 +33,7 @@ export function createAudio(initial = {}) {
     master.connect(ctx.destination);
     applyGain();
     droneA = osc(46, "sine", 0.012);
+    droneB = osc(92, "sine", 0.008);
     startWind();
     const lfo = ctx.createOscillator();
     const lfoGain = ctx.createGain();
@@ -39,6 +41,10 @@ export function createAudio(initial = {}) {
     lfoGain.gain.value = 1.2;
     lfo.connect(lfoGain);
     lfoGain.connect(droneA.frequency);
+    const lfoOct = ctx.createGain();
+    lfoOct.gain.value = 2;
+    lfoGain.connect(lfoOct);
+    lfoOct.connect(droneB.frequency);
     lfo.start();
     sentinel = ctx.createOscillator();
     sentinel.type = "sine";

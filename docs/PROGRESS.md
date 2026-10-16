@@ -4,6 +4,12 @@ Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zosta
 
 ## Zrobione
 
+### Dron z oktawą
+
+Niski sinus 46 Hz przy wzmocnieniu 0,012 zostaje. Obok niego gra cichszy sinus 92 Hz przy 0,008, z tym samym wolnym drganiem, dwa razy szerszym, żeby para została oktawą. Oba idą przez jeden master. Wyciszenie, suwak i Opcje w trakcie rundy gaszą całość i oddają ten sam poziom. Kroki i menu bez zmian.
+
+Sprawdzone w przeglądarce, pokój 5ZB8: 46 Hz na 0,012 i 92 Hz na 0,008, oba w masterze. Przy głośności 80 master stoi na 0,62, przy 40 na 0,31. Wyłączenie dźwięku w opcjach rundy schodzi do zera i wraca na 0,62. Konsola pusta.
+
 ### Rozwidlenia
 
 Labirynt zostaje drzewem: jedna droga między komórkami, start to ślepy zaułek najdalszy od serca. Rzeźbienie co kilka kroków puszcza boczny korytarz na kilka komórek, a jednokomórkową niszę przy drodze do serca dosuwa w bok, gdy ma sąsiada poza tą drogą. Lewo i prawo da się pomylić. Pieczęcie, łup, strażnik, protokół i fizyka bez zmian.
