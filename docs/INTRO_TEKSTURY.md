@@ -8,7 +8,7 @@ Pliki: `public/tex/intro/*.webp`, razem ~275 KB. Robi je `python3 docs/intro_gen
 
 | Plik | Rozmiar | Scena i czas | Mapowanie |
 |---|---|---|---|
-| `space.webp` | 2048×1024 | kosmos, 0–8,6 s | Plansza za planetą. Zakrywa ekran z zapasem, obrót kamery ją przesuwa, nurkowanie przybliża o 10%. Dawne migające gwiazdy zostają na wierzchu, przygaszone. |
+| `space.webp` | 2048×1024 | kosmos, 0–8,6 s | Plansza za planetą, kafelkuje się w poziomie (można jej użyć jako panoramy). Zakrywa ekran z zapasem, obrót kamery ją przesuwa, nurkowanie przybliża o 10%. Dawne migające gwiazdy zostają na wierzchu, przygaszone. |
 | `planet_surface.webp` | 1024×512 | kosmos | Mapa równoprostokątna. Środek mapy (u = 0,5, v = 0,62) to **labirynt widziany z orbity**: prawdziwy labirynt 15×15 wyryty w skale. `LON0` w `intro.js` ustawia go na środku tarczy w 5,9 s (`SCAR_T`), w środku nurkowania. |
 | `planet_glow.webp` | 1024×512 | kosmos | Maska świecenia labiryntu i serca w nim. Bursztyn rozpala się od 2,6 s („ruina się budzi”), pulsuje i jest mocniejszy po nocnej stronie. |
 | `hall_wall.webp` | 1024×512 | sala | Jedno przęsło: 5,12 × 2,62 jednostki, od pilastra do pilastra. Od góry: gzyms, rząd z uchwytem pochodni (u = 0,5625, y = 1,62, tam gdzie płomień), fryz z czterema glifami w bursztynie, rząd, cokół. Ta sama tekstura na obu ścianach: po lewej uchwyty są zgaszone. |
