@@ -296,7 +296,7 @@ function tick(room) {
   if (room.phase === "play") {
     if (!bothOnline(room)) {
       room.phase = "wait";
-      room.note = !online(room.runner) ? "Latarnik zniknął." : "Kartograf zniknął.";
+      room.note = !online(room.runner) ? "Latarnik zniknął z mapy." : "Kartograf zamilkł.";
     } else {
       room.note = "";
       room.roundT += DT;
@@ -422,14 +422,14 @@ async function joinRoom(ws, code) {
     .slice(0, 4);
   const room = rooms.get(code);
   if (!room) {
-    send(ws, { t: "err", text: "Nie ma takiej komory." });
+    send(ws, { t: "err", text: "Takiej komory nie ma w teczce." });
     return;
   }
   let role = null;
   if (!room.guide) role = "guide";
   else if (!room.runner) role = "runner";
   else {
-    send(ws, { t: "err", text: "Komora jest pełna." });
+    send(ws, { t: "err", text: "W tej komorze już jest dwoje." });
     return;
   }
   const player = takeSeat(room, ws, role);
@@ -614,7 +614,7 @@ function onClose(ws) {
     ws.player.goneAt = Date.now();
     if (room.phase === "play") {
       room.phase = "wait";
-      room.note = ws.player.role === "runner" ? "Latarnik zniknął." : "Kartograf zniknął.";
+      room.note = ws.player.role === "runner" ? "Latarnik zniknął z mapy." : "Kartograf zamilkł.";
       broadcastSnap(room);
     } else sendLobby(room);
   }

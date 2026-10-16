@@ -908,7 +908,7 @@ function onSnap(msg) {
   }
   if (msg.phase === "wait") {
     waitbanner.classList.remove("is-off");
-    waitText.textContent = msg.note || "Ktoś zniknął.";
+    waitText.textContent = msg.note || "Nić się zerwała.";
   } else if (msg.phase) waitbanner.classList.add("is-off");
   if (state.role === "runner" && state.phase === "play") {
     if (msg.immunity > 0.2) {
@@ -1461,7 +1461,7 @@ function connect() {
       state.look = msg.a;
       state.input.angle = msg.a;
     } else if (msg.t === "err") {
-      if (msg.text && (msg.text.includes("zgasła") || msg.text.includes("Nie ma"))) {
+      if (msg.text && (msg.text.includes("zgasła") || msg.text.includes("nie ma w teczce"))) {
         sessionStorage.removeItem(STORAGE);
         state.role = "";
         state.code = "";
@@ -1472,7 +1472,7 @@ function connect() {
     }
   };
   ws.onclose = () => {
-    if (!SHELL.has(state.phase)) setErr("Łączę znowu.");
+    if (!SHELL.has(state.phase)) setErr("Nić. Łączę znowu.");
     setTimeout(connect, 900);
   };
 }
