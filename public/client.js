@@ -888,8 +888,8 @@ function onSnap(msg) {
   if (state.role === "runner" && state.phase === "play") {
     if (msg.immunity > 0.2) {
       hint.hidden = false;
-      hint.textContent = "Cisza.";
-    } else if (hint.textContent === "Cisza." || hint.textContent.startsWith("Strażnik")) {
+      hint.textContent = "Jeszcze was nie słyszy.";
+    } else if (hint.textContent === "Jeszcze was nie słyszy." || hint.textContent.startsWith("Strażnik")) {
       const text = controlHint();
       hint.hidden = !text;
       hint.textContent = text;
@@ -2034,7 +2034,7 @@ function doListen() {
   const snap = state.snaps[state.snaps.length - 1];
   const sn = snap && snap.sn;
   if (!sn) {
-    flash("Cicho");
+    flash("Nie słychać.");
     return;
   }
   const dx = sn.x - state.body.x;
