@@ -570,11 +570,7 @@ function paintLobby() {
   const code = (state.code || "").split("").join(" ");
   const urls = (state.urls || []).map((url) => `<div class="urls">${url}</div>`).join("");
   const waiting = !state.both;
-  const waitLine = !waiting
-    ? "Można schodzić."
-    : state.role === "runner"
-      ? "Telefon jest mapą."
-      : "Latarnia jest na komputerze.";
+  const waitLine = waiting ? "Czekam na drugie z was. Nić leży na stole." : "Można schodzić.";
   fillPlate(waiting ? "lobby-wait" : "lobby-ready", `
     <p class="kicker">${roleName}</p>
     <h1 class="code" aria-label="Kod ${state.code || ""}">${code}</h1>
@@ -582,10 +578,10 @@ function paintLobby() {
     ${state.qr ? `<img class="qr" alt="Kod QR komory ${state.code}" src="${state.qr}">` : ""}
     <p class="wait ${waiting ? "is-waiting" : "is-ready"}">${waitLine}</p>
     ${urls}
-    <p class="fine">Ten sam Wi-Fi.</p>
+    <p class="fine">Ten sam Wi-Fi, ta sama piwnica.</p>
     <div class="roles">
       <button class="solid" type="button" data-act="start" ${state.both ? "" : "disabled"}>Zejdźcie</button>
-      <button class="ghost" type="button" data-act="leave">Opuść</button>
+      <button class="ghost" type="button" data-act="leave">Zostaw sprawę</button>
     </div>
     <p class="err" id="err">${state.err || ""}</p>
   `);
