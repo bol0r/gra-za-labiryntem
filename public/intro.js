@@ -741,6 +741,79 @@ function cutFade(t) {
   return 1 - easeOut((t - 7.45) / 1.1);
 }
 
+const DESCENT_NOTES = [
+  "Zejście czwarte. Sygnał wraca co sto dziesięć sekund.",
+  "Sonda widziała to na Marsie. Schody znaleźliśmy w piwnicy.",
+  "Schodzimy we dwoje. Jedno patrzy, drugie idzie.",
+];
+
+function drawLeftLine(ctx, text, x, y, opt) {
+  if (!opt.alpha || opt.alpha < 0.02) return;
+  let size = opt.size;
+  ctx.save();
+  ctx.globalAlpha = opt.alpha;
+  ctx.fillStyle = opt.color;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.font = `${size}px ${opt.font}`;
+  const width = ctx.measureText(text).width;
+  const maxW = opt.maxW || 100000;
+  if (width > maxW && width > 0) size *= maxW / width;
+  ctx.font = `${size}px ${opt.font}`;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+function drawDescentNotes(ctx, w, h, t) {
+  const each = 3.5;
+  const start = 16.2 - each * DESCENT_NOTES.length;
+  const x = Math.max(22, w * 0.06);
+  const y = h - Math.max(108, h * 0.16);
+  const maxW = w - x * 2;
+  const size = Math.min(18, Math.max(13, w * 0.028));
+  for (let i = 0; i < DESCENT_NOTES.length; i++) {
+    const inn = start + i * each;
+    const alpha = span(t, inn, inn + 0.4, inn + each - 0.45, inn + each);
+    drawLeftLine(ctx, DESCENT_NOTES[i], x, y, {
+      alpha, size, font: SANS, color: "#e7e1d6", maxW,
+    });
+  }
+}
+
+function drawStillNotes(ctx, w, h) {
+  const gap = Math.max(20, Math.min(30, h * 0.038));
+  const titleSize = Math.min(64, Math.max(15, w * 0.07));
+  const yTitle = h * 0.22 + gap * 1.15;
+  const size = Math.min(16, Math.max(13, w * 0.022));
+  const x = w * 0.1;
+  const maxW = w * 0.8;
+  ctx.save();
+  ctx.fillStyle = "#c4a48a";
+  ctx.font = `${size}px ${SANS}`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  const words = DESCENT_NOTES.join(" ").split(" ");
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    const trial = line ? `${line} ${word}` : word;
+    if (ctx.measureText(trial).width > maxW && line) {
+      lines.push(line);
+      line = word;
+    } else line = trial;
+  }
+  if (line) lines.push(line);
+  const lineH = size * 1.45;
+  let y = yTitle + titleSize * 0.62 + 24;
+  const bottom = h - 96;
+  if (y + lines.length * lineH > bottom) y = Math.max(8, bottom - lines.length * lineH);
+  for (const row of lines) {
+    ctx.fillText(row, x, y);
+    y += lineH;
+  }
+  ctx.restore();
+}
+
 function drawTitle(ctx, w, h, t) {
   const alpha = span(t, 16.2, 17.4, 80, 81);
   if (alpha < 0.02) return;
@@ -792,6 +865,7 @@ export function paintIntroFrame(ctx, w, h, t, reduced) {
     ctx.fillRect(0, 0, w, h);
     vignette(ctx, w, h, 0.72);
     drawStill(ctx, w, h);
+    drawStillNotes(ctx, w, h);
     ctx.globalAlpha = 1;
     return;
   }
@@ -808,6 +882,7 @@ export function paintIntroFrame(ctx, w, h, t, reduced) {
     ctx.fillRect(0, 0, w, h);
   }
   vignette(ctx, w, h, t > 16 ? 0.7 : 0.5);
+  drawDescentNotes(ctx, w, h, t);
   drawTitle(ctx, w, h, t);
   ctx.globalAlpha = 1;
 }
