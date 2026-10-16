@@ -4,6 +4,12 @@ Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zosta
 
 ## Zrobione
 
+### Napisy ról
+
+Na komputerze, przy wyborze roli, stoi zdanie: tu weź latarnię, mapę otwórz na telefonie. Na wąskim ekranie go nie ma, bo telefon bierze mapę. W lobby, gdy czeka telefon, jest „Telefon jest mapą.” Gdy czeka latarnia: „Latarnia jest na komputerze.” QR, cztery znaki i dwie karty ról zostają. Jednego okna i automatu nie ma.
+
+Sprawdzone: 1920 px, zdanie widać, są dwie karty i cztery komórki kodu. 390 px, zdanie schowane. Lobby latarnika mówi „Telefon jest mapą.” i ma kod QR. Lobby kartografa mówi „Latarnia jest na komputerze.” Konsola pusta.
+
 ### Słabsze stwory obok łowcy
 
 W komorze zostaje jeden łowca. Obok niego chodzą dwa albo trzy słabsze stwory po stałych trasach: 0,62 na trasie i 0,78, gdy idą śladem, wolniej niż obchód łowcy. Gubią ślad, gdy latarnik stanie albo zniknie z oczu. Nie zamykają przejścia i nie da się z nimi walczyć. Rundę kończy tylko łowca. Decyzja jest w `docs/DECYZJE.md`.

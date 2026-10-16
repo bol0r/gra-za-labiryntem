@@ -1180,6 +1180,10 @@ section.board {
 
 .play-screen { display: flex; flex-direction: column; padding: max(18px, 4vh) max(18px, 5vw) max(12px, 3vh); gap: 12px; min-height: 0; box-sizing: border-box; }
 .play-head h1 { font-size: clamp(28px, 4vw, 52px); letter-spacing: 0.02em; text-transform: none; }
+.role-hint { display: none; margin: 6px 0 0; font-size: clamp(14px, 1.3vw, 18px); line-height: 1.35; color: var(--copper-bright); }
+@media (min-width: 801px) {
+  .role-hint { display: block; }
+}
 .play-roles {
   flex: 1; min-height: 0;
   display: grid;

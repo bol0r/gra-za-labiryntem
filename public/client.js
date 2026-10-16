@@ -507,6 +507,7 @@ function paintHome() {
       <header class="play-head">
         <p class="kicker">Graj</p>
         <h1>Kto schodzi?</h1>
+        <p class="role-hint">Tu weź latarnię, mapę otwórz na telefonie.</p>
       </header>
       <div class="play-roles">
         <button type="button" class="role-card" data-act="create" data-role="guide">
@@ -567,12 +568,17 @@ function paintLobby() {
   const code = (state.code || "").split("").join(" ");
   const urls = (state.urls || []).map((url) => `<div class="urls">${url}</div>`).join("");
   const waiting = !state.both;
+  const waitLine = !waiting
+    ? "Można schodzić."
+    : state.role === "runner"
+      ? "Telefon jest mapą."
+      : "Latarnia jest na komputerze.";
   fillPlate(waiting ? "lobby-wait" : "lobby-ready", `
     <p class="kicker">${roleName}</p>
     <h1 class="code" aria-label="Kod ${state.code || ""}">${code}</h1>
     <p class="dictate">Czytaj po jednej literze.</p>
     ${state.qr ? `<img class="qr" alt="Kod QR komory ${state.code}" src="${state.qr}">` : ""}
-    <p class="wait ${waiting ? "is-waiting" : "is-ready"}">${waiting ? "Czekam na drugą osobę." : "Można schodzić."}</p>
+    <p class="wait ${waiting ? "is-waiting" : "is-ready"}">${waitLine}</p>
     ${urls}
     <p class="fine">Ten sam Wi-Fi.</p>
     <div class="roles">
