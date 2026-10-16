@@ -2,6 +2,8 @@
 
 Kolejka po drugim teście, 15 października 2026. Mariusz i Pawełek. Bartek nie zdążył. Najpierw grywalność z tego testu. Menu i HUD są w `b1ceaf3`; trzeciego menu nie projektujemy.
 
+16 października 2026 cztery etapy weszły: tytuł intra bez ruchu, cytaty płyty w postępie, styk ściany przy nosie, wcześniejsza winieta strażnika. Stanęło na tym. Następne z tej listy zostaje podbicie `HD_VER`, gdy tekstury się zmienią.
+
 ## Dokończyć
 
 Po podmianie tekstur podbić `HD_VER` w `render.js`, inaczej przeglądarka zostanie przy starych plikach. Serwer wstały przed cache `/tex/` trzeba zrestartować.

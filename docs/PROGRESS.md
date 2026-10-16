@@ -4,6 +4,28 @@ Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zosta
 
 ## Zrobione
 
+### Tytuł intra bez ruchu
+
+Przy `prefers-reduced-motion` trzy linie (PLANETA BEZ NAZWY, Za labiryntem, 2026) rozchodzą się od wysokości liter, nie od stałego odstępu. Na szerokim i na wąskim kadrze em-boxy się nie stykają. Teksty bez zmian. Notatka zjazdu zostaje pod tytułem.
+
+Sprawdzone w przeglądarce, reduced motion włączone: 1280×720, 390×844 i 844×390. Linie mają odstęp, notatka jest pod rokiem. Konsola pusta.
+
+### Cytaty płyty w tym pliku
+
+Stare zdania wyniku („Serce ruiny odpowiada.”, „Strażnik zamyka przejście.”, „1:07 w ruinie”) są podmienione na teksty z płyty. Kod gry bez zmian.
+
+### Ściana przy nosie
+
+Raycast i tekstury zostają. Gdy promień jest krótszy niż jedna komórka, dół ściany ciemnieje ku styku z podłogą, a kolumna przy skoku odległości ciemnieje jako krawędź. To samo przy HD i bez.
+
+Sprawdzone w przeglądarce, pokój 2EWQ, latarnik nosem w ścianę. Przy włączonym HD widać ciemny styk u dołu i pionową krawędź po lekkim obrocie. Po wyłączeniu HD zostaje cegła z kodu, styk i krawędzie też ciemnieją. Konsola pusta, serwer bez błędu.
+
+### Wcześniejsza winieta strażnika
+
+Gdy strażnik czuwa, szuka albo goni i jest bliżej niż około 7, krawędź kadru latarnika robi się zielona, bez kierunku i bez mapy. Poniżej 3,4 pulsuje jak dotychczas. Obchód jej nie zapala. Cisza, chód i bieg bez zmian. Kartograf dalej jest jedyny, który mówi „w lewo”.
+
+Sprawdzone w przeglądarce, pokój V8VL. Przy obchodzie i odległości około 5 winiety nie ma. Po biegu, gdy strażnik szuka z około 6, jest spokojna zielona krawędź, bez napisu kierunku. Potem schodzi poniżej 3,4 i dogania. Konsola pusta.
+
 ### Napisy ról
 
 Na komputerze, przy wyborze roli, stoi zdanie: tu weź latarnię, mapę otwórz na telefonie. Na wąskim ekranie go nie ma, bo telefon bierze mapę. W lobby, gdy czeka telefon, jest „Telefon jest mapą.” Gdy czeka latarnia: „Latarnia jest na komputerze.” QR, cztery znaki i dwie karty ról zostają. Jednego okna i automatu nie ma.
@@ -56,7 +78,7 @@ Easter egg: w jednym ślepym zaułku każdego labiryntu na posadzce leży wyblak
 
 Sprawdzone: Chromium bez okna 1280×720, przebieg intra 0–21 s średnio 5,1 ms na klatkę, bez błędów; klatki z 0,6, 3,5, 5,9, 7, 8, 12, 16,8 s i tryb bez ruchu. Labirynt 15×15 z nasionem 12345: zaułek (0, 14), zdjęcie widać z sąsiedniej komórki, prosto i z podpisem przy patrzącym. `HD_VER` bez zmian (nowy plik ma nowy adres, a menu bierze niebo z `?v=2`).
 
-Do poprawy poza tą zmianą: w trybie bez ruchu (`prefers-reduced-motion`) trzy linie tytułu nachodzą na siebie przy 1280×720, bo odstęp jest stały, a litery rosną z szerokością.
+Tytuł bez ruchu nachodził na siebie przy 1280×720. Poprawione wyżej: odstęp liczy się z wysokości liter.
 
 ### Menu i HUD latarnika
 
@@ -201,6 +223,4 @@ Nic z listy nie zostało pominięte. Prawdziwego wcięcia iPhone’a nie dało s
 
 ## Następna runda
 
-1. Osadzić miedziany krąg w kierunku nieba, żeby zostawał w świecie przy obrocie, i nie dopuścić, żeby ściana przy samym nosie wypełniała cały kadr. Tak wyglądała klatka zaraz po wygranej.
-2. Zatrzymać płytę wyniku tak, żeby dało się ją przeczytać. Pięć sekund mija, zanim drugi gracz spojrzy, i komora już jest następna.
-3. Dać latarnikowi wcześniejszy znak strażnika niż zielona sylwetka w snopie. Bieg słychać przez ściany, a pościg dopada w korytarzu bez zapowiedzi, z której da się skorzystać.
+Z tej listy weszły styk ściany przy nosie i wcześniejsza winieta. Płyta wyniku wisi już 12 s i 8 s. Miedziany krąg zostaje namalowany w niebie i stoi w kadrze przy obrocie. Nowej kolejki tu nie ma.

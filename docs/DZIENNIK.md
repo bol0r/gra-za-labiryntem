@@ -2,6 +2,14 @@
 
 Najnowsze wpisy są na górze. Co dalej robić, jest w `docs/DALEJ.md`. Szczegóły polerowania są w `docs/PROGRESS.md`.
 
+## 2026-10-16
+
+Cztery etapy, osobne commity: `5fb7d55` tytuł intra bez ruchu, `d5167ac` cytaty płyty w postępie, `858a876` styk ściany przy nosie, `1d7430f` wcześniejsza winieta strażnika. Ten wpis jest w commicie dokumentacji.
+
+Sprawdzone w przeglądarce na `localhost:8787`. Tytuł przy reduced motion: 1280×720, 390×844 i 844×390, linie się nie stykają, notatka zostaje. Ściana przy nosie, pokój 2EWQ, HD włączone i wyłączone: styk z podłogą i pionowa krawędź ciemnieją poniżej komórki. Winieta, pokój V8VL: przy obchodzie i odległości około 5 jej nie ma; po biegu, gdy strażnik szuka z około 6, jest spokojna zielona krawędź bez kierunku, potem dogania. Konsola pusta, serwer bez błędu. `npm run check` przechodzi.
+
+Nie weszło: druga strona teczki, znak na tablicy, „Schodzimy we troje”, komora 110, wajcha, boss, klik w cegły, głos, automat, jedno okno i przebudowa menu.
+
 ## 2026-10-15
 
 Drugi test przy ludziach. Mariusz przyszedł drugi raz, z nim Pawełek. Bartek nie zdążył. Mariuszowi podziękowanie za ten test i za to, że najbardziej ciągnie grę dalej. Pawełek wchodzi do testerów.

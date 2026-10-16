@@ -20,9 +20,9 @@ Palatino jest w tytułach i w zawołaniu na środku ekranu latarnika. Przyciski 
 
 Pięć zawołań to płyty obok siebie, ze słowem i cyfrą. Zasłona jest jedną szeroką płytą pod nimi. Wciśnięcie lekko zapada się w kamień.
 
-Światło latarnika jest stożkiem, który gaśnie z odległością. Krawędź ściany i styk z podłogą są ciemniejsze, żeby skręt było widać z bliska. Na podłodze widać, jak daleko sięga snop. W snopie unoszą się drobinki, na kadrze leży rzadkie ziarno i winieta.
+Światło latarnika jest stożkiem, który gaśnie z odległością. Krawędź ściany i styk z podłogą są ciemniejsze, żeby skręt było widać z bliska. Poniżej około jednej komórki ten styk i pionowa krawędź ciemnieją mocniej, przy teksturach HD i bez nich. Na podłodze widać, jak daleko sięga snop. W snopie unoszą się drobinki, na kadrze leży rzadkie ziarno i winieta.
 
-Nad korytarzem wisi miedziany krąg tej planety. W lobby jest tłem planszy. U latarnika jest namalowany w niebie i zostaje w tym samym miejscu kadru, gdy postać się obraca. Strażnika w zasięgu wzroku widać jako zieloną sylwetkę, pieczęć jako bursztynowy blask na ścianie. Ściana i mgła je zasłaniają.
+Nad korytarzem wisi miedziany krąg tej planety. W lobby jest tłem planszy. U latarnika jest namalowany w niebie i zostaje w tym samym miejscu kadru, gdy postać się obraca. Strażnika w zasięgu wzroku widać jako zieloną sylwetkę, pieczęć jako bursztynowy blask na ścianie. Ściana i mgła je zasłaniają. Gdy strażnik czuwa, szuka albo goni i jest bliżej niż około 7, krawędź kadru latarnika robi się zielona, bez kierunku. Poniżej około 3,4 pulsuje. Obchód jej nie zapala.
 
 Dźwięk: krok to tkanina i co drugi raz oddech, w tle niski dron. Zawołanie to jedno ciepłe uderzenie, pieczęć zostaje jednym uderzeniem metalu. Wygrana to dwa tony kości, przegrana opada w szum. Przy strażniku narasta sub-bas, bez piły. Całość da się wyciszyć.
 
@@ -75,7 +75,7 @@ Sprawdzone w tej sesji:
 
 ## Znane problemy
 
-- Widok latarnika to programowy raycaster. Światło jest stożkiem z gaśnięciem i ciemniejszym stykiem podłogi, ale tekstury są nadal generowane, 128×128, bez osobnych assetów. Z bardzo bliska ściana wciąż wypełnia ekran.
+- Widok latarnika to programowy raycaster. Z bardzo bliska ściana nadal wypełnia kadr, bo promień zostaje. Poniżej około jednej komórki styk z podłogą i pionowa krawędź są przyciemnione, przy HD i bez, żeby skręt dało się odczytać.
 - Karta w tle prawie nie rysuje klatek. Po powrocie obraz może być przez chwilę pusty, dopóki pętla znowu nie namaluje kadru.
 - Zostawiona runda sama wchodzi w „ruina się budzi”. Długi przestój w teście zaostrza strażnika.
 - Dobrze gadająca para może skończyć pierwszą komorę szybciej niż zakładane 3–5 minut, bo optymalny marsz 15×15 to około minuty. Czekanie na strażnika i złe skręty to wydłużają.

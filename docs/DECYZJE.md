@@ -32,6 +32,8 @@ W komorze zostaje jeden łowca, taki jak dotychczas. Obok niego chodzą dwa albo
 
 Cisza: krótki wzrok, zero słuchu. Chód: średni wzrok, słuch tylko z bliska. Bieg: daleki wzrok i słuch przez ściany. Latarnik nie dostaje kierunku do serca ani mapy. Bliskość strażnika słychać i widać na winiecie. Kierunek daje kartograf.
 
+Winieta zapala się wcześniej, gdy strażnik czuwa, szuka albo goni i jest bliżej niż około 7. Bez kierunku. Poniżej około 3,4 pulsuje jak przedtem. Obchód jej nie włącza, bo wtedy znak paliłby się przy zwykłym mijaniu i nie dałoby się na nim stanąć. Pościg dochodził do korytarza dopiero jako sylwetka w snopie.
+
 ## Budzenie ruiny zamiast zegara porażki
 
 Budzenie idzie od postępu po drodze do serca i zaczyna się około połowy trasy. Zegar około 110 s jest górną granicą ciszy: co nastąpi pierwsze. Potem strażnik przyspiesza i lepiej wyczuwa, aż do pełnego pobudzenia. Stanie w miejscu po tym czasie przestaje być bezpieczne. Nie ma osobnego „czas minął”.
