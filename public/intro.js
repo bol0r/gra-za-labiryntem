@@ -132,7 +132,7 @@ function sphere(lat, lon, radius, spin) {
 // ------------------------------------------------------------------ TEKSTURY INTRA
 // Pliki w public/tex/intro/ robi docs/intro_generator.py. Plan i mapowanie: docs/INTRO_TEKSTURY.md.
 // Bez tekstur (nie doszły albo „Tekstury HD” wyłączone) intro rysuje się płasko, jak wcześniej.
-const TEX_VER = "1";
+const TEX_VER = "2";
 const TEX_FILES = ["space", "planet_surface", "planet_glow", "hall_wall", "hall_floor", "hall_ceiling", "hall_gate"];
 // Pikseli bufora na klatkę (sala i planeta liczone piksel po pikselu). Budżet sam się dobiera:
 // schodzi, gdy rysowanie sali trwa ponad 8 ms, i wraca, gdy jest zapas.

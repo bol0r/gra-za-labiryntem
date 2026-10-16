@@ -76,14 +76,16 @@ def maze_cells(n, seed):
 # ------------------------------------------------------------------ KOSMOS
 
 def space_tex():
-    """Tło kosmosu 2048×1024: mgławica w miedzi i popiele, gęste gwiazdy. Rysowane jako plansza za planetą."""
+    """Tło kosmosu 2048×1024: mgławica w miedzi i popiele, gęste gwiazdy. Rysowane jako plansza za planetą.
+    Kafelkuje się w poziomie (lewa i prawa krawędź się zgadzają), więc nadaje się też na panoramę."""
     W, H = 2048, 1024
     rng = np.random.default_rng(1201)
     ys, xs = np.mgrid[0:H, 0:W].astype(float)
     base = np.zeros((H, W, 3)) + np.array([5, 5, 8.0])
     n1 = fbm(H, W, 2.1, 1202); n2 = fbm(H, W, 1.5, 1203); n3 = fbm(H, W, 2.8, 1204)
     # ukośna wstęga mgławicy
-    band = np.exp(-(((ys / H - 0.55) - (xs / W - 0.5) * 0.55 + (n3 - 0.5) * 0.35) / 0.17) ** 2)
+    # wstęga faluje okresowo w poziomie (sinus po pełnym obwodzie), więc nie ma szwu na krawędzi
+    band = np.exp(-(((ys / H - 0.55) + 0.14 * np.sin(xs / W * 2 * np.pi + 0.4) + (n3 - 0.5) * 0.35) / 0.17) ** 2)
     neb = smooth(0.35, 0.9, n1) * band
     base += np.array([118, 60, 36.0]) * (neb * (0.6 + 0.8 * n2))[..., None]
     base += np.array([40, 34, 52.0]) * (smooth(0.4, 0.8, n2) * band * 0.8)[..., None]
@@ -102,7 +104,7 @@ def space_tex():
     for oy in range(-3, 4):
         for ox in range(-3, 4):
             px = (sx.astype(int) + ox) % W; py = np.clip(sy.astype(int) + oy, 0, H - 1)
-            d = np.hypot(px + 0.5 - sx - np.where(px - sx.astype(int) < -3, -W, 0), py + 0.5 - sy)
+            d = np.hypot((px + 0.5 - sx + W / 2) % W - W / 2, py + 0.5 - sy)
             rad = 0.55 + mag * 1.5
             val = np.exp(-(d / rad) ** 2 * 2.2) * (0.2 + mag)
             np.add.at(acc, (py, px), tint * val[:, None])
@@ -110,9 +112,10 @@ def space_tex():
     # kilka jasnych gwiazd z krzyżem dyfrakcyjnym
     for _ in range(9):
         cx, cy = rng.uniform(0, W), rng.uniform(H * 0.1, H * 0.9)
-        d = np.hypot(xs - cx, ys - cy)
+        dxw = (xs - cx + W / 2) % W - W / 2  # odległość z zawinięciem w poziomie
+        d = np.hypot(dxw, ys - cy)
         glow = np.exp(-(d / 5) ** 2) + 0.25 * np.exp(-(d / 22) ** 2)
-        spike = (np.exp(-np.abs(ys - cy) / 1.1) * np.exp(-np.abs(xs - cx) / 46) + np.exp(-np.abs(xs - cx) / 1.1) * np.exp(-np.abs(ys - cy) / 46)) * 0.5
+        spike = (np.exp(-np.abs(ys - cy) / 1.1) * np.exp(-np.abs(dxw) / 46) + np.exp(-np.abs(dxw) / 1.1) * np.exp(-np.abs(ys - cy) / 46)) * 0.5
         base += np.array([255, 236, 210.0]) * (glow + spike)[..., None]
     return base
 
