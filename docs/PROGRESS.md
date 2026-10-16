@@ -4,6 +4,12 @@ Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zosta
 
 ## Zrobione
 
+### Rozwidlenia
+
+Labirynt zostaje drzewem: jedna droga między komórkami, start to ślepy zaułek najdalszy od serca. Rzeźbienie co kilka kroków puszcza boczny korytarz na kilka komórek, a jednokomórkową niszę przy drodze do serca dosuwa w bok, gdy ma sąsiada poza tą drogą. Lewo i prawo da się pomylić. Pieczęcie, łup, strażnik, protokół i fizyka bez zmian.
+
+Na 40 nasionach siatki 15 mediana głębokości odnogi przy drodze do serca jest około 5, wcześniej około 2. Odnóg głębokich na co najmniej 5 komórek jest średnio około 5, krótkich (do dwóch komórek) około 4 zamiast około 8. `npm run check`: siatki 15, 19 i 21 są spójne, mają pieczęcie, obchód przecina drogę, da się dojść do serca.
+
 ### Pad w korytarzu
 
 Nasłuch i Stuk na padzie idą z LB i RB. To krawędź, nie przytrzymanie, i tylko u latarnika w korytarzu. Odnowienie zostaje: 4 s i 4,5 s. W opcjach LB nie puszcza nasłuchu. Klawisze N i K, bieg (A albo RT), wyciszenie (X) i pełny ekran (Y) bez zmian. Ściąga pada wymienia LB i RB. Układ menu i HUD-u bez zmian.

@@ -6,13 +6,13 @@ Kolejka po drugim teście, 15 października 2026. Mariusz i Pawełek. Bartek nie
 
 Po podmianie tekstur podbić `HD_VER` w `render.js`, inaczej przeglądarka zostanie przy starych plikach. Serwer wstały przed cache `/tex/` trzeba zrestartować.
 
-Pad w korytarzu puszcza bieg (A albo RT), wyciszenie (X) i pełny ekran (Y). Nasłuch i Stuk są na klawiszach N i K, na padzie ich nie ma. Na teście z Xboxa działał sam bieg. Dopiąć Nasłuch i Stuk do wolnych przycisków.
+Pad w korytarzu puszcza bieg (A albo RT), wyciszenie (X) i pełny ekran (Y). ~~Nasłuch i Stuk są na klawiszach N i K, na padzie ich nie ma. Na teście z Xboxa działał sam bieg. Dopiąć Nasłuch i Stuk do wolnych przycisków.~~
 
 Dron, który wcześniej buczał, na teście zniknął. Opcje w trakcie rundy już są. Sprawdzić, czy dźwięk wraca stamtąd i czy master w ogóle gra.
 
 ## Z testu, następne
 
-Więcej rozwidleń i ślepych korytarzy. Kartograf na telefonie się nudzi, bo za często jest jedna droga. Lewo i prawo mają o czym decydować.
+~~Więcej rozwidleń i ślepych korytarzy. Kartograf na telefonie się nudzi, bo za często jest jedna droga. Lewo i prawo mają o czym decydować.~~
 
 Pieczęcie i łup już leżą w komorze. Testerzy ich nie widzieli i prosili o ukryte przejścia oraz skrzynki. Najpierw zrobić je czytelne, nie dokładać drugich drzwi. Boss za skrytką nie wchodzi: w grze się ucieka, nie walczy.
 
