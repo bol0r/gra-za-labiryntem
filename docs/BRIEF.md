@@ -6,7 +6,7 @@ Tajemniczy labirynt na obcej planecie, ruiny cywilizacji, która nie zostawiła 
 
 Gra jest na dwie osoby, każda w swojej przeglądarce. Jedna może być na komputerze, druga na telefonie. Runda ma być krótka i napięta: dojść do serca ruiny, zanim strażnik zamknie korytarz. Po wyniku od razu zaczyna się następna komora.
 
-Wejście: najpierw intro. Schodzi od dowolnego klawisza, od kliknięcia w kadr i od A na padzie. Potem menu: Graj, Fabuła, Tablica, Twórcy. Z Graj jedna osoba otwiera komorę i dostaje czteroznakowy kod oraz kod QR. Druga skanuje albo wpisuje kod. Link w QR ma `?pokoj=CODE` i wchodzi od razu, bez intra.
+Wejście: najpierw intro. Schodzi od dowolnego klawisza, od kliknięcia w kadr i od A na padzie. Potem menu: Graj, Opcje, Teczka, Zejścia, Twórcy. Z Graj jedna osoba otwiera komorę i dostaje czteroznakowy kod oraz kod QR. Druga skanuje albo wpisuje kod. Link w QR ma `?pokoj=CODE` i wchodzi od razu, bez intra.
 
 Głosu w grze nie ma. Kartograf może mówić obok albo przez telefon, a dodatkowo wysyła krótkie znaki: Stój, Cicho, Biegnij, W lewo, W prawo.
 
@@ -51,7 +51,7 @@ Twórca pokoju wybiera rolę. Druga osoba dostaje tę, która została.
 - P albo F1, oraz przycisk Pomoc, otwierają pomoc. U latarnika i u kartografa tekst jest inny.
 - Ruina budzi się od postępu latarnika po drodze do serca. Około połowy trasy zaczyna, przy sercu jest pełna. Zegar około 110 s jest górną granicą ciszy: budzi to, co nastąpi pierwsze. Z samego czasu pełne pobudzenie jest około 230 s. Strażnik robi się szybszy i wyczuwa dalej. Nie ma twardego limitu czasu. Cofnięcie się nie usypia ruiny.
 - Wygrana podnosi „żar” (większy labirynt), przegrana obniża. Rozmiary: 15, 19, 21. Numer rundy rośnie niezależnie.
-- Po wygranej płyta wisi około 12 s, po przegranej około 8 s, i sama startuje następna komora. Przycisk **Dalej** skraca czekanie i pokazuje odliczanie. Wygrana mówi „Ruina was puszcza.”, przegrana „Strażnik was ma.” Obie podają czas i punkty. Po wygranej można wpisać imię na tablicę.
+- Po wygranej płyta wisi około 12 s, po przegranej około 8 s, i sama startuje następna komora. Przycisk **Dalej** skraca czekanie i pokazuje odliczanie. Wygrana mówi „Serce odpowiedziało. Schodzicie głębiej.”, przegrana „Strażnik was dogonił. Ruina liczy kroki od nowa.” Obie podają czas i punkty oraz jedną notatkę. Po wygranej można wpisać, kto schodził.
 - Tablica trzyma imię, czas, numer komory i punkty. Kolejność: więcej komór, potem więcej punktów, potem krótszy czas. Widać ją z menu i pod `GET /tablica`.
 - Zerwane połączenie w trakcie rundy zatrzymuje symulację. Można wrócić tym samym tokenem z `sessionStorage` przez około 2 minuty.
 
