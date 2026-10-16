@@ -2114,22 +2114,20 @@ function toggleHelp() {
   const body = runner
     ? `<p class="kicker">Latarnik</p><h2>W korytarzu</h2>
       <p>WASD: krok. Strzałki: wzrok. Shift: bieg. Na telefonie lewa strona to krok, prawa wzrok.</p>
-      <p>N: nasłuch, skąd strażnik. K: stuk, znak dla mapy. Na padzie to samo robią LB i RB.</p>
-      <p>Klucz i odłamki leżą w komorach. Podniesienie daje punkty. Nie są konieczne, żeby dojść do serca.</p>
-      <p>Stań przy bursztynowych drzwiach. Wtedy osoba przy mapie może je otworzyć.</p>
-      <p>Stanie w miejscu jest ciche. Bieg słychać przez ściany. Ucieczka z pościgu też daje punkty.</p>
-      <p>Słabsze stwory chodzą stałymi trasami. Stój albo zejdź im z oczu, a gubią ślad. Nie da się z nimi walczyć.</p>`
+      <p>N: nasłuch, skąd strażnik. K: stuk, znak dla mapy.</p>
+      <p>Odłamki i klucz to dowody. Dają punkty. Do serca nie są potrzebne.</p>
+      <p>Stań przy bursztynowych drzwiach. Kartograf może je wtedy otworzyć.</p>
+      <p>Kto stoi, jest cichy. Bieg słychać przez ściany. Ucieczka z pościgu daje punkty.</p>`
     : guide
       ? `<p class="kicker">Kartograf</p><h2>Przy mapie</h2>
-      <p>Mapa jest na telefonie. Latarnik na komputerze.</p>
-      <p>Klik w korytarz stawia znak. Klik w drzwi otwiera je tylko wtedy, gdy latarnik przy nich stoi.</p>
-      <p>Zawołania: Stój, Cicho, Biegnij, Lewo, Prawo, Wstecz, Do serca. Zasłona na chwilę myli strażnika.</p>
-      <p>Oprócz łowcy są dwa albo trzy słabsze stwory na stałych trasach. Stanie i brak wzroku gubi im ślad.</p>
+      <p>Mapa jest na telefonie. Latarnik jest na dole.</p>
+      <p>Dotknij korytarza, żeby postawić znak. Dotknij drzwi, gdy Latarnik przy nich stoi.</p>
+      <p>Zawołania: Stój, Cicho, Biegnij, W lewo, W prawo, Wstecz, Do serca. Zasłona na chwilę myli strażnika.</p>
       <p>Punkty: odłamki, klucz, ucieczka z pościgu i przejście komory.</p>`
       : `<p class="kicker">Pomoc</p><h2>Dwie role</h2>
       <p>Mapa na telefonie, latarnia na komputerze. Ten sam Wi-Fi.</p>
-      <p>W grze P albo F1 otwiera tę tablicę. U latarnika i u kartografa tekst jest inny.</p>`;
-  helpCard.innerHTML = `${body}<div class="menu-list"><button type="button" id="help-close">Zamknij</button></div><p class="fine">P albo F1</p>`;
+      <p>W grze P albo F1 otwiera tę tablicę. Latarnik i Kartograf dostają inny tekst.</p>`;
+  helpCard.innerHTML = `${body}<div class="menu-list"><button type="button" id="help-close">Zamknij</button></div><p class="fine">P albo F1 · Ruina nie liczy czasu. Liczy kroki.</p>`;
   help.hidden = false;
   help.classList.remove("is-off");
   document.getElementById("help-close").addEventListener("click", toggleHelp);
