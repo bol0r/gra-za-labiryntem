@@ -640,7 +640,7 @@ function renderPanel() {
           <p class="sn-sub">Strażnik</p>
           <h2 class="sn-name" id="sent-state">Obchód</h2>
           <div class="wake" id="wake-bars" aria-label="Przebudzenie ruiny">${wakes}</div>
-          <div class="wake-l"><span>Cisza</span><span>Niepokój</span><span>Budzi się</span></div>
+          <div class="wake-l"><span>Śpi</span><span>Niepokój</span><span>Budzi się</span></div>
         </div>
         <div class="loot">
           <div class="seals" id="seal-count" aria-label="Pieczęcie">${seals}</div>
@@ -653,9 +653,9 @@ function renderPanel() {
       </div>
       <div class="keys">
         <p class="echo" id="echo">Wysłano</p>
-        ${key("left", "Lewo", "4", "dir", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>`)}
+        ${key("left", "W lewo", "4", "dir", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>`)}
         ${key("stop", "Stój", "1", "stop", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="1"/></svg>`)}
-        ${key("right", "Prawo", "5", "dir", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>`)}
+        ${key("right", "W prawo", "5", "dir", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>`)}
         ${key("quiet", "Cicho", "2", "", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 10h3l4-3v10l-4-3H5z"/><path d="M16 10l4 4M20 10l-4 4"/></svg>`)}
         ${key("run", "Biegnij", "3", "", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h10M10 7l5 5-5 5M17 7l5 5-5 5"/></svg>`)}
         <button class="veil" id="veil-btn" type="button" data-act="veil" aria-label="Zasłona" style="--p: 1"><i class="ring"></i><b id="veil-label">Zasłona</b><em id="veil-num"></em></button>
@@ -665,7 +665,7 @@ function renderPanel() {
     </section>
   `;
   const ruin = document.getElementById("ruin-label");
-  if (ruin) ruin.textContent = `RUINA ${state.round}`;
+  if (ruin) ruin.textContent = `KOMORA ${state.round}`;
   syncGuideMute();
 }
 
@@ -729,7 +729,7 @@ function updatePanel(snap) {
     keyic.classList.toggle("has", hasKey);
   }
   const ruin = document.getElementById("ruin-label");
-  if (ruin) ruin.textContent = `RUINA ${state.round}`;
+  if (ruin) ruin.textContent = `KOMORA ${state.round}`;
   const roundClock = document.getElementById("round-clock");
   if (roundClock) roundClock.textContent = clock(snap.roundT);
 }
