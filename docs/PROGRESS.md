@@ -4,6 +4,12 @@ Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zosta
 
 ## Zrobione
 
+### Czytelne pieczęcie i łup
+
+Na mapie pieczęć jest bursztynowym heksagonem z ciemnym środkiem od początku rundy, a przy drzwiach tylko jaśnieje. Klucz ma jasny trzonek na ciemnym krążku, odłamek to bursztynowy romb. U latarnika pieczęć jest medalionem na drzwiach i widać ją z korytarza, zanim stanie się przy nich. Klucz i odłamek mają ciemną obwódkę, więc odcinają się od posadzki. Bez drugich drzwi, skrzynek i bossa.
+
+Sprawdzone: pokój FHCK, mapa kartografa. Pieczęcie widać z dala od latarnika. Klucz i odłamki nie giną w podłodze. Widok latarnika z 3,5 komórki na pieczęć i z 3 na klucz, tekstury HD włączone. Konsola pusta.
+
 ### Dron z oktawą
 
 Niski sinus 46 Hz przy wzmocnieniu 0,012 zostaje. Obok niego gra cichszy sinus 92 Hz przy 0,008, z tym samym wolnym drganiem, dwa razy szerszym, żeby para została oktawą. Oba idą przez jeden master. Wyciszenie, suwak i Opcje w trakcie rundy gaszą całość i oddają ten sam poziom. Kroki i menu bez zmian.

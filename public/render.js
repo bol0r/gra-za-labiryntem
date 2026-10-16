@@ -909,20 +909,20 @@ function blitSprite(data, z, w, h, horizon, body, sprite, time) {
   const dx = sprite.x - body.x;
   const dy = sprite.y - body.y;
   const dist = Math.hypot(dx, dy);
-  if (dist < 0.2 || dist > 10.4) return;
+  const mark = sprite.kind === "seal";
+  const pickup = sprite.kind === "key" || sprite.kind === "shard";
+  if (dist < 0.2 || dist > (mark || pickup ? 16 : 10.4)) return;
   const ang = normalizeAngle(Math.atan2(dy, dx) - body.a);
   if (Math.abs(ang) > FOV * 0.58) return;
   const focal = (w * 0.5) / Math.tan(FOV * 0.5);
-  const fog = clamp((dist - 1.5) / 7.2, 0, 1);
+  const fog = mark || pickup ? clamp((dist - 4.5) / 14, 0, 0.45) : clamp((dist - 1.5) / 7.2, 0, 1);
   const cone = Math.max(0, 1 - (Math.abs(ang) / (FOV * 0.55)) ** 2);
   const fade = (1 - fog * fog) * (0.22 + 0.78 * cone);
   if (fade < 0.04) return;
   const screenX = w * 0.5 + Math.tan(ang) * focal;
-  const mark = sprite.kind === "seal";
-  const pickup = sprite.kind === "key" || sprite.kind === "shard";
-  const tall = sprite.kind === "sentinel" ? 0.95 : sprite.kind === "ping" ? 1.1 : pickup ? 0.34 : 0.72;
+  const tall = sprite.kind === "sentinel" ? 0.95 : sprite.kind === "ping" ? 1.1 : pickup ? 0.7 : 0.72;
   const aspect = sprite.kind === "sentinel" ? 0.46 : sprite.kind === "ping" ? 0.16 : 1;
-  const size = mark ? Math.min(h * 0.32, (h * 0.3) / dist) : Math.min(h * 0.92, (h * tall) / dist);
+  const size = mark ? Math.min(h * 0.46, (h * 0.72) / dist) : Math.min(h * 0.92, (h * tall) / dist);
   const width = Math.max(2, Math.floor(mark ? size : size * aspect));
   const left = Math.floor(screenX - width * 0.5);
   const feet = mark ? Math.floor(horizon + size * 0.5) : Math.floor(horizon + (h * 0.48) / dist);
@@ -971,25 +971,40 @@ function spriteColor(sprite, u, v, time) {
 
 function glyphMark(u, v, time, key) {
   const x = u - 0.5;
-  const y = v - 0.5;
-  const d = Math.hypot(x * 1.4, y);
-  if (d > 0.46) return null;
-  const pulse = 0.8 + 0.2 * Math.sin(time * 3);
-  if (key && Math.abs(x) < 0.08 && Math.abs(y) < 0.28) return [232, 196, 140, 0.95 * pulse];
-  if (key && Math.hypot(x - 0.12, y) < 0.16) return [196, 140, 72, 0.9 * pulse];
-  if (!key && d < 0.22) return [226, 164, 90, 0.9 * pulse];
-  return [160, 110, 64, (0.46 - d) * pulse];
+  const y = v - 0.46;
+  const pulse = 0.88 + 0.12 * Math.sin(time * 3);
+  if (key) {
+    const head = Math.hypot(x + 0.1, y);
+    const shaft = Math.abs(y) < 0.055 && x > -0.1 && x < 0.36;
+    const tooth = (Math.abs(x - 0.16) < 0.04 || Math.abs(x - 0.28) < 0.04) && y > 0 && y < 0.16;
+    if (head < 0.15 || shaft || tooth) return [248, 236, 210, 0.98 * pulse];
+    if (head < 0.24 || (Math.abs(y) < 0.12 && x > -0.2 && x < 0.42)) return [24, 14, 8, 0.92 * pulse];
+    return null;
+  }
+  const ax = Math.abs(x);
+  const ay = Math.abs(y);
+  const diamond = ax * 1.35 + ay;
+  if (diamond > 0.46) return null;
+  if (diamond < 0.12) return [255, 244, 210, 0.98 * pulse];
+  if (diamond < 0.3) return [255, 168, 42, 0.96 * pulse];
+  return [48, 22, 8, 0.9 * pulse];
 }
 
 function sealGlow(u, v, time) {
   const x = (u - 0.5) * 2;
   const y = (v - 0.5) * 2;
-  const d = Math.hypot(x, y);
-  if (d > 1) return null;
-  const pulse = 0.82 + 0.18 * Math.sin(time * 2.2);
-  if (d < 0.26) return [240, 184, 78, 0.95 * pulse];
-  const a = (1 - d) ** 1.5 * 0.72 * pulse;
-  return [214, 146, 58, a];
+  const ax = Math.abs(x);
+  const ay = Math.abs(y);
+  const hex = Math.max(ax * 0.866 + ay * 0.5, ay);
+  if (hex > 1.02) return null;
+  const pulse = 0.86 + 0.14 * Math.sin(time * 2.2);
+  if (hex < 0.22) return [255, 228, 150, 0.98 * pulse];
+  if (hex < 0.38) return [28, 16, 8, 0.92 * pulse];
+  if (hex < 0.7) return [240, 168, 52, 0.96 * pulse];
+  if (hex < 0.86) return [255, 232, 180, 0.9 * pulse];
+  const a = (1.02 - hex) * 1.6 * pulse;
+  if (a < 0.08) return null;
+  return [214, 140, 48, a];
 }
 
 function sentinelShade(u, v, time, state) {
@@ -1198,39 +1213,13 @@ export function drawGuide(ctx, w, h, view) {
     if (seal.open) continue;
     const midX = seal.axis === "v" ? seal.x : seal.x + 0.5;
     const midY = seal.axis === "v" ? seal.y + 0.5 : seal.y;
-    const x = toX(midX);
-    const y = toY(midY);
-    const s = Math.max(6, size * 0.22);
     const nearDoor = explorer && Math.hypot(explorer.x - midX, explorer.y - midY) < 1.2;
-    ctx.save();
-    ctx.globalAlpha = nearDoor ? 1 : 0.38;
-    ctx.fillStyle = nearDoor ? "rgba(226, 176, 90, 0.7)" : "rgba(226, 150, 48, 0.35)";
-    ctx.beginPath();
-    ctx.arc(x, y, s * (nearDoor ? 1.9 : 1.4), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.translate(x, y);
-    ctx.rotate(Math.PI / 4);
-    ctx.fillStyle = nearDoor ? "#f0d7a4" : "#a07848";
-    ctx.fillRect(-s / 2, -s / 2, s, s);
-    ctx.restore();
+    drawMapSeal(ctx, toX(midX), toY(midY), Math.max(9, size * 0.36), nearDoor, time);
   }
 
   for (const item of maze.loot || []) {
     if (item.taken) continue;
-    const x = toX(item.x);
-    const y = toY(item.y);
-    ctx.fillStyle = item.kind === "key" ? "#e7d3a8" : "#c4893a";
-    ctx.beginPath();
-    ctx.arc(x, y, Math.max(3, size * (item.kind === "key" ? 0.12 : 0.08)), 0, Math.PI * 2);
-    ctx.fill();
-    if (item.kind === "key") {
-      ctx.strokeStyle = "#8f6a52";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x + Math.max(4, size * 0.14), y);
-      ctx.stroke();
-    }
+    drawMapLoot(ctx, toX(item.x), toY(item.y), size, item.kind === "key");
   }
 
   if (sentinel) {
@@ -1318,6 +1307,72 @@ function drawHeartMark(ctx, relic, toX, toY, size, time) {
   ctx.strokeText("SERCE", rx, ry - size * 0.46);
   ctx.fillStyle = "#f6e6c8";
   ctx.fillText("SERCE", rx, ry - size * 0.46);
+}
+
+function drawMapSeal(ctx, x, y, s, near, time) {
+  const pulse = near ? 0.94 + 0.06 * Math.sin(time * 4) : 1;
+  const r = s * (near ? 1.12 : 1) * pulse;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = -Math.PI / 2 + (i / 6) * Math.PI * 2;
+    const px = Math.cos(a) * r;
+    const py = Math.sin(a) * r;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = "#140e08";
+  ctx.fill();
+  ctx.lineWidth = Math.max(2, r * 0.22);
+  ctx.strokeStyle = near ? "#ffe6b0" : "#f0b43a";
+  ctx.stroke();
+  ctx.fillStyle = near ? "#ffe2aa" : "#e8a040";
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.34, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawMapLoot(ctx, x, y, size, key) {
+  const r = Math.max(key ? 8 : 7, size * (key ? 0.3 : 0.26));
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = "rgba(16, 10, 6, 0.94)";
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 1.2, 0, Math.PI * 2);
+  ctx.fill();
+  if (key) {
+    ctx.strokeStyle = "#f7ead0";
+    ctx.lineWidth = Math.max(2, r * 0.22);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.arc(-r * 0.22, 0, r * 0.36, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(r * 0.85, 0);
+    ctx.moveTo(r * 0.48, 0);
+    ctx.lineTo(r * 0.48, r * 0.36);
+    ctx.moveTo(r * 0.74, 0);
+    ctx.lineTo(r * 0.74, r * 0.26);
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = "#ffc14a";
+    ctx.beginPath();
+    ctx.moveTo(0, -r);
+    ctx.lineTo(r * 0.7, 0);
+    ctx.lineTo(0, r);
+    ctx.lineTo(-r * 0.7, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#fff3cc";
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 function stoneWall(ctx, x, y, w, h, shadow) {
