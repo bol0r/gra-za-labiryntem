@@ -468,11 +468,11 @@ function clock(total) {
 
 function paintScores() {
   const rows = state.scores
-    ? state.scores.map((row) => `<li>${row.name} · ${clock(row.time)} · komora ${row.chambers} · ${row.points || 0} pkt</li>`).join("") || "<li>Pusto.</li>"
-    : "<li>Ładuję.</li>";
+    ? state.scores.map((row) => `<li>${row.name} · ${clock(row.time)} · komora ${row.chambers} · ${row.points || 0} pkt</li>`).join("") || "<li>Nikt jeszcze nie zszedł.</li>"
+    : "<li>Czytam teczkę.</li>";
   fillPlate("scores", `
-    <p class="kicker">Tablica</p>
-    <h1>Przeszli</h1>
+    <p class="kicker">Zejścia</p>
+    <h1>Najgłębiej</h1>
     <ul class="board">${rows}</ul>
     <div class="menu-list"><button type="button" data-act="back">Wróć</button></div>
   `);
