@@ -16,6 +16,7 @@ import {
   clamp,
   departAngle,
   hashString,
+  openingSilence,
   wakeLevel,
 } from "../shared/sim.js";
 
@@ -202,6 +203,7 @@ function snapshot(room) {
     roundT: room.roundT,
     wake: room.wake,
     immunity: Math.max(0, room.immunity || 0),
+    silence: Math.max(0, room.silence || 0),
     ex: ex ? { x: ex.x, y: ex.y, a: ex.a, sprint: !!ex.sprint, quiet: !!ex.quiet } : null,
     sn: sn ? { x: sn.x, y: sn.y, a: sn.a, state: sn.state } : null,
     beasts: (room.beasts || []).map((b) => ({ x: b.x, y: b.y, a: b.a, follow: !!b.follow })),
@@ -274,6 +276,7 @@ function beginRound(room) {
   room.wake = 0;
   room.along = 0;
   room.immunity = 2.4;
+  room.silence = openingSilence(room.heat);
   room.sealCharges = 2;
   room.veil = 0;
   room.veilCd = 0;
@@ -334,6 +337,7 @@ function tick(room) {
       if (pct != null) room.along = Math.max(room.along || 0, pct / 100);
       room.wake = wakeLevel(room.roundT, room.along || 0);
       room.immunity = Math.max(0, room.immunity - DT);
+      room.silence = Math.max(0, (room.silence || 0) - DT);
       room.veil = Math.max(0, room.veil - DT);
       room.veilCd = Math.max(0, room.veilCd - DT);
       if (room.ping) {

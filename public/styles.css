@@ -447,6 +447,30 @@ section.board {
 #panel .veil.cool { color: var(--dim); }
 #panel .veil.cool .ring { background: conic-gradient(rgba(196, 164, 138, 0.6) calc(var(--p) * 360deg), rgba(231, 225, 214, 0.08) 0); }
 #panel .veil:disabled { opacity: 1; }
+#panel .veil.hint { animation: veil-hint 0.8s ease-in-out infinite; }
+#panel .veil.hint .ring { background: conic-gradient(#f1c98d 360deg, transparent 0); }
+@keyframes veil-hint {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(241, 201, 141, 0); filter: brightness(1); }
+  50% { box-shadow: 0 0 0 5px rgba(211, 147, 64, 0.55); filter: brightness(1.45); }
+}
+.veil-hint {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: -28px;
+  transform: translateX(-50%);
+  margin: 0;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #f1c98d;
+  background: rgba(14, 12, 10, 0.92);
+  border: 1px solid rgba(211, 147, 64, 0.55);
+  border-radius: 3px;
+  padding: 4px 8px;
+  pointer-events: none;
+}
 @keyframes veil-spin { to { transform: rotate(360deg); } }
 .echo {
   position: absolute;
@@ -1038,9 +1062,10 @@ section.board {
 
 @media (prefers-reduced-motion: reduce) {
   #toast, #lobby, #result, #waitbanner, .plate, #intro-go, #smoke i,
-  .eye::after, .door, #panel .key.sent::after, #panel .veil.on .ring,
+  .eye::after, .door, #panel .key.sent::after, #panel .veil.on .ring, #panel .veil.hint,
   #menu-bg .sky, #menu-bg .planet, .menu-title, #loot-float, #screen.is-near::after,
   .code-cells span.caret::after { animation: none; }
+  #panel .veil.hint { box-shadow: 0 0 0 3px rgba(211, 147, 64, 0.7); filter: none; }
   .menu-title { --fill: 110%; }
 }
 

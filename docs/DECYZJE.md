@@ -49,3 +49,15 @@ Tekst gracza jest po polsku. Fonty to Palatino i font systemowy, żeby lobby nie
 ## Brak głosu w protokole
 
 Dwie osoby i tak mają telefon albo siedzą obok. Zamiast mikrofonu w przeglądarce są pięć krótkich znaków i klikany kierunek. Mniej uprawnień, działa przy wyciszonym mikrofonie.
+
+## Cisza na starcie żaru 0
+
+Dłuższa odporność odpada. `immunity` blokuje też złapanie, więc przez 24 s dało się przejść łowcy przez nos, a ślepy bieg bez kartografa wygrywał 28 z 40. Pierwsza komora ma uczyć, że mapa jest potrzebna.
+
+Na żarze 0 jest osobne `silence`, 10 s: łowca nie widzi i nie słyszy, dotyk zabija po 2,4 s jak wszędzie. Słuch biegu na żarze 0 to 0,6. Żar 1 i 2 bez zmian. Marsz został przy 15 z 40. Te same 40 nasion, siatka 15:
+
+| Okno | Bieg, wygrane | Śmierci do 25 s |
+| --- | --- | --- |
+| dziś | 5/40 | 35 |
+| 10 s, słuch ×0,6 | 16/40 | 20 |
+| 18 s, słuch ×0,6 | 21/40 | 13 |

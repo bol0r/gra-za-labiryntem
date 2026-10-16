@@ -41,7 +41,7 @@ Twórca pokoju wybiera rolę. Druga osoba dostaje tę, która została.
 - Labirynt jest doskonały (recursive backtracker) plus do trzech zamkniętych skrótów. Skrót nie jest obowiązkowy. Da się wygrać bez kartografa, ale bez niego jest ślepo.
 - Start to ślepy zaułek daleko od serca. Serce to komórka najdalsza od narożnika, a start to zaułek najdalszy od serca.
 - Strażnik obchodzi boczny korytarz, który przecina drogę do serca. Stany: obchód, czuwa, pościg, szuka. Widzi w stożku, słyszy bieg przez ściany, chód tylko z bliska, stanie w miejscu jest ciche.
-- Po starcie rundy jest krótka odporność, około 2,4 s, żeby zły układ nie zabił od razu.
+- Po starcie rundy jest krótka odporność na dotyk, około 2,4 s, żeby zły układ nie zabił od razu. Na żarze 0 dochodzi 10 s ciszy: łowca nie widzi i nie słyszy, ale dotyk zabija. Słuch biegu na żarze 0 jest 0,6 tego, co na dalszych komorach.
 - Dotknięcie strażnika przegrywa. Wejście na komórkę serca wygrywa.
 - Pieczęcie: 2 ładunki na rundę, otwierają ścianę na stałe w tej komorze. Kartograf wydaje ładunek kliknięciem w drzwi. Drzwi puszczają tylko wtedy, gdy latarnik stoi przy nich, bliżej niż około 1,2. Inaczej kartograf słyszy „Latarnik musi stanąć przy drzwiach.”
 - W komorze leżą trzy odłamki i jeden klucz. Podniesienie daje punkty: odłamek 10, klucz 25. Nie są potrzebne, żeby dojść do serca.

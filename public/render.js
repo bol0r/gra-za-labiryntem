@@ -1155,7 +1155,7 @@ export function drawVignette(ctx, w, h, threat, veil) {
 }
 
 export function drawGuide(ctx, w, h, view) {
-  const { maze, explorer, sentinel, beasts, ping, time, wake } = view;
+  const { maze, explorer, sentinel, beasts, ping, time, wake, heat } = view;
   ctx.clearRect(0, 0, w, h);
   const bg = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, Math.max(w, h) * 0.7);
   bg.addColorStop(0, "#161410");
@@ -1195,7 +1195,7 @@ export function drawGuide(ctx, w, h, view) {
   ctx.stroke();
 
   if (sentinel) {
-    const sense = senses(explorer.quiet, explorer.sprint, wake || 0);
+    const sense = senses(explorer.quiet, explorer.sprint, wake || 0, heat ?? 1);
     const sx = toX(sentinel.x);
     const sy = toY(sentinel.y);
     ctx.beginPath();

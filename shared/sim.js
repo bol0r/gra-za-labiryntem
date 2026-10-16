@@ -49,11 +49,16 @@ export function wakeLevel(roundT, along = 0) {
   return Math.max(byTime, byPath);
 }
 
-export function senses(quiet, sprint, wake) {
+export function openingSilence(heat) {
+  return heat <= 0 ? 10 : 0;
+}
+
+export function senses(quiet, sprint, wake, heat = 1) {
+  const hearSprint = heat <= 0 ? 5.8 * 0.6 : 5.8;
   return {
     sight: (quiet ? 2.4 : sprint ? 8.2 : 5.1) * (1 + wake * 0.22),
     fov: SENT_FOV,
-    hear: (quiet ? 0 : sprint ? 5.8 : 1.5) * (1 + wake * 0.28),
+    hear: (quiet ? 0 : sprint ? hearSprint : 1.5) * (1 + wake * 0.28),
   };
 }
 

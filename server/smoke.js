@@ -44,6 +44,8 @@ assert.ok(round.maze.w >= 15);
 assert.ok(round.spawn);
 const snap = await guide.wait((m) => m.t === "snap" && m.phase === "play", "snap");
 assert.equal(snap.sealCharges, 2);
+assert.equal(snap.heat, 0);
+assert.ok(snap.silence > 8, `silence ${snap.silence}`);
 assert.ok(snap.sn);
 guide.send({ t: "call", id: "stop" });
 guide.send({ t: "ping", x: round.maze.relic.x + 0.5, y: round.maze.relic.y + 0.5 });

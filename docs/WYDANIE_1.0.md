@@ -24,8 +24,8 @@ Do wydania robimy tylko to, co jest na tej liście. Nowy pomysł dopisujemy do �
 
 ## 3. Pierwsza komora
 
-- [ ] Żar 0 wybacza więcej: dłuższa odporność albo wolniejszy łowca. W `runs.jsonl` 6 z 8 rund to przegrana, kilka po 15–23 s.
-- [ ] Kartograf raz dostaje podpowiedź o zasłonie. Zasłona: 0 użyć na 8 rund.
+- [x] Żar 0: 10 s ciszy na starcie (łowca nie wykrywa, dotyk zabija) i słuch biegu ×0,6. Odporność na dotyk zostaje 2,4 s na każdym żarze.
+- [x] Kartograf raz w rundzie dostaje podpowiedź o zasłonie, gdy strażnik pierwszy raz wejdzie w Czuwa albo Pościg.
 
 ## 3a. Kto czym gra
 

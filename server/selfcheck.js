@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createBeasts, stepBeasts } from "./creatures.js";
 import { generateMaze } from "./maze.js";
+import { createSentinel, roundOutcome, stepSentinel } from "./sentinel.js";
 import {
   canStand,
   departAngle,
@@ -8,7 +9,9 @@ import {
   gridPath,
   hasLos,
   moveBody,
+  openingSilence,
   raycast,
+  senses,
   stepExplorer,
   wakeLevel,
 } from "../shared/sim.js";
@@ -42,6 +45,56 @@ assert.equal(wakeLevel(0, 1), 1);
 assert.ok(Math.abs(wakeLevel(170, 0) - 0.5) < 0.001);
 assert.equal(wakeLevel(40, 0.75), 0.5);
 assert.equal(wakeLevel(230, 0.2), 1);
+assert.equal(openingSilence(0), 10);
+assert.equal(openingSilence(1), 0);
+assert.equal(openingSilence(2), 0);
+const sprintHear = senses(false, true, 0, 1).hear;
+assert.ok(Math.abs(senses(false, true, 0, 0).hear - sprintHear * 0.6) < 1e-9);
+assert.equal(senses(false, true, 0, 2).hear, sprintHear);
+assert.equal(senses(false, false, 0, 0).hear, senses(false, false, 0, 1).hear);
+assert.equal(senses(true, true, 0, 0).hear, 0);
+
+function silenceBlocksSightButNotTouch() {
+  const maze = {
+    w: 5,
+    h: 1,
+    vWalls: [[true, false, false, false, false, true]],
+    hWalls: [
+      [true, true, true, true, true],
+      [true, true, true, true, true],
+    ],
+    patrol: [
+      { x: 0, y: 0 },
+      { x: 4, y: 0 },
+    ],
+  };
+  const room = {
+    maze,
+    explorer: { x: 3.2, y: 0.5, quiet: false, sprint: false },
+    sentinel: createSentinel(maze),
+    immunity: 0,
+    silence: 10,
+    veil: 0,
+    wake: 0,
+    heat: 0,
+    phase: "play",
+    roundT: 1,
+    chaseAt: null,
+    fx: [],
+    points: 0,
+  };
+  stepSentinel(room, 1 / 20);
+  assert.equal(room.sentinel.state, "patrol", "silence hides the lantern");
+  room.silence = 0;
+  stepSentinel(room, 1 / 20);
+  assert.equal(room.sentinel.state, "alert", "without silence the hunter sees");
+  room.explorer.x = room.sentinel.x + 0.2;
+  room.explorer.y = room.sentinel.y;
+  room.silence = 5;
+  room.immunity = 0;
+  assert.equal(roundOutcome(room), "lose", "silence does not block a touch");
+}
+silenceBlocksSightButNotTouch();
 
 function patrolCrosses(maze) {
   const spine = gridPath(maze, maze.start.x, maze.start.y, maze.relic.x, maze.relic.y);

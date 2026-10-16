@@ -10,13 +10,13 @@ import {
 import { pathPercent } from "./runs.js";
 
 function detect(room) {
-  if (room.immunity > 0 || room.veil > 0) return null;
+  if (room.immunity > 0 || room.veil > 0 || room.silence > 0) return null;
   const ex = room.explorer;
   const sn = room.sentinel;
   const dx = ex.x - sn.x;
   const dy = ex.y - sn.y;
   const dist = Math.hypot(dx, dy);
-  const sense = senses(ex.quiet, ex.sprint, room.wake);
+  const sense = senses(ex.quiet, ex.sprint, room.wake, room.heat ?? 1);
   const ang = Math.abs(normalizeAngle(Math.atan2(dy, dx) - sn.a));
   if (ang < sense.fov * 0.5 && dist < sense.sight && hasLos(room.maze, sn.x, sn.y, ex.x, ex.y)) return "sight";
   if (dist < sense.hear) return "hear";

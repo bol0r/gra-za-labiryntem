@@ -103,6 +103,10 @@ const state = {
   both: false,
   err: "",
   scores: null,
+  veilHintRound: -1,
+  veilHintShown: false,
+  veilSeen: false,
+  veilHintUntil: 0,
 };
 
 const SHELL = new Set(["boot", "intro", "menu", "options", "story", "credits", "scores", "home", "lobby"]);
@@ -654,6 +658,7 @@ function renderPanel() {
       </div>
       <div class="keys">
         <p class="echo" id="echo">Wysłano</p>
+        <p class="veil-hint" id="veil-hint" hidden aria-live="polite">Zasłona. Sześć sekund mgły.</p>
         ${key("left", "W lewo", "4", "dir", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>`)}
         ${key("stop", "Stój", "1", "stop", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="1"/></svg>`)}
         ${key("right", "W prawo", "5", "dir", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>`)}
@@ -668,6 +673,28 @@ function renderPanel() {
   const ruin = document.getElementById("ruin-label");
   if (ruin) ruin.textContent = `KOMORA ${state.round}`;
   syncGuideMute();
+}
+
+function syncVeilHint(snap, veil) {
+  if (state.veilHintRound !== snap.round) {
+    state.veilHintRound = snap.round;
+    state.veilHintShown = false;
+    state.veilSeen = false;
+    state.veilHintUntil = 0;
+  }
+  if (snap.veil > 0 || snap.veilCd > 0) state.veilSeen = true;
+  const snState = (snap.sn && snap.sn.state) || "patrol";
+  const threat = snState === "alert" || snState === "hunt";
+  const ready = !(snap.veil > 0) && !(snap.veilCd > 0);
+  if (snap.phase === "play" && !state.veilHintShown && !state.veilSeen && threat && ready) {
+    state.veilHintShown = true;
+    state.veilHintUntil = performance.now() + 6000;
+  }
+  if (snap.veil > 0 || snap.phase !== "play") state.veilHintUntil = 0;
+  const show = state.veilHintUntil > performance.now();
+  veil.classList.toggle("hint", show);
+  const hint = panel.querySelector("#veil-hint");
+  if (hint) hint.hidden = !show;
 }
 
 function updatePanel(snap) {
@@ -705,6 +732,7 @@ function updatePanel(snap) {
     if (label) label.textContent = snap.veil > 0 ? "Trwa" : cooling ? "Odnowa" : "Zasłona";
     if (num) num.textContent = snap.veil > 0 ? String(Math.ceil(snap.veil)) : cooling ? String(Math.ceil(snap.veilCd)) : "";
     veil.disabled = snap.veilCd > 0;
+    syncVeilHint(snap, veil);
   }
   const seals = panel.querySelector("#seal-count");
   if (seals) {
@@ -914,7 +942,7 @@ function onSnap(msg) {
     waitText.textContent = msg.note || "Nić się zerwała.";
   } else if (msg.phase) waitbanner.classList.add("is-off");
   if (state.role === "runner" && state.phase === "play") {
-    if (msg.immunity > 0.2) {
+    if (msg.silence > 0.2 || msg.immunity > 0.2) {
       hint.hidden = false;
       hint.textContent = "Jeszcze was nie słyszy.";
     } else if (hint.textContent === "Jeszcze was nie słyszy." || hint.textContent.startsWith("Strażnik")) {
@@ -1432,6 +1460,7 @@ function draw(time) {
     ping: snap.ping,
     time,
     wake: snap.wake || 0,
+    heat: snap.heat ?? 1,
   });
 }
 
