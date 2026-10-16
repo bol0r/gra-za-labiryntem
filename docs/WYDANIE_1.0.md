@@ -10,7 +10,7 @@ Do wydania robimy tylko to, co jest na tej liście. Nowy pomysł dopisujemy do �
 - [x] Napisy zależne od sieci mówią prawdę w obu trybach: „Ten sam Wi-Fi, ta sama piwnica.” i „Zostańcie przy tym komputerze.”.
 - [x] Hosting z WebSocketami, dokładnie jedna instancja, bo pokoje są w pamięci procesu.
   Render, plan Free (`render.yaml`), Frankfurt. Budzik z cron-job.org co 10 min na `/zdrowie`, bo darmowy serwis zasypia po 15 min. Tablica zeruje się przy restarcie. Działa od 16 października 2026 pod `https://za-labiryntem.onrender.com`, telefon wszedł przez LTE.
-- [ ] Budzik co 10 min na `/zdrowie`.
+- [x] Budzik co 10 min na `/zdrowie` (cron-job.org).
 - [ ] Subdomena z HTTPS, na przykład `labirynt.deadnet.ovh`.
 
 ## 2. Serwer na publicznym adresie
@@ -26,6 +26,13 @@ Do wydania robimy tylko to, co jest na tej liście. Nowy pomysł dopisujemy do �
 
 - [ ] Żar 0 wybacza więcej: dłuższa odporność albo wolniejszy łowca. W `runs.jsonl` 6 z 8 rund to przegrana, kilka po 15–23 s.
 - [ ] Kartograf raz dostaje podpowiedź o zasłonie. Zasłona: 0 użyć na 8 rund.
+
+## 3a. Kto czym gra
+
+Na pierwszym teście w internecie latarnia trafiła na telefon, a mapa na komputer, i ikonka „nie ruszała się”. Obcy gracz pomyli się tym bardziej.
+
+- [ ] W lobby wielki napis, czym jest ten ekran: „Ten ekran: Mapa” albo „Ten ekran: Latarnia”, z jednym zdaniem, co tu się robi.
+- [ ] Gdy latarnię dostał telefon (dotyk, wąski ekran), a mapę komputer, lobby to mówi i daje przycisk „Zamieńcie się”. Zamiana tylko w lobby, przed zejściem; w rundzie dalej nie wchodzi.
 
 ## 4. Testy z obcymi
 
@@ -45,6 +52,10 @@ Do wydania robimy tylko to, co jest na tej liście. Nowy pomysł dopisujemy do �
 - [ ] Tag `v1.0` na `master`.
 - [ ] Post z trailerem i linkiem.
 - [ ] Zamrożenie: dalsze zmiany dopiero z listy „Po 1.0”, po wydaniu.
+
+## Bonus, tylko gdy 1–5 są zrobione
+
+- [ ] Zdjęcie Wery da się obejrzeć: gdy latarnik stoi nad nim, pojawia się „Podnieś” (klawisz E, dotyk, pad), a zdjęcie z podpisem wychodzi na środek ekranu jako karta. Bez zmian w raycasterze i bez zoomu kamery.
 
 ## Po 1.0
 
