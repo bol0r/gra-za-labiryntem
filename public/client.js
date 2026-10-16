@@ -508,7 +508,7 @@ function paintHome() {
     <div class="play-screen">
       <header class="play-head">
         <p class="kicker">Graj</p>
-        <h1>Kto schodzi?</h1>
+        <h1>Kto patrzy, kto idzie?</h1>
         <p class="role-hint">Tu weź latarnię, mapę otwórz na telefonie.</p>
       </header>
       <div class="play-roles">
@@ -525,7 +525,7 @@ function paintHome() {
           </svg>
           <small>Telefon · widzi całość</small>
           <h3>Przy mapie</h3>
-          <p>Kartograf. Widzi strażnika, prowadzi znakami i otwiera drzwi pieczęcią.</p>
+          <p>Kartograf. Trzyma nić: widzi strażnika, dyktuje znaki, otwiera pieczęcie.</p>
         </button>
         <button type="button" class="role-card" data-act="create" data-role="runner">
           <svg class="art" viewBox="0 0 300 180" aria-hidden="true">
@@ -538,7 +538,7 @@ function paintHome() {
           </svg>
           <small>Komputer · ma tylko światło</small>
           <h3>Z latarnią</h3>
-          <p>Latarnik. Idzie w ciemności, słucha i dotyka serca ruiny.</p>
+          <p>Latarnik. Idzie po omacku, słucha ścian, dotyka serca.</p>
         </button>
         <form class="join-card" data-act="join">
           <p class="kicker">Masz kod?</p>
@@ -557,7 +557,7 @@ function paintHome() {
           <span><i class="pad-b">B</i>Wróć</span>
           <button type="button" class="text-back" data-act="back">Wróć</button>
         </div>
-        <p class="host">${hostLine ? `Drugi ekran: <b>${esc(hostLine)}</b>` : "Zostańcie na tym komputerze."}</p>
+        <p class="host">${hostLine ? `Drugi ekran: <b>${esc(hostLine)}</b>` : "Zostańcie przy tym komputerze."}</p>
       </div>
     </div>
   `);
