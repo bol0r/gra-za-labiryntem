@@ -413,8 +413,8 @@ function toggleHd(btn) {
 
 function paintStory() {
   fillPlate("story", `
-    <p class="kicker">Fabuła</p>
-    <h1>Ruina</h1>
+    <p class="kicker">Teczka</p>
+    <h1>Sprawa 110</h1>
     <svg class="chart" viewBox="0 0 420 230" role="img" aria-label="Stary szkic ruiny">
       <rect width="420" height="230" fill="#efe4cf"/>
       <path d="M18 28h384v174H18z" fill="none" stroke="#8f6a52" stroke-width="1.4"/>
@@ -427,13 +427,15 @@ function paintStory() {
       <circle cx="318" cy="156" r="6" fill="none" stroke="#c4893a" stroke-width="2"/>
       <circle cx="318" cy="156" r="2" fill="#c4893a"/>
       <path d="M200 36l6 14h-12z" fill="#8f6a52"/>
-      <text x="208" y="34" fill="#6a5344" font-size="11" font-family="Palatino, Georgia, serif">północ</text>
-      <text x="78" y="196" fill="#6a5344" font-size="13" font-family="Palatino, Georgia, serif">ruina bez nazwy</text>
+      <text x="208" y="34" fill="#6a5344" font-size="11" font-family="Palatino, Georgia, serif">góra</text>
+      <text x="78" y="196" fill="#6a5344" font-size="13" font-family="Palatino, Georgia, serif">kadr 110 · sonda</text>
     </svg>
-    <p class="lead">Ruina nie ma nazwy. Stoi na planecie, której nikt nie ochrzcił.</p>
-    <p>Jedno z was zostaje przy mapie i widzi strażnika. Drugie schodzi w ciemność z latarnią.</p>
-    <p>Na końcu komory bije serce. Dotknijcie go, a ruina puści was dalej.</p>
-    <p>Strażnik obchodzi korytarze. Bieg słyszy przez ściany. Stanie w miejscu czyni was cichymi.</p>
+    <p class="lead">Sonda na Marsie sfotografowała w pyle korytarze, które schodzą pod powierzchnię. Potem zamilkła. Od tamtej nocy co sto dziesięć sekund wraca ten sam sygnał.</p>
+    <p>Nad korytarzami wisiała planeta z pierścieniami. Mars nie ma takiego nieba. Teczkę podpisano: planeta bez nazwy.</p>
+    <p>Schody znalazł dozorca, w archiwum, za regałem z rocznikiem 1998. W planach budynku ich nie ma. Na dole jest pył i zimne światło.</p>
+    <p>Schodzi się we dwoje. Kartograf zostaje przy mapie i dyktuje. Latarnik idzie w dół z latarnią i widzi tyle, ile oświetli.</p>
+    <p>W korytarzach chodzi strażnik. Słyszy bieg przez ściany. Kto stoi, jest cichy. Na końcu każdej komory bije serce. Dotknięte, puszcza głębiej.</p>
+    <p>Dozorca mówi jedno: „Ruina nie liczy czasu. Liczy kroki.”</p>
     <p>Głos zostawcie sobie. Mapa mówi krótkimi znakami.</p>
     <div class="menu-list"><button type="button" data-act="back">Wróć</button></div>
   `);
