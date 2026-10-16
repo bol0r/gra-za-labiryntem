@@ -22,6 +22,9 @@ import {
 const PORT = Number(process.env.PORT) || 8787;
 const DT = 1 / 20;
 const REJOIN_MS = 120000;
+const MAX_ROOMS = 300;
+const HEARTBEAT_MS = 10000;
+const PUBLIC_URL = String(process.env.PUBLIC_URL || "").trim().replace(/\/+$/, "");
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CALLS = new Set(["stop", "quiet", "run", "left", "right", "back", "heart"]);
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -71,11 +74,36 @@ function saveScores() {
   }
 }
 
+const BLOCKED = [
+  "kurw", "chuj", "huj", "pierdol", "jeba", "jebi", "jebn", "pizd", "cipa", "cipk", "fiut", "kutas",
+  "dziwk", "szmat", "cwel", "pedal", "spierd", "wypierd", "zajeb", "fuck", "shit", "cunt", "bitch",
+  "nigg", "fag", "whore", "hitler", "nazi",
+];
+
+function decent(name) {
+  const flat = name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ł/g, "l")
+    .replace(/0/g, "o")
+    .replace(/1/g, "i")
+    .replace(/3/g, "e")
+    .replace(/4/g, "a")
+    .replace(/5/g, "s")
+    .replace(/[^a-z]/g, "");
+  return !BLOCKED.some((stem) => flat.includes(stem));
+}
+
 function cleanName(value) {
   return String(value || "")
     .replace(/[^\p{L}\p{N} .'-]/gu, "")
     .trim()
     .slice(0, 16);
+}
+
+function playUrls(port) {
+  return PUBLIC_URL ? [PUBLIC_URL] : lanUrls(port);
 }
 
 function lanUrls(port) {
@@ -149,6 +177,7 @@ function sendLobby(room) {
     urls: room.urls,
     joinUrl: room.joinUrl,
     qr: room.qr,
+    public: !!PUBLIC_URL,
     players: publicPlayers(room),
   };
   for (const role of ["guide", "runner"]) {
@@ -362,10 +391,32 @@ function assign(ws, role) {
   return player;
 }
 
+function leaveRoom(ws) {
+  const room = rooms.get(ws.roomCode);
+  const player = ws.player;
+  ws.roomCode = null;
+  ws.player = null;
+  if (!room || !player || room[player.role] !== player) return;
+  dropPlayer(room, player.role);
+  if (!room.guide && !room.runner) forgetRoom(room.code);
+  else {
+    if (room.phase !== "lobby") {
+      room.phase = "lobby";
+      room.maze = null;
+    }
+    sendLobby(room);
+  }
+}
+
 async function createRoom(ws, role) {
   if (role !== "guide" && role !== "runner") role = "guide";
+  leaveRoom(ws);
+  if (rooms.size >= MAX_ROOMS) {
+    send(ws, { t: "err", text: "Teczka jest pełna. Spróbujcie za chwilę." });
+    return;
+  }
   const code = makeCode();
-  const urls = lanUrls(PORT_LIVE);
+  const urls = playUrls(PORT_LIVE);
   const joinUrl = urls[0] ? `${urls[0]}/?pokoj=${code}` : "";
   const room = {
     code,
@@ -425,6 +476,7 @@ async function joinRoom(ws, code) {
     send(ws, { t: "err", text: "Takiej komory nie ma w teczce." });
     return;
   }
+  if (ws.roomCode && ws.roomCode !== code) leaveRoom(ws);
   let role = null;
   if (!room.guide) role = "guide";
   else if (!room.runner) role = "runner";
@@ -565,8 +617,12 @@ async function onMessage(ws, msg) {
   }
   if (msg.t === "score" && room.phase === "result" && room.result === "win") {
     const name = cleanName(msg.name);
-    if (!name || ws.player.scored === room.round) return;
-    ws.player.scored = room.round;
+    if (!name || room.scoredRound === room.round) return;
+    if (!decent(name)) {
+      send(ws, { t: "err", text: "Teczka nie przyjmie tego imienia." });
+      return;
+    }
+    room.scoredRound = room.round;
     scores.push({
       name,
       time: Math.max(0, Math.round(room.roundT || 0)),
@@ -593,17 +649,7 @@ async function onMessage(ws, msg) {
   if (ws.player.role === "guide" && (msg.t === "ping" || msg.t === "seal" || msg.t === "veil" || msg.t === "call")) {
     return onGuide(room, msg);
   }
-  if (msg.t === "leave") {
-    dropPlayer(room, ws.player.role);
-    ws.roomCode = null;
-    ws.player = null;
-    if (!room.guide && !room.runner) forgetRoom(room.code);
-    else if (room.phase !== "lobby") {
-      room.phase = "lobby";
-      room.maze = null;
-    }
-    sendLobby(room);
-  }
+  if (msg.t === "leave") leaveRoom(ws);
 }
 
 function onClose(ws) {
@@ -612,8 +658,9 @@ function onClose(ws) {
   if (room[ws.player.role] === ws.player) {
     ws.player.ws = null;
     ws.player.goneAt = Date.now();
-    if (room.phase === "play") {
-      room.phase = "wait";
+    if (room.phase === "play" || room.phase === "result" || room.phase === "wait") {
+      // Przy płycie wyniku runda zostaje na płycie; następna komora i tak czeka na oboje.
+      if (room.phase === "play") room.phase = "wait";
       room.note = ws.player.role === "runner" ? "Latarnik zniknął z mapy." : "Kartograf zamilkł.";
       broadcastSnap(room);
     } else sendLobby(room);
@@ -629,7 +676,7 @@ app.use((req, res, next) => {
   next();
 });
 app.get("/siec", (_req, res) => {
-  res.json({ urls: lanUrls(PORT_LIVE) });
+  res.json({ urls: playUrls(PORT_LIVE), public: !!PUBLIC_URL });
 });
 app.get("/tablica", (_req, res) => {
   res.json({ scores: publicScores() });
@@ -638,10 +685,15 @@ app.use("/shared", express.static(path.join(root, "shared")));
 app.use(express.static(path.join(root, "public")));
 
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ server, maxPayload: 4096 });
 let PORT_LIVE = PORT;
 
 wss.on("connection", (ws) => {
+  ws.alive = true;
+  ws.on("pong", () => {
+    ws.alive = true;
+  });
+  ws.on("error", () => {});
   ws.on("message", (buf) => {
     let msg;
     try {
@@ -676,6 +728,22 @@ setInterval(() => {
   }
 }, DT * 1000);
 
+// Telefon z wygaszonym ekranem potrafi zostawić połączenie, które tylko udaje, że żyje.
+setInterval(() => {
+  for (const ws of wss.clients) {
+    if (!ws.alive) {
+      ws.terminate();
+      continue;
+    }
+    ws.alive = false;
+    try {
+      ws.ping();
+    } catch {
+      ws.terminate();
+    }
+  }
+}, HEARTBEAT_MS);
+
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE" && PORT_LIVE < PORT + 15) {
     PORT_LIVE += 1;
@@ -687,10 +755,11 @@ server.on("error", (err) => {
 
 server.listen(PORT, "0.0.0.0", () => {
   PORT_LIVE = server.address().port;
-  const urls = lanUrls(PORT_LIVE);
+  const urls = playUrls(PORT_LIVE);
   console.log("\n  ZA LABIRYNTEM");
   console.log(`  komputer  http://localhost:${PORT_LIVE}`);
-  if (urls.length) for (const url of urls) console.log(`  telefon   ${url}`);
+  if (PUBLIC_URL) console.log(`  publiczny ${PUBLIC_URL}`);
+  else if (urls.length) for (const url of urls) console.log(`  telefon   ${url}`);
   else console.log("  telefon   brak adresu w sieci — zostańcie na tym komputerze");
   console.log("");
 });

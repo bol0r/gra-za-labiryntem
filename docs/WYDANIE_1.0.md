@@ -6,19 +6,19 @@ Do wydania robimy tylko to, co jest na tej liście. Nowy pomysł dopisujemy do �
 
 ## 1. Gra w internecie
 
-- [ ] `PUBLIC_URL` w środowisku. Gdy jest ustawiony, kod QR, `joinUrl` i `GET /siec` biorą adres z niego. Bez niego zostaje sieć lokalna jak dziś.
-- [ ] Napisy zależne od sieci mówią prawdę w obu trybach: „Ten sam Wi-Fi, ta sama piwnica.” i „Zostańcie przy tym komputerze.”.
+- [x] `PUBLIC_URL` w środowisku. Gdy jest ustawiony, kod QR, `joinUrl` i `GET /siec` biorą adres z niego. Bez niego zostaje sieć lokalna jak dziś.
+- [x] Napisy zależne od sieci mówią prawdę w obu trybach: „Ten sam Wi-Fi, ta sama piwnica.” i „Zostańcie przy tym komputerze.”.
 - [ ] Hosting z WebSocketami, dokładnie jedna instancja, bo pokoje są w pamięci procesu.
 - [ ] Subdomena z HTTPS, na przykład `labirynt.deadnet.ovh`.
 
 ## 2. Serwer na publicznym adresie
 
-- [ ] `maxPayload` w `WebSocketServer` rzędu kilku KB. Dziś domyślne 100 MB.
-- [ ] `create` zamyka poprzedni pokój tego samego połączenia. Górny limit pokojów na proces.
-- [ ] Heartbeat ping/pong co około 10 s. Zablokowany telefon nie może długo udawać, że jest online.
-- [ ] Tablica: jedna wygrana daje jeden wpis. Blokada na pokój i rundę, nie na gracza.
-- [ ] Rozłączenie przy płycie wyniku przechodzi w czekanie, jak w trakcie rundy, zamiast wysyłać lobby.
-- [ ] Prosty filtr imion na tablicy.
+- [x] `maxPayload` w `WebSocketServer` rzędu kilku KB. Dziś domyślne 100 MB.
+- [x] `create` zamyka poprzedni pokój tego samego połączenia. Górny limit pokojów na proces (300).
+- [x] Heartbeat ping/pong co około 10 s. Zablokowany telefon nie może długo udawać, że jest online.
+- [x] Tablica: jedna wygrana daje jeden wpis. Blokada na pokój i rundę, nie na gracza.
+- [x] Rozłączenie przy płycie wyniku przechodzi w czekanie, jak w trakcie rundy, zamiast wysyłać lobby.
+- [x] Prosty filtr imion na tablicy.
 
 ## 3. Pierwsza komora
 

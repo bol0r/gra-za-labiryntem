@@ -109,6 +109,7 @@ const SHELL = new Set(["boot", "intro", "menu", "options", "story", "credits", "
 
 const queryCode = (new URLSearchParams(location.search).get("pokoj") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
 let hostLine = "";
+let netPublic = false;
 
 function send(obj) {
   if (state.ws && state.ws.readyState === 1) state.ws.send(JSON.stringify(obj));
@@ -578,7 +579,7 @@ function paintLobby() {
     ${state.qr ? `<img class="qr" alt="Kod QR komory ${state.code}" src="${state.qr}">` : ""}
     <p class="wait ${waiting ? "is-waiting" : "is-ready"}">${waitLine}</p>
     ${urls}
-    <p class="fine">Ten sam Wi-Fi, ta sama piwnica.</p>
+    <p class="fine">${netPublic ? "Drugie z was może być w innym mieście." : "Ten sam Wi-Fi, ta sama piwnica."}</p>
     <div class="roles">
       <button class="solid" type="button" data-act="start" ${state.both ? "" : "disabled"}>Zejdźcie</button>
       <button class="ghost" type="button" data-act="leave">Zostaw sprawę</button>
@@ -843,6 +844,8 @@ function showResult(snap) {
 }
 
 function onRound(msg) {
+  const submit = scoreForm.querySelector("button");
+  if (submit) submit.textContent = "Do teczki";
   state.maze = msg.maze;
   state.round = msg.round;
   applySeals(state.maze);
@@ -1456,6 +1459,7 @@ function connect() {
       state.both = !!msg.both;
       state.qr = msg.qr || state.qr;
       state.urls = msg.urls || state.urls;
+      if ("public" in msg) netPublic = !!msg.public;
       if (msg.role) state.role = msg.role;
       if (state.phase === "menu" || state.phase === "intro" || state.phase === "options" || state.phase === "story" || state.phase === "credits" || state.phase === "scores") return;
       setPhase("lobby");
@@ -1923,6 +1927,7 @@ async function loadHost() {
     const res = await fetch("/siec");
     const data = await res.json();
     const url = data.urls && data.urls[0];
+    netPublic = !!data.public;
     hostLine = url ? url.replace(/^https?:\/\//, "") : "";
   } catch {
     hostLine = "";
@@ -2140,7 +2145,7 @@ function toggleHelp() {
       <p>Zawołania: Stój, Cicho, Biegnij, W lewo, W prawo, Wstecz, Do serca. Zasłona na chwilę myli strażnika.</p>
       <p>Punkty: odłamki, klucz, ucieczka z pościgu i przejście komory.</p>`
       : `<p class="kicker">Pomoc</p><h2>Dwie role</h2>
-      <p>Mapa na telefonie, latarnia na komputerze. Ten sam Wi-Fi.</p>
+      <p>Mapa na telefonie, latarnia na komputerze. ${netPublic ? "Można też grać samemu: komputer i telefon." : "Ten sam Wi-Fi."}</p>
       <p>W grze P albo F1 otwiera tę tablicę. Latarnik i Kartograf dostają inny tekst.</p>`;
   helpCard.innerHTML = `${body}<div class="menu-list"><button type="button" id="help-close">Zamknij</button></div><p class="fine">P albo F1 · Ruina nie liczy czasu. Liczy kroki.</p>`;
   help.hidden = false;
