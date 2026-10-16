@@ -780,10 +780,31 @@ function drawDescentNotes(ctx, w, h, t) {
   }
 }
 
-function drawStillNotes(ctx, w, h) {
-  const gap = Math.max(20, Math.min(30, h * 0.038));
-  const titleSize = Math.min(64, Math.max(15, w * 0.07));
-  const yTitle = h * 0.22 + gap * 1.15;
+function stillTitleLayout(w, h) {
+  const rows = [
+    ["PLANETA BEZ NAZWY", SANS, "#c4a48a", 0.026, 3],
+    ["Za labiryntem", SERIF, "#e7e1d6", 0.07, 0],
+    ["2026", SANS, "#c4a48a", 0.032, 5],
+  ];
+  const sizes = rows.map((row) => Math.min(64, Math.max(15, w * row[3])));
+  const pad = Math.max(10, Math.min(22, Math.min(w, h) * 0.018));
+  const gap01 = sizes[0] * 0.5 + sizes[1] * 0.5 + pad;
+  const gap12 = sizes[1] * 0.5 + sizes[2] * 0.5 + pad;
+  const block = sizes[0] * 0.5 + gap01 + gap12 + sizes[2] * 0.5;
+  const minTop = sizes[0] * 0.55 + 6;
+  let top = Math.max(minTop, h * 0.16);
+  const floor = h * 0.62;
+  if (top + block > floor) top = Math.max(minTop, floor - block);
+  const y0 = top + sizes[0] * 0.5;
+  return {
+    rows,
+    sizes,
+    ys: [y0, y0 + gap01, y0 + gap01 + gap12],
+    bottom: top + block,
+  };
+}
+
+function drawStillNotes(ctx, w, h, below) {
   const size = Math.min(16, Math.max(13, w * 0.022));
   const x = w * 0.1;
   const maxW = w * 0.8;
@@ -804,9 +825,10 @@ function drawStillNotes(ctx, w, h) {
   }
   if (line) lines.push(line);
   const lineH = size * 1.45;
-  let y = yTitle + titleSize * 0.62 + 24;
-  const bottom = h - 96;
-  if (y + lines.length * lineH > bottom) y = Math.max(8, bottom - lines.length * lineH);
+  const after = below + Math.max(16, h * 0.03);
+  let y = after;
+  const bottom = h - 12;
+  if (y + lines.length * lineH > bottom) y = Math.max(after, bottom - lines.length * lineH);
   for (const row of lines) {
     ctx.fillText(row, x, y);
     y += lineH;
@@ -833,26 +855,21 @@ function drawTitle(ctx, w, h, t) {
 }
 
 function drawStill(ctx, w, h) {
+  const layout = stillTitleLayout(w, h);
   const cx = w * 0.5;
   const maxW = w * 0.9;
-  const gap = Math.max(20, Math.min(30, h * 0.038));
-  let y = h * 0.22;
-  const rows = [
-    ["PLANETA BEZ NAZWY", SANS, "#c4a48a", 0.026, 3],
-    ["Za labiryntem", SERIF, "#e7e1d6", 0.07, 0],
-    ["2026", SANS, "#c4a48a", 0.032, 5],
-  ];
-  for (const row of rows) {
-    label(ctx, row[0], cx, y, {
+  for (let i = 0; i < layout.rows.length; i++) {
+    const row = layout.rows[i];
+    label(ctx, row[0], cx, layout.ys[i], {
       alpha: 1,
-      size: Math.min(64, Math.max(15, w * row[3])),
+      size: layout.sizes[i],
       font: row[1],
       color: row[2],
       spacing: row[4],
       maxW,
     });
-    y += row[0] === "Za labiryntem" ? gap * 1.15 : gap;
   }
+  return layout.bottom;
 }
 
 export function paintIntroFrame(ctx, w, h, t, reduced) {
@@ -864,8 +881,8 @@ export function paintIntroFrame(ctx, w, h, t, reduced) {
     ctx.fillStyle = "rgba(7, 7, 6, 0.62)";
     ctx.fillRect(0, 0, w, h);
     vignette(ctx, w, h, 0.72);
-    drawStill(ctx, w, h);
-    drawStillNotes(ctx, w, h);
+    const below = drawStill(ctx, w, h);
+    drawStillNotes(ctx, w, h, below);
     ctx.globalAlpha = 1;
     return;
   }
