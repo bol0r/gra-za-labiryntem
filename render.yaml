@@ -1,0 +1,15 @@
+# Render Blueprint: jeden darmowy serwis Node. Pokoje są w pamięci, więc zawsze jedna instancja.
+# Adres onrender.com serwer bierze sam z RENDER_EXTERNAL_URL. Własną domenę wpisz potem w PUBLIC_URL.
+services:
+  - type: web
+    name: za-labiryntem
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /zdrowie
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"

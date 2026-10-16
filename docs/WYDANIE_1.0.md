@@ -9,6 +9,8 @@ Do wydania robimy tylko to, co jest na tej liście. Nowy pomysł dopisujemy do �
 - [x] `PUBLIC_URL` w środowisku. Gdy jest ustawiony, kod QR, `joinUrl` i `GET /siec` biorą adres z niego. Bez niego zostaje sieć lokalna jak dziś.
 - [x] Napisy zależne od sieci mówią prawdę w obu trybach: „Ten sam Wi-Fi, ta sama piwnica.” i „Zostańcie przy tym komputerze.”.
 - [ ] Hosting z WebSocketami, dokładnie jedna instancja, bo pokoje są w pamięci procesu.
+  Render, plan Free (`render.yaml`), Frankfurt. Budzik z cron-job.org co 10 min na `/zdrowie`, bo darmowy serwis zasypia po 15 min. Tablica zeruje się przy restarcie.
+- [ ] Budzik co 10 min na `/zdrowie`.
 - [ ] Subdomena z HTTPS, na przykład `labirynt.deadnet.ovh`.
 
 ## 2. Serwer na publicznym adresie

@@ -24,7 +24,7 @@ Serwer słucha na `0.0.0.0`, domyślnie port `8787` (`PORT` w środowisku go zmi
 
 Oba urządzenia muszą być w tej samej sieci Wi-Fi. Telefon nie wejdzie na `localhost` komputera. Przy pierwszym starcie macOS może zapytać, czy pozwolić Node na połączenia przychodzące.
 
-Na hostingu ustaw `PUBLIC_URL` (na przykład `https://labirynt.deadnet.ovh`). Wtedy kod QR, adres drugiego ekranu i `GET /siec` biorą ten adres zamiast sieci lokalnej. Serwer musi działać w jednej instancji, bo pokoje są w pamięci.
+Gra stoi na Render (`render.yaml`, plan Free). Tam adres `onrender.com` przychodzi sam w `RENDER_EXTERNAL_URL`, a `GET /zdrowie` jest dla budzika. Na innym hostingu ustaw `PUBLIC_URL` (na przykład `https://labirynt.deadnet.ovh`). Wtedy kod QR, adres drugiego ekranu i `GET /siec` biorą ten adres zamiast sieci lokalnej. Serwer musi działać w jednej instancji, bo pokoje są w pamięci.
 
 Na komputerze wybierz **Przy mapie**. Na telefonie zeskanuj kod QR albo wpisz cztery znaki. Potem **Zejdźcie**.
 

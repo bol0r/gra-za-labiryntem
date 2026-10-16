@@ -24,7 +24,8 @@ const DT = 1 / 20;
 const REJOIN_MS = 120000;
 const MAX_ROOMS = 300;
 const HEARTBEAT_MS = 10000;
-const PUBLIC_URL = String(process.env.PUBLIC_URL || "").trim().replace(/\/+$/, "");
+// Na Render adres serwisu przychodzi sam w RENDER_EXTERNAL_URL; własna domena idzie w PUBLIC_URL.
+const PUBLIC_URL = String(process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || "").trim().replace(/\/+$/, "");
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CALLS = new Set(["stop", "quiet", "run", "left", "right", "back", "heart"]);
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -674,6 +675,10 @@ app.use((req, res, next) => {
   if (req.path.startsWith("/tex/")) res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
   else res.setHeader("Cache-Control", "no-store");
   next();
+});
+// Puka tu darmowy budzik (np. cron-job.org), żeby serwer na darmowym planie nie zasypiał.
+app.get("/zdrowie", (_req, res) => {
+  res.type("text/plain").send("ok");
 });
 app.get("/siec", (_req, res) => {
   res.json({ urls: playUrls(PORT_LIVE), public: !!PUBLIC_URL });
