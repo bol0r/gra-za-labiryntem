@@ -7,6 +7,7 @@ import express from "express";
 import { WebSocketServer } from "ws";
 import { generateMaze, mazeSize } from "./maze.js";
 import { appendRun, pathPercent, runRecord } from "./runs.js";
+import { createBeasts, stepBeasts } from "./creatures.js";
 import { createSentinel, roundOutcome, stepSentinel } from "./sentinel.js";
 import {
   SPRINT,
@@ -173,6 +174,7 @@ function snapshot(room) {
     immunity: Math.max(0, room.immunity || 0),
     ex: ex ? { x: ex.x, y: ex.y, a: ex.a, sprint: !!ex.sprint, quiet: !!ex.quiet } : null,
     sn: sn ? { x: sn.x, y: sn.y, a: sn.a, state: sn.state } : null,
+    beasts: (room.beasts || []).map((b) => ({ x: b.x, y: b.y, a: b.a, follow: !!b.follow })),
     seals: room.maze ? sealStates(room) : [],
     ping: room.ping ? { x: room.ping.x, y: room.ping.y, ttl: room.ping.ttl } : null,
     call: room.call ? { id: room.call.id, ttl: room.call.ttl } : null,
@@ -212,6 +214,7 @@ function sendRound(room) {
       start: maze.start,
       relic: maze.relic,
       patrol: maze.patrol,
+      trails: maze.trails || [],
       loot: (maze.loot || []).map((item) => ({ kind: item.kind, x: item.x, y: item.y, taken: !!item.taken })),
     },
     spawn: { x: room.explorer.x, y: room.explorer.y, a: room.explorer.a },
@@ -235,6 +238,7 @@ function beginRound(room) {
     last: Date.now(),
   };
   room.sentinel = createSentinel(room.maze);
+  room.beasts = createBeasts(room.maze);
   room.phase = "play";
   room.roundT = 0;
   room.wake = 0;
@@ -312,6 +316,7 @@ function tick(room) {
       }
       gather(room);
       stepSentinel(room, DT);
+      stepBeasts(room, DT);
       const outcome = roundOutcome(room);
       if (outcome) finishRound(room, outcome);
     }

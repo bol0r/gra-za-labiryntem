@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createBeasts, stepBeasts } from "./creatures.js";
 import { generateMaze } from "./maze.js";
 import {
   canStand,
@@ -62,6 +63,69 @@ function patrolCrosses(maze) {
     else offRoute += 1;
   }
   assert.ok(onRoute > 0 && offRoute > 0, "patrol should cross the path to the heart");
+  const trails = maze.trails || [];
+  assert.ok(trails.length === 2 || trails.length === 3, `expected 2 or 3 trails, got ${trails.length}`);
+  const used = new Set();
+  for (const trail of trails) {
+    assert.ok(trail.length >= 3, "trail too short");
+    for (let i = 0; i < trail.length; i++) {
+      const cell = trail[i];
+      const key = cell.y * maze.w + cell.x;
+      assert.equal(used.has(key), false, "trails overlap");
+      used.add(key);
+      assert.ok(!(cell.x === maze.start.x && cell.y === maze.start.y));
+      assert.ok(!(cell.x === maze.relic.x && cell.y === maze.relic.y));
+      if (i === 0) continue;
+      const prev = trail[i - 1];
+      assert.equal(Math.abs(cell.x - prev.x) + Math.abs(cell.y - prev.y), 1, "trail skips a cell");
+    }
+  }
+}
+
+function beastDropsTrail(maze) {
+  const room = {
+    maze,
+    beasts: createBeasts(maze),
+    explorer: { x: maze.start.x + 0.5, y: maze.start.y + 0.5, quiet: false },
+    veil: 0,
+    immunity: 0,
+  };
+  assert.equal(room.beasts.length, maze.trails.length);
+  const beast = room.beasts[0];
+  let seen = null;
+  for (let y = 0; y < maze.h && !seen; y++) {
+    for (let x = 0; x < maze.w && !seen; x++) {
+      const px = x + 0.5;
+      const py = y + 0.5;
+      const dist = Math.hypot(px - beast.x, py - beast.y);
+      if (dist < 1.4 || dist > 3.2) continue;
+      if (!hasLos(maze, beast.x, beast.y, px, py)) continue;
+      seen = { x: px, y: py, dist };
+    }
+  }
+  assert.ok(seen, "a weaker creature can see an open cell");
+  room.explorer.x = seen.x;
+  room.explorer.y = seen.y;
+  const before = Math.hypot(beast.x - seen.x, beast.y - seen.y);
+  for (let i = 0; i < 50; i++) stepBeasts(room, 1 / 20);
+  const after = Math.hypot(beast.x - seen.x, beast.y - seen.y);
+  assert.ok(after < before - 0.25, `should follow while seen and moving (${before} -> ${after})`);
+  assert.equal(beast.follow, true);
+  room.explorer.quiet = true;
+  for (let i = 0; i < 8; i++) stepBeasts(room, 1 / 20);
+  assert.equal(beast.follow, false, "standing drops the trail");
+  const hidden = { x: maze.relic.x + 0.5, y: maze.relic.y + 0.5 };
+  room.explorer.quiet = false;
+  room.explorer.x = hidden.x;
+  room.explorer.y = hidden.y;
+  if (hasLos(maze, beast.x, beast.y, hidden.x, hidden.y) && Math.hypot(hidden.x - beast.x, hidden.y - beast.y) < 3.4) {
+    room.explorer.x = maze.start.x + 0.5;
+    room.explorer.y = maze.start.y + 0.5;
+  }
+  for (let i = 0; i < 5; i++) stepBeasts(room, 1 / 20);
+  const far = Math.hypot(room.explorer.x - beast.x, room.explorer.y - beast.y);
+  const looks = far < 3.4 && hasLos(maze, beast.x, beast.y, room.explorer.x, room.explorer.y);
+  if (!looks) assert.equal(beast.follow, false, "losing sight drops the trail");
 }
 
 for (const size of [15, 19, 21]) {
@@ -104,7 +168,9 @@ for (const size of [15, 19, 21]) {
   assert.equal(Math.floor(body.x), maze.relic.x);
   assert.equal(Math.floor(body.y), maze.relic.y);
   const seconds = (steps / 20).toFixed(1);
-  console.log(`maze ${size} path ${path.length} seals ${maze.seals.length} walk ${seconds}s`);
+  console.log(`maze ${size} path ${path.length} seals ${maze.seals.length} trails ${maze.trails.length} walk ${seconds}s`);
 }
+
+beastDropsTrail(generateMaze(15, 12345));
 
 console.log("selfcheck ok");

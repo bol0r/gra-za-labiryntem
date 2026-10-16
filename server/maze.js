@@ -290,6 +290,7 @@ export function generateMaze(size, seed) {
   maze.patrol = patrol;
   maze.pathLength = path.length;
   maze.loot = placeLoot(maze, rng, start, relic);
+  maze.trails = placeTrails(maze, patrol);
   return maze;
 }
 
@@ -398,6 +399,65 @@ function placePatrol(maze, path) {
     patrol.push({ x: ahead.x, y: ahead.y });
   }
   return patrol;
+}
+
+function traceTrail(maze, start, banned, limit) {
+  const route = [{ x: start.x, y: start.y }];
+  let x = start.x;
+  let y = start.y;
+  let prev = null;
+  while (route.length < limit) {
+    const next = neighbors(maze, x, y).filter(([nx, ny]) => {
+      if (prev && nx === prev[0] && ny === prev[1]) return false;
+      return !banned.has(ny * maze.w + nx);
+    });
+    if (!next.length) break;
+    if (prev && next.length > 1) break;
+    prev = [x, y];
+    x = next[0][0];
+    y = next[0][1];
+    route.push({ x, y });
+  }
+  return route;
+}
+
+function placeTrails(maze, patrol) {
+  const banned = new Set();
+  const ban = (x, y) => banned.add(y * maze.w + x);
+  for (const cell of patrol || []) ban(cell.x, cell.y);
+  if (maze.start) ban(maze.start.x, maze.start.y);
+  if (maze.relic) ban(maze.relic.x, maze.relic.y);
+  const ends = [];
+  for (let y = 0; y < maze.h; y++) {
+    for (let x = 0; x < maze.w; x++) {
+      if (banned.has(y * maze.w + x)) continue;
+      if (neighbors(maze, x, y).length === 1) ends.push({ x, y });
+    }
+  }
+  ends.sort((a, b) => {
+    const da = Math.hypot(a.x - maze.start.x, a.y - maze.start.y);
+    const db = Math.hypot(b.x - maze.start.x, b.y - maze.start.y);
+    return db - da;
+  });
+  const trails = [];
+  const take = (route) => {
+    if (route.length < 3 || trails.length >= 3) return;
+    trails.push(route);
+    for (const cell of route) ban(cell.x, cell.y);
+  };
+  for (const end of ends) {
+    if (trails.length >= 3) break;
+    if (banned.has(end.y * maze.w + end.x)) continue;
+    take(traceTrail(maze, end, banned, 6));
+  }
+  for (let y = 0; y < maze.h && trails.length < 2; y++) {
+    for (let x = 0; x < maze.w && trails.length < 2; x++) {
+      if (banned.has(y * maze.w + x)) continue;
+      if (neighbors(maze, x, y).length < 2) continue;
+      take(traceTrail(maze, { x, y }, banned, 5));
+    }
+  }
+  return trails;
 }
 
 function placeLoot(maze, rng, start, relic) {

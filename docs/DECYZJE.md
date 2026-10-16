@@ -24,6 +24,10 @@ Serwer i klient importują ten sam moduł: kolizje, krok latarnika, raycast, lin
 
 Latarnik symuluje ruch u siebie i wysyła pozycję. Serwer przyjmuje ją, jeśli nie wchodzi w ścianę i nie przeskakuje szybciej niż bieg. Głośność (cisza, chód, bieg) liczy się z rzeczywistego przesunięcia, nie z flagi „biegnę”. Ma być czuły ster na telefonie. To nie jest zabezpieczenie turniejowe.
 
+## Słabsze stwory obok jednego łowcy
+
+W komorze zostaje jeden łowca, taki jak dotychczas. Obok niego chodzą dwa albo trzy słabsze stwory, po stałych trasach, nie zamiast niego. Są wolniejsze. Gubią ślad, gdy latarnik zniknie im z oczu albo stanie. Nie zamykają przejścia i nie da się z nimi walczyć. Rundę kończy tylko łowca, gdy dogoni.
+
 ## Strażnik czyta hałas, nie ma minimapy u latarnika
 
 Cisza: krótki wzrok, zero słuchu. Chód: średni wzrok, słuch tylko z bliska. Bieg: daleki wzrok i słuch przez ściany. Latarnik nie dostaje kierunku do serca ani mapy. Bliskość strażnika słychać i widać na winiecie. Kierunek daje kartograf.

@@ -925,6 +925,7 @@ function viewSnap() {
         ...b,
         ex: lerpEnt(a.ex, b.ex, u),
         sn: lerpEnt(a.sn, b.sn, u),
+        beasts: lerpList(a.beasts, b.beasts, u),
       };
       break;
     }
@@ -935,6 +936,11 @@ function viewSnap() {
 function lerpEnt(a, b, u) {
   if (!a || !b) return b || a;
   return { ...b, x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, a: lerpAngle(a.a, b.a, u) };
+}
+
+function lerpList(a, b, u) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return b || a || [];
+  return b.map((item, i) => lerpEnt(a[i], item, u));
 }
 
 function controlHint() {
@@ -1360,6 +1366,7 @@ function draw(time) {
       maze: state.maze,
       body,
       sentinel: snap.sn,
+      beasts: snap.beasts,
       ping: snap.ping,
       time,
     });
@@ -1376,6 +1383,7 @@ function draw(time) {
     maze: state.maze,
     explorer,
     sentinel: snap.sn,
+    beasts: snap.beasts,
     ping: snap.ping,
     time,
     wake: snap.wake || 0,
@@ -2080,12 +2088,14 @@ function toggleHelp() {
       <p>N: nasłuch, skąd strażnik. K: stuk, znak dla mapy. Na padzie to samo robią LB i RB.</p>
       <p>Klucz i odłamki leżą w komorach. Podniesienie daje punkty. Nie są konieczne, żeby dojść do serca.</p>
       <p>Stań przy bursztynowych drzwiach. Wtedy osoba przy mapie może je otworzyć.</p>
-      <p>Stanie w miejscu jest ciche. Bieg słychać przez ściany. Ucieczka z pościgu też daje punkty.</p>`
+      <p>Stanie w miejscu jest ciche. Bieg słychać przez ściany. Ucieczka z pościgu też daje punkty.</p>
+      <p>Słabsze stwory chodzą stałymi trasami. Stój albo zejdź im z oczu, a gubią ślad. Nie da się z nimi walczyć.</p>`
     : guide
       ? `<p class="kicker">Kartograf</p><h2>Przy mapie</h2>
       <p>Mapa jest na telefonie. Latarnik na komputerze.</p>
       <p>Klik w korytarz stawia znak. Klik w drzwi otwiera je tylko wtedy, gdy latarnik przy nich stoi.</p>
       <p>Zawołania: Stój, Cicho, Biegnij, Lewo, Prawo, Wstecz, Do serca. Zasłona na chwilę myli strażnika.</p>
+      <p>Oprócz łowcy są dwa albo trzy słabsze stwory na stałych trasach. Stanie i brak wzroku gubi im ślad.</p>
       <p>Punkty: odłamki, klucz, ucieczka z pościgu i przejście komory.</p>`
       : `<p class="kicker">Pomoc</p><h2>Dwie role</h2>
       <p>Mapa na telefonie, latarnia na komputerze. Ten sam Wi-Fi.</p>

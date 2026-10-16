@@ -4,6 +4,12 @@ Dalej na `master`. Kierunek wizualny (kamień, popiół, miedź, bursztyn) zosta
 
 ## Zrobione
 
+### Słabsze stwory obok łowcy
+
+W komorze zostaje jeden łowca. Obok niego chodzą dwa albo trzy słabsze stwory po stałych trasach: 0,62 na trasie i 0,78, gdy idą śladem, wolniej niż obchód łowcy. Gubią ślad, gdy latarnik stanie albo zniknie z oczu. Nie zamykają przejścia i nie da się z nimi walczyć. Rundę kończy tylko łowca. Decyzja jest w `docs/DECYZJE.md`.
+
+Sprawdzone: `npm run check`, siatki 15, 19 i 21 po 40 nasion, zawsze dwie albo trzy trasy, a ślad odpada, gdy latarnik stanie. Pokój NPXV: trzy stwory i łowca w obchodzie, na mapie brązowe trasy obok zielonego łowcy. Konsola pusta, serwer bez błędu.
+
 ### Zawołania Wstecz i Do serca
 
 Kartograf ma dwa znaki więcej, w tej samej siatce: Wstecz i Do serca, z ikoną i skrótem 6 i 7. Idą tym samym protokołem co Stój i Lewo. Reszta tablicy zostaje. Napis „Do serca” ma ciaśniejszy odstęp liter, żeby mieścił się w komórce.

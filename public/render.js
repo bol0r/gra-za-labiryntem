@@ -822,6 +822,7 @@ export function drawExplorer(canvas, view) {
 
   const sprites = [];
   if (view.sentinel) sprites.push({ ...view.sentinel, kind: "sentinel" });
+  for (const beast of view.beasts || []) sprites.push({ ...beast, kind: "beast" });
   if (maze.relic) sprites.push({ x: maze.relic.x + 0.5, y: maze.relic.y + 0.5, kind: "relic" });
   if (view.ping) sprites.push({ x: view.ping.x, y: view.ping.y, kind: "ping" });
   for (const seal of maze.seals || []) {
@@ -843,7 +844,7 @@ export function drawExplorer(canvas, view) {
     return db - da;
   });
   for (const sprite of sprites) {
-    if ((sprite.kind === "sentinel" || sprite.kind === "seal" || sprite.kind === "key" || sprite.kind === "shard") && !hasLos(maze, body.x, body.y, sprite.x, sprite.y)) continue;
+    if ((sprite.kind === "sentinel" || sprite.kind === "beast" || sprite.kind === "seal" || sprite.kind === "key" || sprite.kind === "shard") && !hasLos(maze, body.x, body.y, sprite.x, sprite.y)) continue;
     blitSprite(data, z, w, h, horizon, { ...body, a: aim }, sprite, time);
   }
 
@@ -920,8 +921,8 @@ function blitSprite(data, z, w, h, horizon, body, sprite, time) {
   const fade = (1 - fog * fog) * (0.22 + 0.78 * cone);
   if (fade < 0.04) return;
   const screenX = w * 0.5 + Math.tan(ang) * focal;
-  const tall = sprite.kind === "sentinel" ? 0.95 : sprite.kind === "ping" ? 1.1 : pickup ? 0.7 : 0.72;
-  const aspect = sprite.kind === "sentinel" ? 0.46 : sprite.kind === "ping" ? 0.16 : 1;
+  const tall = sprite.kind === "sentinel" ? 0.95 : sprite.kind === "beast" ? 0.62 : sprite.kind === "ping" ? 1.1 : pickup ? 0.7 : 0.72;
+  const aspect = sprite.kind === "sentinel" ? 0.46 : sprite.kind === "beast" ? 0.4 : sprite.kind === "ping" ? 0.16 : 1;
   const size = mark ? Math.min(h * 0.46, (h * 0.72) / dist) : Math.min(h * 0.92, (h * tall) / dist);
   const width = Math.max(2, Math.floor(mark ? size : size * aspect));
   const left = Math.floor(screenX - width * 0.5);
@@ -960,6 +961,7 @@ function spriteColor(sprite, u, v, time) {
   if (sprite.kind === "key") return glyphMark(u, v, time, true);
   if (sprite.kind === "shard") return glyphMark(u, v, time, false);
   if (sprite.kind === "sentinel") return sentinelShade(u, v, time, sprite.state);
+  if (sprite.kind === "beast") return beastShade(u, v, time);
   const cx = u - 0.5;
   const cy = v - 0.56;
   const d = Math.abs(cx) * 1.15 + Math.abs(cy);
@@ -1005,6 +1007,25 @@ function sealGlow(u, v, time) {
   const a = (1.02 - hex) * 1.6 * pulse;
   if (a < 0.08) return null;
   return [214, 140, 48, a];
+}
+
+function beastShade(u, v, time) {
+  const x = u - 0.5;
+  const y = v;
+  const head = Math.hypot(x / 0.16, (y - 0.22) / 0.1);
+  let half = 0;
+  if (y >= 0.32 && y < 0.5) half = 0.16 + (y - 0.32) * 1.2;
+  else if (y >= 0.5 && y < 0.82) half = 0.34 - (y - 0.5) * 0.2;
+  else if (y >= 0.82 && y < 0.98) half = 0.26 - (y - 0.82) * 0.7;
+  const body = half > 0 && Math.abs(x) < half;
+  const headOn = head < 1 && y < 0.36;
+  const pulse = 0.86 + 0.1 * Math.sin(time * 2.4);
+  if (headOn || body) {
+    const edge = headOn ? head : Math.abs(x) / half;
+    const shade = (1 - edge * 0.4) * pulse;
+    return [118 * shade, 78 * shade, 48 * shade, 0.9];
+  }
+  return null;
 }
 
 function sentinelShade(u, v, time, state) {
@@ -1087,7 +1108,7 @@ export function drawVignette(ctx, w, h, threat, veil) {
 }
 
 export function drawGuide(ctx, w, h, view) {
-  const { maze, explorer, sentinel, ping, time, wake } = view;
+  const { maze, explorer, sentinel, beasts, ping, time, wake } = view;
   ctx.clearRect(0, 0, w, h);
   const bg = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, Math.max(w, h) * 0.7);
   bg.addColorStop(0, "#161410");
@@ -1209,6 +1230,21 @@ export function drawGuide(ctx, w, h, view) {
   ctx.stroke();
   ctx.setLineDash([]);
 
+  ctx.setLineDash([2, 5]);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(120, 86, 52, 0.85)";
+  ctx.beginPath();
+  for (const trail of maze.trails || []) {
+    trail.forEach((cell, index) => {
+      const x = toX(cell.x + 0.5);
+      const y = toY(cell.y + 0.5);
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
   for (const seal of maze.seals || []) {
     if (seal.open) continue;
     const midX = seal.axis === "v" ? seal.x : seal.x + 0.5;
@@ -1229,6 +1265,9 @@ export function drawGuide(ctx, w, h, view) {
     ctx.globalAlpha = beat;
     drawActor(ctx, toX(sentinel.x), toY(sentinel.y), sentinel.a, "guard", size * (hunting ? 1.15 * beat : 1));
     ctx.restore();
+  }
+  for (const beast of beasts || []) {
+    drawActor(ctx, toX(beast.x), toY(beast.y), beast.a, "beast", size * 0.72);
   }
   drawActor(ctx, ex, ey, explorer.a, "lantern", size * 1.15);
   drawHeartMark(ctx, relic, toX, toY, size, time);
@@ -1387,11 +1426,12 @@ function stoneWall(ctx, x, y, w, h, shadow) {
 
 function drawActor(ctx, x, y, angle, kind, size) {
   const guard = kind === "guard";
+  const beast = kind === "beast";
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(angle + Math.PI / 2);
   const s = Math.max(8, size * 0.34);
-  ctx.fillStyle = guard ? "#243024" : "#3a2418";
+  ctx.fillStyle = guard ? "#243024" : beast ? "#3a2c24" : "#3a2418";
   ctx.beginPath();
   ctx.moveTo(0, -s);
   ctx.lineTo(s * 0.55, s * 0.15);
@@ -1400,11 +1440,11 @@ function drawActor(ctx, x, y, angle, kind, size) {
   ctx.lineTo(-s * 0.55, s * 0.15);
   ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = guard ? "#8aa36a" : "#e2b07a";
+  ctx.fillStyle = guard ? "#8aa36a" : beast ? "#c4a080" : "#e2b07a";
   ctx.beginPath();
   ctx.arc(0, -s * 0.15, guard ? s * 0.18 : s * 0.22, 0, Math.PI * 2);
   ctx.fill();
-  if (!guard) {
+  if (!guard && !beast) {
     ctx.fillStyle = "#f6e2b8";
     ctx.beginPath();
     ctx.arc(0, -s * 0.72, s * 0.16, 0, Math.PI * 2);
