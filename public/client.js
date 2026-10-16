@@ -447,7 +447,7 @@ function paintCredits() {
     <p class="kicker">Twórcy</p>
     <h1>Za labiryntem</h1>
     <p class="studio">Dead Net Lab</p>
-    <p class="kicker">Testerzy</p>
+    <p class="kicker">Schodzili przed wami</p>
     <ul class="credits">
       <li>Mariusz B.</li>
       <li>Pawełek</li>
